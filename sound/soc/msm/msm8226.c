@@ -99,6 +99,7 @@ static struct wcd9xxx_mbhc_config mbhc_cfg = {
 	.read_fw_bin = false,
 	.calibration = NULL,
 	.micbias = MBHC_MICBIAS2,
+	.anc_micbias = MBHC_MICBIAS2,
 	.mclk_cb_fn = msm_snd_enable_codec_ext_clk,
 	.mclk_rate = TAPAN_EXT_CLK_RATE,
 	.gpio = 0,
@@ -116,13 +117,9 @@ static struct wcd9xxx_mbhc_config mbhc_cfg = {
 	.cs_enable_flags = (1 << MBHC_CS_ENABLE_POLLING |
 			    1 << MBHC_CS_ENABLE_INSERTION |
 			    1 << MBHC_CS_ENABLE_REMOVAL),
-#ifdef CONFIG_HUAWEI_KERNEL
-	.do_recalibration = false,
-	.use_vddio_meas = false,
-#else
 	.do_recalibration = true,
 	.use_vddio_meas = true,
-#endif
+	.enable_anc_mic_detect = false,
 };
 
 struct msm_auxpcm_gpio {
