@@ -1123,6 +1123,7 @@ static int mdss_mdp_ctl_start_sub(struct mdss_mdp_ctl *ctl, bool handoff)
 int mdss_mdp_ctl_start(struct mdss_mdp_ctl *ctl, bool handoff)
 {
 	struct mdss_mdp_ctl *sctl;
+	struct mdss_data_type *mdata = mdss_mdp_get_mdata();
 	int ret = 0;
 
 	if (ctl->power_on) {
@@ -1175,6 +1176,7 @@ int mdss_mdp_ctl_start(struct mdss_mdp_ctl *ctl, bool handoff)
 			mdss_mdp_ctl_write(ctl, MDSS_MDP_REG_CTL_PACK_3D, 0);
 		}
 	}
+	mdss_mdp_hist_intr_setup(&mdata->hist_intr, MDSS_IRQ_RESUME);
 
 	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
 error:
@@ -1187,6 +1189,7 @@ int mdss_mdp_ctl_stop(struct mdss_mdp_ctl *ctl)
 {
 	struct mdss_mdp_ctl *sctl;
 	int ret = 0;
+	struct mdss_data_type *mdata = mdss_mdp_get_mdata();
 	u32 off;
 
 	if (!ctl->power_on) {
@@ -1201,6 +1204,8 @@ int mdss_mdp_ctl_stop(struct mdss_mdp_ctl *ctl)
 	mutex_lock(&ctl->lock);
 
 	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
+
+	mdss_mdp_hist_intr_setup(&mdata->hist_intr, MDSS_IRQ_SUSPEND);
 
 	if (ctl->stop_fnc)
 		ret = ctl->stop_fnc(ctl);
