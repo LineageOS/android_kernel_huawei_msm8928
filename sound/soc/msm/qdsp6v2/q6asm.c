@@ -1705,6 +1705,7 @@ static int __q6asm_open_read(struct audio_client *ac,
 			rc);
 		goto fail_cmd;
 	}
+	ac->io_mode |= TUN_READ_IO_MODE;
 	return 0;
 fail_cmd:
 	return -EINVAL;
@@ -1798,6 +1799,7 @@ static int __q6asm_open_write(struct audio_client *ac, uint32_t format,
 			rc);
 		goto fail_cmd;
 	}
+	ac->io_mode |= TUN_WRITE_IO_MODE;
 	return 0;
 fail_cmd:
 	return -EINVAL;
@@ -4221,9 +4223,11 @@ static void q6asm_reset_buf_state(struct audio_client *ac)
 {
 	int cnt = 0;
 	int loopcnt = 0;
+	int used;
 	struct audio_port_data *port = NULL;
 
 	if (ac->io_mode & SYNC_IO_MODE) {
+		used = (ac->io_mode & TUN_WRITE_IO_MODE ? 1 : 0);
 		mutex_lock(&ac->cmd_lock);
 		for (loopcnt = 0; loopcnt <= OUT; loopcnt++) {
 			port = &ac->port[loopcnt];
@@ -4233,7 +4237,7 @@ static void q6asm_reset_buf_state(struct audio_client *ac)
 			while (cnt >= 0) {
 				if (!port->buf)
 					continue;
-				port->buf[cnt].used = 1;
+				port->buf[cnt].used = used;
 				cnt--;
 			}
 		}
