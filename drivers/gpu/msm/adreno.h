@@ -377,46 +377,6 @@ struct adreno_gpudev {
 	void (*postmortem_dump)(struct adreno_device *adreno_dev);
 };
 
-/*
- * struct adreno_ft_data - Structure that contains all information to
- * perform gpu fault tolerance
- * @ib1 - IB1 that the GPU was executing when hang happened
- * @context_id - Context which caused the hang
- * @global_eop - eoptimestamp at time of hang
- * @rb_buffer - Buffer that holds the commands from good contexts
- * @rb_size - Number of valid dwords in rb_buffer
- * @bad_rb_buffer - Buffer that holds commands from the hanging context
- * bad_rb_size - Number of valid dwords in bad_rb_buffer
- * @good_rb_buffer - Buffer that holds commands from good contexts
- * good_rb_size - Number of valid dwords in good_rb_buffer
- * @last_valid_ctx_id - The last context from which commands were placed in
- * ringbuffer before the GPU hung
- * @step - Current fault tolerance step being executed
- * @err_code - Fault tolerance error code
- * @fault - Indicates whether the hang was caused due to a pagefault
- * @start_of_replay_cmds - Offset in ringbuffer from where commands can be
- * replayed during fault tolerance
- * @replay_for_snapshot - Offset in ringbuffer where IB's can be saved for
- * replaying with snapshot
- */
-struct adreno_ft_data {
-	unsigned int ib1;
-	unsigned int context_id;
-	unsigned int global_eop;
-	unsigned int *rb_buffer;
-	unsigned int rb_size;
-	unsigned int *bad_rb_buffer;
-	unsigned int bad_rb_size;
-	unsigned int *good_rb_buffer;
-	unsigned int good_rb_size;
-	unsigned int last_valid_ctx_id;
-	unsigned int status;
-	unsigned int ft_policy;
-	unsigned int err_code;
-	unsigned int start_of_replay_cmds;
-	unsigned int replay_for_snapshot;
-};
-
 #define FT_DETECT_REGS_COUNT 14
 
 struct log_field {
