@@ -4463,18 +4463,14 @@ static int wcd9xxx_event_notify(struct notifier_block *self, unsigned long val,
 			if (!mbhc->polling_active)
 				wcd9xxx_enable_mbhc_txfe(mbhc, false);
 		}
-		/* the same comment with case WCD9XXX_EVENT_PRE_MICBIAS_1_ON
-		  these code is also use qcom original code in case WCD9XXX_EVENT_POST_TX_3_OFF
-		*/
-#ifdef CONFIG_HUAWEI_KERNEL
-		else if( MBHC_MICBIAS1 == wcd9xxx_event_to_micbias(event))
-		{
-		if (mbhc->polling_active && mbhc->mbhc_micbias_switched &&
-		    !(mbhc->event_state & (1 << MBHC_EVENT_PA_HPHL |
-		      1 << MBHC_EVENT_PA_HPHR)))
-			wcd9xxx_switch_micbias(mbhc, 0);
+		if (mbhc->micbias_enable && mbhc->polling_active &&
+		    !(snd_soc_read(mbhc->codec, mbhc->mbhc_bias_regs.ctl_reg)
+	            & 0x80)) {
+			pr_debug("%s:Micbias turned off by recording, set up again",
+				 __func__);
+			snd_soc_update_bits(codec, mbhc->mbhc_bias_regs.ctl_reg,
+					    0x80, 0x80);
 		}
-#endif
 		break;
 	/* PA usage change */
 	case WCD9XXX_EVENT_PRE_HPHL_PA_ON:
