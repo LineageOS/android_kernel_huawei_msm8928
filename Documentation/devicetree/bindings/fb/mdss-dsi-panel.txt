@@ -254,6 +254,8 @@ Optional properties:
 					mode. This master delay (t_init_delay as per DSI spec) should be sum
 					of DSI internal delay to reach fuctional after power up and minimum
 					delay required by panel to reach functional.
+- qcom,mdss-dsi-rx-eot-ignore:		Boolean used to enable ignoring end of transmission packets.
+- qcom,mdss-dsi-tx-eot-append:		Boolean used to enable appending end of transmission packets.
 - qcom,mdss-tear-check-disable:		Boolean to disable mdp tear check. Tear check is enabled by default to avoid
 					tearing. Other tear-check properties are ignored if this property is present.
 					The below tear check configuration properties can be individually tuned if
@@ -379,6 +381,8 @@ Example:
 		qcom,mdss-dsi-reset-sequence = <1 2>, <0 10>, <1 10>;
 		qcom,mdss-dsi-lp11-init;
 		qcom,mdss-dsi-init-delay-us = <100>;
+		mdss-dsi-rx-eot-ignore;
+		mdss-dsi-tx-eot-append;
 		qcom,mdss-tear-check-sync-cfg-height = <0xfff0>;
 		qcom,mdss-tear-check-sync-init-val = <1280>;
 		qcom,mdss-tear-check-sync-threshold-start = <4>;
