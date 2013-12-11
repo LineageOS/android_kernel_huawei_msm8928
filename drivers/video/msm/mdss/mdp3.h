@@ -164,6 +164,7 @@ struct mdp3_hw_resource {
 
 	bool batfet_required;
 	struct regulator *batfet;
+	struct regulator *vdd_cx;
 };
 
 struct mdp3_img_data {
