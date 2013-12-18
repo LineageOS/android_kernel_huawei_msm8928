@@ -83,6 +83,9 @@ static unsigned long venus_hfi_get_clock_rate(struct venus_core_clock *clock,
 
 static inline int venus_hfi_clk_gating_off(struct venus_hfi_device *device);
 
+static unsigned long venus_hfi_get_clock_rate(struct venus_core_clock *clock,
+		int num_mbs_per_sec);
+
 static void venus_hfi_dump_packet(u8 *packet)
 {
 	u32 c = 0, packet_size = *(u32 *)packet;
