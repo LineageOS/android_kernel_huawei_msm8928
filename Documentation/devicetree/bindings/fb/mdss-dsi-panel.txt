@@ -258,6 +258,7 @@ Optional properties:
 					delay required by panel to reach functional.
 - qcom,mdss-dsi-rx-eot-ignore:		Boolean used to enable ignoring end of transmission packets.
 - qcom,mdss-dsi-tx-eot-append:		Boolean used to enable appending end of transmission packets.
+- qcom,ulps-enabled:			Boolean to enable support for Ultra Low Power State (ULPS) mode.
 - qcom,mdss-tear-check-disable:		Boolean to disable mdp tear check. Tear check is enabled by default to avoid
 					tearing. Other tear-check properties are ignored if this property is present.
 					The below tear check configuration properties can be individually tuned if
@@ -389,6 +390,7 @@ Example:
 		qcom,mdss-dsi-init-delay-us = <100>;
 		mdss-dsi-rx-eot-ignore;
 		mdss-dsi-tx-eot-append;
+		qcom,ulps-enabled;
 		qcom,mdss-tear-check-sync-cfg-height = <0xfff0>;
 		qcom,mdss-tear-check-sync-init-val = <1280>;
 		qcom,mdss-tear-check-sync-threshold-start = <4>;
