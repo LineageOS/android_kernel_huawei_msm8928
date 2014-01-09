@@ -37,7 +37,7 @@
 #define MIN_HARD_MUTE_VAL 0x00
 #define MAX_HARD_MUTE_VAL 0x03
 #define MIN_SRCH_MODE 0x00
-#define MAX_SRCH_MODE 0x01
+#define MAX_SRCH_MODE 0x09
 #define MIN_SCAN_DWELL 0x00
 #define MAX_SCAN_DWELL 0x0F
 #define MIN_SIG_TH 0x00
