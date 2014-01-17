@@ -234,6 +234,7 @@ struct edp_panel_info {
 enum dynamic_fps_update {
 	DFPS_SUSPEND_RESUME_MODE,
 	DFPS_IMMEDIATE_CLK_UPDATE_MODE,
+	DFPS_IMMEDIATE_PORCH_UPDATE_MODE,
 };
 
 enum lvds_mode {
