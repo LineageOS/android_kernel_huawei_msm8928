@@ -1,4 +1,4 @@
-/* Copyright (c) 2008-2013, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2008-2014, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -2174,8 +2174,8 @@ static void msm_spi_workq(struct work_struct *work)
 			__func__);
 		status_error = 1;
 	}
-
 	spin_lock_irqsave(&dd->queue_lock, flags);
+
 	while (!list_empty(&dd->queue)) {
 		dd->cur_msg = list_entry(dd->queue.next,
 					 struct spi_message, queue);
