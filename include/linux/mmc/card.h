@@ -361,6 +361,9 @@ struct mmc_card {
 #define MMC_QUIRK_BROKEN_HPI (1 << 11)
  /* Skip data-timeout advertised by card */
 #define MMC_QUIRK_BROKEN_DATA_TIMEOUT	(1<<12)
+
+#define MMC_QUIRK_CACHE_DISABLE (1 << 14)       /* prevent cache enable */
+
 #ifdef CONFIG_HUAWEI_KERNEL
 #define MMC_QUIRK_SAMSUNG_SMART (1<<10)          /* Samsung SMART is available */
 #endif
