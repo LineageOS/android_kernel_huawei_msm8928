@@ -185,15 +185,151 @@ static void mdss_dsi_panel_bklt_dcs(struct mdss_dsi_ctrl_pdata *ctrl, int level)
 	mdss_dsi_cmdlist_put(ctrl, &cmdreq);
 }
 
-void mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
+static int mdss_dsi_request_gpios(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
+{
+	int rc = 0;
+
+	if (gpio_is_valid(ctrl_pdata->disp_en_gpio)) {
+		rc = gpio_request(ctrl_pdata->disp_en_gpio,
+						"disp_enable");
+		if (rc) {
+			pr_err("request disp_en gpio failed, rc=%d\n",
+				       rc);
+			goto disp_en_gpio_err;
+		}
+#ifdef CONFIG_HUAWEI_LCD
+		rc = gpio_tlmm_config(GPIO_CFG(
+				ctrl_pdata->disp_en_gpio, 0,
+				GPIO_CFG_OUTPUT,
+				GPIO_CFG_NO_PULL,
+				GPIO_CFG_2MA),
+				GPIO_CFG_ENABLE);
+
+		if (rc) {
+			pr_err("%s: unable to config tlmm = %d\n",
+				__func__, ctrl_pdata->disp_en_gpio);
+			goto rst_gpio_err;
+		}
+
+		rc = gpio_direction_output(ctrl_pdata->disp_en_gpio,1);
+		if (rc) {
+			pr_err("set_direction for disp_en gpio failed, rc=%d\n",
+			       rc);
+			goto rst_gpio_err;
+		}
+		pr_debug("%s: disp_gpio=%d\n", __func__,
+					ctrl_pdata->disp_en_gpio);
+#endif
+	}
+	rc = gpio_request(ctrl_pdata->rst_gpio, "disp_rst_n");
+	if (rc) {
+		pr_err("request reset gpio failed, rc=%d\n",
+			rc);
+		goto rst_gpio_err;
+	}
+	if (gpio_is_valid(ctrl_pdata->mode_gpio)) {
+		rc = gpio_request(ctrl_pdata->mode_gpio, "panel_mode");
+		if (rc) {
+			pr_err("request panel mode gpio failed,rc=%d\n",
+								rc);
+			goto mode_gpio_err;
+		}
+	}
+#ifdef CONFIG_HUAWEI_LCD
+	if (gpio_is_valid(ctrl_pdata->disp_en_gpio_vsn)) {
+		rc = gpio_request(ctrl_pdata->disp_en_gpio_vsn,
+				  "disp_enable_vsn");
+		if (rc) {
+			pr_err("request disp_en_gpio_vsn failed, rc=%d\n",
+				rc);
+			goto mode_gpio_err;
+		}
+
+		rc = gpio_tlmm_config(GPIO_CFG(
+				ctrl_pdata->disp_en_gpio_vsn, 0,
+				GPIO_CFG_OUTPUT,
+				GPIO_CFG_NO_PULL,
+				GPIO_CFG_2MA),
+				GPIO_CFG_ENABLE);
+
+		if (rc) {
+			pr_err("%s: unable to config tlmm = %d\n",
+				__func__, ctrl_pdata->disp_en_gpio_vsn);
+			goto disp_en_vsn_err;
+		}
+
+		rc = gpio_direction_output(ctrl_pdata->disp_en_gpio_vsn,1);
+		if (rc) {
+			pr_err("set_direction for disp_en gpio vsn failed, rc=%d\n",
+			       rc);
+			goto disp_en_vsn_err;
+		}
+		pr_debug("%s: disp_gpio_vsn=%d\n", __func__,
+			 ctrl_pdata->disp_en_gpio_vsn);
+	}
+
+	if (gpio_is_valid(ctrl_pdata->bl_en_gpio)) {
+		rc = gpio_request(ctrl_pdata->bl_en_gpio, "backlight_enable");
+		if (rc) {
+			pr_err("request backlight gpio failed, rc=%d\n",
+			       rc);
+			goto bl_en_err;
+		}
+
+		rc = gpio_tlmm_config(GPIO_CFG(
+				ctrl_pdata->bl_en_gpio, 0,
+				GPIO_CFG_OUTPUT,
+				GPIO_CFG_NO_PULL,
+				GPIO_CFG_2MA),
+				GPIO_CFG_ENABLE);
+
+		if (rc) {
+			pr_err("%s: unable to config tlmm = %d\n",
+				__func__, ctrl_pdata->bl_en_gpio);
+			goto bl_en_cfg_err;
+		}
+
+		rc = gpio_direction_output(ctrl_pdata->bl_en_gpio,1);
+		if (rc) {
+			pr_err("set_direction for disp_en gpio failed, rc=%d\n",
+			       rc);
+			goto bl_en_cfg_err;
+		}
+		pr_debug("%s: bl_gpio=%d\n", __func__, ctrl_pdata->bl_en_gpio);
+	}
+#endif
+
+	return rc;
+
+#ifdef CONFIG_HUAWEI_LCD
+bl_en_cfg_err:
+	gpio_free(ctrl_pdata->bl_en_gpio);
+bl_en_err:
+	if(gpio_is_valid(ctrl_pdata->disp_en_gpio_vsn))
+		gpio_free(ctrl_pdata->disp_en_gpio_vsn);
+disp_en_vsn_err:
+	if(gpio_is_valid(ctrl_pdata->mode_gpio))
+		gpio_free(ctrl_pdata->mode_gpio);
+#endif
+mode_gpio_err:
+	gpio_free(ctrl_pdata->rst_gpio);
+rst_gpio_err:
+	if (gpio_is_valid(ctrl_pdata->disp_en_gpio))
+		gpio_free(ctrl_pdata->disp_en_gpio);
+disp_en_gpio_err:
+	return rc;
+}
+
+int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
 	struct mdss_panel_info *pinfo = NULL;
-	int i;
+	static bool gpio_request_done;
+	int i, rc = 0;
 
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
-		return;
+		return -EINVAL;
 	}
 
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
@@ -207,11 +343,20 @@ void mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 	if (!gpio_is_valid(ctrl_pdata->rst_gpio)) {
 		pr_debug("%s:%d, reset line not configured\n",
 			   __func__, __LINE__);
-		return;
+		return rc;
 	}
 
 	pr_debug("%s: enable = %d\n", __func__, enable);
 	pinfo = &(ctrl_pdata->panel_data.panel_info);
+
+	if (!gpio_request_done && enable) {
+		rc = mdss_dsi_request_gpios(ctrl_pdata);
+		if (rc) {
+			pr_err("gpio request failed\n");
+			return rc;
+		}
+		gpio_request_done = true;
+	}
 
 	if (enable) {
 #ifdef CONFIG_HUAWEI_LCD
@@ -258,23 +403,27 @@ void mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 			pr_debug("%s: Reset panel done\n", __func__);
 		}
 	} else {
-		gpio_set_value((ctrl_pdata->rst_gpio), 0);
-
 #ifdef CONFIG_HUAWEI_LCD
-		mdelay(10);
-
-		if (gpio_is_valid(ctrl_pdata->bl_en_gpio))
-			gpio_set_value((ctrl_pdata->bl_en_gpio), 0);
-
-		if (gpio_is_valid(ctrl_pdata->disp_en_gpio_vsn))
-			gpio_set_value((ctrl_pdata->disp_en_gpio_vsn), 0);
-
-		mdelay(5);
+		if (gpio_is_valid(ctrl_pdata->bl_en_gpio)) {
+			gpio_set_value(ctrl_pdata->bl_en_gpio, 0);
+			gpio_free(ctrl_pdata->bl_en_gpio);
+		}
+		if (gpio_is_valid(ctrl_pdata->disp_en_gpio_vsn)) {
+			gpio_set_value(ctrl_pdata->disp_en_gpio_vsn, 0);
+			gpio_free(ctrl_pdata->disp_en_gpio_vsn);
+		}
 #endif
-
-		if (gpio_is_valid(ctrl_pdata->disp_en_gpio))
+		if (gpio_is_valid(ctrl_pdata->disp_en_gpio)) {
 			gpio_set_value((ctrl_pdata->disp_en_gpio), 0);
+			gpio_free(ctrl_pdata->disp_en_gpio);
+		}
+		gpio_set_value((ctrl_pdata->rst_gpio), 0);
+		gpio_free(ctrl_pdata->rst_gpio);
+		if (gpio_is_valid(ctrl_pdata->mode_gpio))
+			gpio_free(ctrl_pdata->mode_gpio);
+		gpio_request_done = false;
 	}
+	return rc;
 }
 
 static char caset[] = {0x2a, 0x00, 0x00, 0x03, 0x00};	/* DTYPE_DCS_LWRITE */
