@@ -33,10 +33,10 @@
 
 &apc_vreg_corner {
 	regulator-min-microvolt = <1>;
-	regulator-max-microvolt = <12>;
+	regulator-max-microvolt = <14>;
 	qcom,cpr-up-threshold = <0>;
 	qcom,cpr-down-threshold = <5>;
-	qcom,cpr-corner-map = <1 1 2 2 3 3 3 3 3 3 3 3>;
+	qcom,cpr-corner-map = <1 1 2 2 3 3 3 3 3 3 3 3 3 3>;
 	qcom,cpr-quot-adjust-table =
 				<1 5 450>,
 				<1 6 375>,
@@ -57,6 +57,11 @@
 		reg =	<0xf9011050 0x8>,
 			<0xfc4b80b0 0x8>;
 		reg-names = "rcg-base", "efuse";
+		qcom,speed0-bin-v0 =
+			<         0 0>,
+			< 384000000 2>,
+			< 787200000 4>,
+			<1190400000 7>;
 		qcom,speed0-bin-v2 =
 			<         0 0>,
 			< 384000000 2>,
