@@ -2702,8 +2702,13 @@ static int calculate_state_of_charge(struct qpnp_bms_chip *chip,
 	}
 	mutex_unlock(&chip->soc_invalidation_mutex);
 
-	pr_debug("SOC before adjustment = %d\n", soc);
-	new_calculated_soc = adjust_soc(chip, &params, soc, batt_temp);
+	if (chip->first_time_calc_soc && !chip->shutdown_soc_invalid) {
+		pr_debug("Skip adjustment when shutdown SOC has been forced\n");
+		new_calculated_soc = soc;
+	} else {
+		pr_debug("SOC before adjustment = %d\n", soc);
+		new_calculated_soc = adjust_soc(chip, &params, soc, batt_temp);
+	}
 #ifdef CONFIG_HUAWEI_KERNEL
 
 #define CAPACITY_99 99
