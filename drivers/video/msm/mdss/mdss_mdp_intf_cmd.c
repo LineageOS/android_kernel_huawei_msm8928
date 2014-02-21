@@ -351,12 +351,6 @@ static int mdss_mdp_cmd_add_vsync_handler(struct mdss_mdp_ctl *ctl,
 {
 	struct mdss_mdp_cmd_ctx *ctx;
 	unsigned long flags;
-	/*add qcom patch to solve the cmd esd issue
-	 *refactor command mode vsync control logic
-	 *Current logic is prone to corner case when mdss_mdp_remove_vsync_handler
-	 *is called twice: once from mdss_mdp_cmd_stop and again from vsync ctrl
-	 *logic. Need to properly identify the second call and avoid resetting the
-	 *rdptr ticks which prevent from clocks being turned off properly.*/
 	bool enable_rdptr = false;
 
 	ctx = (struct mdss_mdp_cmd_ctx *) ctl->priv_data;
@@ -385,7 +379,6 @@ static int mdss_mdp_cmd_add_vsync_handler(struct mdss_mdp_ctl *ctl,
 static int mdss_mdp_cmd_remove_vsync_handler(struct mdss_mdp_ctl *ctl,
 		struct mdss_mdp_vsync_handler *handle)
 {
-
 	struct mdss_mdp_cmd_ctx *ctx;
 	unsigned long flags;
 
@@ -400,7 +393,6 @@ static int mdss_mdp_cmd_remove_vsync_handler(struct mdss_mdp_ctl *ctl,
 		pr_err("%s: invalid ctx\n", __func__);
 		return -ENODEV;
 	}
-
 
 	spin_lock_irqsave(&ctx->clk_lock, flags);
 	if (handle->enabled) {
