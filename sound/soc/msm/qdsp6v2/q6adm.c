@@ -1159,12 +1159,14 @@ int adm_open(int port_id, int path, int rate, int channel_mode, int topology,
 		open.topology_id = topology;
 #ifdef CONFIG_HUAWEI_KERNEL
 		if ((open.topology_id == VPM_TX_SM_ECNS_COPP_TOPOLOGY) ||
-			(open.topology_id == VPM_TX_DM_FLUENCE_COPP_TOPOLOGY)||
+			(open.topology_id == VPM_TX_DM_FLUENCE_COPP_TOPOLOGY) ||
+			(open.topology_id == VPM_TX_DM_RFECNS_COPP_TOPOLOGY) ||
 			(open.topology_id == VPM_TX_SM_LVVEFQ)||
 			(open.topology_id == VPM_TX_DM_LVVEFQ))
 #else
 		if ((open.topology_id == VPM_TX_SM_ECNS_COPP_TOPOLOGY) ||
-			(open.topology_id == VPM_TX_DM_FLUENCE_COPP_TOPOLOGY))
+			(open.topology_id == VPM_TX_DM_FLUENCE_COPP_TOPOLOGY) ||
+			(open.topology_id == VPM_TX_DM_RFECNS_COPP_TOPOLOGY))
 #endif
 				rate = 16000;
 
