@@ -794,10 +794,10 @@ qpnp_chg_is_ibat_loop_active(struct qpnp_chg_chip *chip)
 	return !!(buck_sts & IBAT_LOOP_IRQ);
 }
 
-#define USB_VALID_MASK 0xC0
+#define USB_VALID_MASK		0xC0
 #define USB_VALID_IN_MASK	BIT(7)
-#define USB_COARSE_DET 0x10
-#define USB_VALID_OVP_VALUE    0x40
+#define USB_COARSE_DET		0x10
+#define USB_VALID_OVP_VALUE	0x40
 static int
 qpnp_chg_check_usb_coarse_det(struct qpnp_chg_chip *chip)
 {
