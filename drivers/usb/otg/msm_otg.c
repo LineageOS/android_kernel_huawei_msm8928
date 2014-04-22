@@ -2594,8 +2594,7 @@ static void msm_otg_sm_work(struct work_struct *w)
 	bool work = 0, srp_reqd, dcp;
 
 	pm_runtime_resume(otg->phy->dev);
-	/* merge qc patch to clear pm_done flag*/
-	if (motg->pm_done){
+	if (motg->pm_done) {
 		pm_runtime_get_sync(otg->phy->dev);
 		motg->pm_done = 0;
 	}
