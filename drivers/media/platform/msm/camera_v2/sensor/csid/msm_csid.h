@@ -20,6 +20,8 @@
 #include <media/msm_cam_sensor.h>
 #include "msm_sd.h"
 
+#define CSID_NUM_CLK_MAX  16
+
 enum msm_csid_state_t {
 	CSID_POWER_UP,
 	CSID_POWER_DOWN,
@@ -42,7 +44,7 @@ struct csid_device {
 	struct delayed_work packet_num_work;
 #endif
 
-	struct clk *csid_clk[11];
+	struct clk *csid_clk[CSID_NUM_CLK_MAX];
 };
 
 #define VIDIOC_MSM_CSID_RELEASE \
