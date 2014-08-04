@@ -58,7 +58,7 @@
 #define LO_1_SPK_AMP   0x1
 #define LO_2_SPK_AMP   0x2
 
-#define ADSP_STATE_READY_TIMEOUT_MS 3000
+#define ADSP_STATE_READY_TIMEOUT_MS 50
 
 #ifdef CONFIG_HUAWEI_KERNEL
 #define HAC_EN_GPIO              112
