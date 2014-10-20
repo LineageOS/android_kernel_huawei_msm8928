@@ -29,8 +29,7 @@
 #define CYCLES_PER_MICRO_SEC 4915
 #define CCI_MAX_DELAY 10000
 
-#define CCI_TIMEOUT msecs_to_jiffies(100)
-
+#define CCI_TIMEOUT msecs_to_jiffies(900)
 /* TODO move this somewhere else */
 #define MSM_CCI_DRV_NAME "msm_cci"
 
@@ -631,7 +630,11 @@ ERROR:
 static int msm_cci_subdev_g_chip_ident(struct v4l2_subdev *sd,
 			struct v4l2_dbg_chip_ident *chip)
 {
-	BUG_ON(!chip);
+	if (!chip) {
+		pr_err("%s:%d: NULL pointer supplied for chip ident\n",
+			 __func__, __LINE__);
+		return -EINVAL;
+	}
 	chip->ident = V4L2_IDENT_CCI;
 	chip->revision = 0;
 	return 0;
@@ -643,6 +646,8 @@ static struct msm_cam_clk_info cci_clk_info[] = {
 	{"cci_ahb_clk", -1},
 	{"cci_clk", -1},
 };
+
+//remove msm_cci_reset
 
 static int32_t msm_cci_init(struct v4l2_subdev *sd,
 	struct msm_camera_cci_ctrl *c_ctrl)
@@ -791,6 +796,7 @@ static int32_t msm_cci_config(struct v4l2_subdev *sd,
 		break;
 	case MSM_CCI_GPIO_WRITE:
 		break;
+//remove msm_cci_reset
 	default:
 		rc = -ENOIOCTLCMD;
 	}

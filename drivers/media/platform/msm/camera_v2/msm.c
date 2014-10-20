@@ -884,6 +884,25 @@ static struct v4l2_subdev *msm_sd_find(const char *name)
 	return subdev_out;
 }
 
+/*func to get and return actuator subdevs we find*/
+void msm_sd_get_actdev(struct v4l2_subdev *subdev_act[])
+{
+	unsigned long flags;
+	struct v4l2_subdev *subdev = NULL;
+	int i=0;
+
+	spin_lock_irqsave(&msm_v4l2_dev->lock, flags);
+	if (!list_empty(&msm_v4l2_dev->subdevs)) {
+		list_for_each_entry(subdev, &msm_v4l2_dev->subdevs, list)
+			if (!strcmp("msm_actuator", subdev->name)) {
+				subdev_act[i++] = subdev;
+				if(MAX_ACTUATOR_NUMBER == i)
+					break;
+			}
+	}
+	spin_unlock_irqrestore(&msm_v4l2_dev->lock, flags);
+}
+
 static void msm_sd_notify(struct v4l2_subdev *sd,
 	unsigned int notification, void *arg)
 {

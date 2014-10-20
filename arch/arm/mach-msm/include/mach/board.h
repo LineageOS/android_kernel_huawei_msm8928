@@ -233,6 +233,9 @@ enum msm_camera_actuator_name {
 	MSM_ACTUATOR_MAIN_CAM_3,
 	MSM_ACTUATOR_MAIN_CAM_4,
 	MSM_ACTUATOR_MAIN_CAM_5,
+	MSM_ACTUATOR_MAIN_CAM_6,
+	MSM_ACTUATOR_MAIN_CAM_7,
+	MSM_ACTUATOR_MAIN_CAM_8,
 	MSM_ACTUATOR_WEB_CAM_0,
 	MSM_ACTUATOR_WEB_CAM_1,
 	MSM_ACTUATOR_WEB_CAM_2,
@@ -513,6 +516,10 @@ struct msm_mhl_platform_data {
 /**
  * msm_i2c_platform_data: i2c-qup driver configuration data
  *
+ * @clk_ctl_xfer : When true, the clocks's state (prepare_enable/
+ *       unprepare_disable) is controlled by i2c-transaction's begining and
+ *       ending. When false, the clock's state is controlled by runtime-pm
+ *       events.
  * @active_only when set, votes when system active and removes the vote when
  *       system goes idle (optimises for performance). When unset, voting using
  *       runtime pm (optimizes for power).
@@ -521,6 +528,7 @@ struct msm_mhl_platform_data {
  */
 struct msm_i2c_platform_data {
 	int clk_freq;
+	bool clk_ctl_xfer;
 	uint32_t rmutex;
 	const char *rsl_id;
 	uint32_t pm_lat;
@@ -649,6 +657,9 @@ int msm_add_sdcc(unsigned int controller,
 		struct mmc_platform_data *plat);
 
 void msm_pm_register_irqs(void);
+#ifdef CONFIG_HUAWEI_MMC
+int __init hw_extern_sdcard_add_device(void);
+#endif
 struct msm_usb_host_platform_data;
 int msm_add_host(unsigned int host,
 		struct msm_usb_host_platform_data *plat);

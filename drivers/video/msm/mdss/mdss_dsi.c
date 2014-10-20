@@ -10,7 +10,6 @@
  * GNU General Public License for more details.
  *
  */
-
 #include <linux/module.h>
 #include <linux/interrupt.h>
 #include <linux/spinlock.h>
@@ -26,6 +25,23 @@
 #include "mdss_panel.h"
 #include "mdss_dsi.h"
 #include "mdss_debug.h"
+#ifdef CONFIG_HUAWEI_KERNEL
+#include <linux/iopoll.h>  //for check FIFO status
+#define PHY_TIMING_SIZE 12           //the size of phy timing settings
+#define PHY_PARAMS_SIZE 4            // the size of every param of phy timing setting
+#define MDSS_DSI_0_PHY_DSIPHY_TIMING_CTRL_0 0x0440  //MIPI DSI timing setting address
+#define MDSS_DSI_0_FIFO_STATUS 0x000c      //FIFO status address
+#define MDSS_DSI_0_FIFO_EMPTY_STATUS 0x11111000  //empty status
+#define DSI_DSIPHY_PLL_CTRL_1 0x204
+#define DSI_DSIPHY_PLL_CTRL_3 0x228
+#define MDSS_FPS_WAIT_MS    10       //wait 10ms for redo the mipi settings
+#define MDSS_FPS_START_MS    0
+struct mutex mdss_fps_mutexlock;//mutex lock flag
+static struct workqueue_struct *mdp_dynamic_frame_rate_wq; //change fps workqueue
+static struct delayed_work mdp_dynamic_frame_rate_worker;//worker
+struct platform_device *mdss_local_pdev = NULL;//the dev ptr get throught find_device_by_node
+int mdss_change_fps_error_flag = false;  //true means FIFO not empty
+#endif  //CONFIG_HUAWEI_KERNEL
 
 static unsigned char *mdss_dsi_base;
 
@@ -74,12 +90,16 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata, int enable)
 			goto error;
 		}
 
+#ifndef CONFIG_HUAWEI_LCD
 		if (pdata->panel_info.panel_power_on == 0)
 			mdss_dsi_panel_reset(pdata, 1);
+#endif
 
 	} else {
-
+/*reset should change to low after mipi off, we reset lcd in here instead of BLANK*/
+#ifdef CONFIG_HUAWEI_LCD
 		mdss_dsi_panel_reset(pdata, 0);
+#endif
 
 		ret = msm_dss_enable_vreg(
 			ctrl_pdata->power_data.vreg_config,
@@ -497,6 +517,12 @@ int mdss_dsi_on(struct mdss_panel_data *pdata)
 	if (pdata->panel_info.type == MIPI_CMD_PANEL)
 		mdss_dsi_clk_ctrl(ctrl_pdata, 0);
 
+#ifdef CONFIG_HUAWEI_KERNEL
+    if((pdata ->panel_info.huawei_dynamic_fps) && (pdata ->panel_info.mipi.frame_rate != DEFAULT_FRAME_RATE))
+    {
+       mdss_dsi_set_fps(DEFAULT_FRAME_RATE);
+    }
+#endif
 	pr_debug("%s-:\n", __func__);
 	return 0;
 }
@@ -1121,6 +1147,9 @@ int dsi_panel_device_register(struct device_node *pan_node,
 	}
 
 	ctrl_pdev = of_find_device_by_node(dsi_ctrl_np);
+#ifdef CONFIG_HUAWEI_KERNEL
+    mdss_local_pdev = ctrl_pdev;
+#endif
 
 	rc = mdss_dsi_regulator_init(ctrl_pdev);
 	if (rc) {
@@ -1217,7 +1246,6 @@ int dsi_panel_device_register(struct device_node *pan_node,
 
 	ctrl_pdata->disp_en_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
 		"qcom,platform-enable-gpio", 0);
-
 	if (!gpio_is_valid(ctrl_pdata->disp_en_gpio)) {
 		pr_err("%s:%d, Disp_en gpio not specified\n",
 						__func__, __LINE__);
@@ -1229,8 +1257,122 @@ int dsi_panel_device_register(struct device_node *pan_node,
 			gpio_free(ctrl_pdata->disp_en_gpio);
 			return -ENODEV;
 		}
+
+#ifdef CONFIG_HUAWEI_LCD
+
+		rc = gpio_tlmm_config(GPIO_CFG(
+				ctrl_pdata->disp_en_gpio, 0,
+				GPIO_CFG_OUTPUT,
+				GPIO_CFG_NO_PULL,
+				GPIO_CFG_2MA),
+				GPIO_CFG_ENABLE);
+
+		if (rc) {
+			pr_err("%s: unable to config tlmm = %d\n",
+				__func__, ctrl_pdata->disp_en_gpio);
+			gpio_free(ctrl_pdata->disp_en_gpio);
+			return -ENODEV;
+		}
+
+		rc = gpio_direction_output(ctrl_pdata->disp_en_gpio,1);
+		if (rc) {
+			pr_err("set_direction for disp_en gpio failed, rc=%d\n",
+			       rc);
+			gpio_free(ctrl_pdata->disp_en_gpio);
+			return -ENODEV;
+		}
+		pr_debug("%s: disp_gpio=%d\n", __func__,
+					ctrl_pdata->disp_en_gpio);
+#endif
+	}
+#ifdef CONFIG_HUAWEI_LCD
+	ctrl_pdata->bl_en_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
+						     "qcom,bl-enable-gpio", 0);
+
+	if (!gpio_is_valid(ctrl_pdata->bl_en_gpio)) {
+		pr_err("%s:%d, backlight_en gpio not specified\n",
+						__func__, __LINE__);
+	} else {
+		rc = gpio_request(ctrl_pdata->bl_en_gpio, "backlight_enable");
+		if (rc) {
+			pr_err("request backlight gpio failed, rc=%d\n",
+			       rc);
+			gpio_free(ctrl_pdata->bl_en_gpio);
+			return -ENODEV;
+		}
+
+		rc = gpio_tlmm_config(GPIO_CFG(
+				ctrl_pdata->bl_en_gpio, 0,
+				GPIO_CFG_OUTPUT,
+				GPIO_CFG_NO_PULL,
+				GPIO_CFG_2MA),
+				GPIO_CFG_ENABLE);
+
+		if (rc) {
+			pr_err("%s: unable to config tlmm = %d\n",
+				__func__, ctrl_pdata->bl_en_gpio);
+			gpio_free(ctrl_pdata->bl_en_gpio);
+			return -ENODEV;
+		}
+
+		rc = gpio_direction_output(ctrl_pdata->bl_en_gpio,1);
+		if (rc) {
+			pr_err("set_direction for disp_en gpio failed, rc=%d\n",
+			       rc);
+			gpio_free(ctrl_pdata->bl_en_gpio);
+			return -ENODEV;
+		}
+		pr_debug("%s: bl_gpio=%d\n", __func__,
+					ctrl_pdata->bl_en_gpio);
 	}
 
+#endif
+
+
+#ifdef CONFIG_HUAWEI_LCD
+	/*get lcd negative voltage gpio110*/
+	ctrl_pdata->disp_en_gpio_vsn = of_get_named_gpio(ctrl_pdev->dev.of_node,
+		"qcom,platform-enable-gpio-vsn", 0);
+	//enable LCD_BIASDRV_EN2
+	if (!gpio_is_valid(ctrl_pdata->disp_en_gpio_vsn)) {
+		pr_err("%s:%d, Disp_en gpio not specified\n",
+						__func__, __LINE__);
+	}
+	else
+	{
+		rc = gpio_request(ctrl_pdata->disp_en_gpio_vsn, "disp_enable_vsn");
+		if (rc) {
+			pr_err("request disp_en_gpio_vsn failed, rc=%d\n",
+				rc);
+			gpio_free(ctrl_pdata->disp_en_gpio_vsn);
+			return -ENODEV;
+		}
+
+		rc = gpio_tlmm_config(GPIO_CFG(
+				ctrl_pdata->disp_en_gpio_vsn, 0,
+				GPIO_CFG_OUTPUT,
+				GPIO_CFG_NO_PULL,
+				GPIO_CFG_2MA),
+				GPIO_CFG_ENABLE);
+
+		if (rc) {
+			pr_err("%s: unable to config tlmm = %d\n",
+				__func__, ctrl_pdata->disp_en_gpio_vsn);
+			gpio_free(ctrl_pdata->disp_en_gpio_vsn);
+			return -ENODEV;
+		}
+
+		rc = gpio_direction_output(ctrl_pdata->disp_en_gpio_vsn,1);
+		if (rc) {
+			pr_err("set_direction for disp_en gpio vsn failed, rc=%d\n",
+			 rc);
+			gpio_free(ctrl_pdata->disp_en_gpio_vsn);
+			return -ENODEV;
+		}
+		pr_debug("%s: disp_gpio_vsn=%d\n", __func__,
+					ctrl_pdata->disp_en_gpio_vsn);
+	}
+#endif
 	if (pinfo->type == MIPI_CMD_PANEL) {
 		ctrl_pdata->disp_te_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
 						"qcom,platform-te-gpio", 0);
@@ -1287,6 +1429,13 @@ int dsi_panel_device_register(struct device_node *pan_node,
 			gpio_free(ctrl_pdata->rst_gpio);
 			if (gpio_is_valid(ctrl_pdata->disp_en_gpio))
 				gpio_free(ctrl_pdata->disp_en_gpio);
+
+#ifdef CONFIG_HUAWEI_LCD
+			if (gpio_is_valid(ctrl_pdata->bl_en_gpio))
+				gpio_free(ctrl_pdata->bl_en_gpio);
+			if (gpio_is_valid(ctrl_pdata->disp_en_gpio_vsn))
+				gpio_free(ctrl_pdata->disp_en_gpio_vsn);
+#endif
 			return -ENODEV;
 		}
 	}
@@ -1345,8 +1494,8 @@ int dsi_panel_device_register(struct device_node *pan_node,
 			ctrl_pdata->pclk_rate, ctrl_pdata->byte_clk_rate);
 
 	ctrl_pdata->ctrl_state = CTRL_STATE_UNKNOWN;
-
-	if (pinfo->cont_splash_enabled) {
+	/* open cont_splash_enable in dtsi file */
+		if (pinfo->cont_splash_enabled) {
 		pinfo->panel_power_on = 1;
 		rc = mdss_dsi_panel_power_on(&(ctrl_pdata->panel_data), 1);
 		if (rc) {
@@ -1368,6 +1517,12 @@ int dsi_panel_device_register(struct device_node *pan_node,
 			gpio_free(ctrl_pdata->rst_gpio);
 		if (gpio_is_valid(ctrl_pdata->disp_en_gpio))
 			gpio_free(ctrl_pdata->disp_en_gpio);
+#ifdef CONFIG_HUAWEI_LCD
+		if (gpio_is_valid(ctrl_pdata->bl_en_gpio))
+			gpio_free(ctrl_pdata->bl_en_gpio);
+		if (gpio_is_valid(ctrl_pdata->disp_en_gpio_vsn))
+			gpio_free(ctrl_pdata->disp_en_gpio_vsn);
+#endif
 		return rc;
 	}
 
@@ -1385,6 +1540,138 @@ int dsi_panel_device_register(struct device_node *pan_node,
 	return 0;
 }
 
+#ifdef CONFIG_HUAWEI_KERNEL
+void mdss_fb_cancel_fps_timer(void)
+{
+    /* cancal timer */
+    mutex_lock(&mdss_fps_mutexlock);
+    cancel_delayed_work(&mdp_dynamic_frame_rate_worker);
+    flush_workqueue(mdp_dynamic_frame_rate_wq);
+    mutex_unlock(&mdss_fps_mutexlock);
+}
+
+static void mdp_dynamic_frame_rate_workqueue_handler(struct work_struct *work)
+{
+    int ret = 0;
+    struct mdss_dsi_ctrl_pdata *ctrl_pdata = platform_get_drvdata(mdss_local_pdev);
+
+    ret = mdss_dsi_wait4video_done_ret(ctrl_pdata);
+    //mdss_change_fps_error_flag == true means fifo_timeout; ret < =0 means wait isr timeout
+    if((mdss_change_fps_error_flag) || (ret <= 0))
+    {
+        pr_debug("%s:timer work timeout ret = %d, mdss_change_fps_error_flag = %d\n", __func__,ret, mdss_change_fps_error_flag);
+        /* set timer to redo the FPS set */
+        queue_delayed_work(mdp_dynamic_frame_rate_wq,
+                          &mdp_dynamic_frame_rate_worker,
+                          msecs_to_jiffies(MDSS_FPS_WAIT_MS));
+    }
+}
+
+void mdss_set_phy_params(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
+{
+    int i = 0;
+    int off = MDSS_DSI_0_PHY_DSIPHY_TIMING_CTRL_0;
+    int frame_rate = ((ctrl_pdata->panel_data).panel_info.mipi).frame_rate;
+    struct mdss_dsi_phy_ctrl *dsi_phy_params = &(((ctrl_pdata->panel_data).panel_info.mipi).dsi_phy_db);
+ 
+    MIPI_OUTP((ctrl_pdata->ctrl_base) + DSI_DSIPHY_PLL_CTRL_1, (pll_divider_config.analog_posDiv -1));//analog_posDiv -1 : qualcomm code set the same way. 
+    wmb();
+
+    MIPI_OUTP((ctrl_pdata->ctrl_base) + DSI_DSIPHY_PLL_CTRL_3, (pll_divider_config.digital_posDiv -1)); //digital_posDiv -1 : qualcomm code set the same way. 
+    wmb();
+
+    if (LOW_FRAME_RATE == frame_rate)
+    {
+        for (i = 0; i < PHY_TIMING_SIZE; i++)
+        {
+            MIPI_OUTP((ctrl_pdata->ctrl_base) + off, dsi_phy_params->timing_30_fps[i]);
+            wmb();
+            off += PHY_PARAMS_SIZE;
+        } 
+    }
+    else if (DEFAULT_FRAME_RATE == frame_rate)
+    {
+        for (i = 0; i < PHY_TIMING_SIZE; i++)
+        {
+            MIPI_OUTP((ctrl_pdata->ctrl_base) + off, dsi_phy_params->timing[i]);
+            wmb();
+            off += PHY_PARAMS_SIZE;
+        }
+    }
+    else
+    {
+        pr_err("%s:phy set frame_rate %d error\n", __func__,frame_rate);
+    }
+}
+//do clk calculate like dsi_panel_device_register
+int dsi_panel_device_clk_set(int frame_rate)
+{
+    int rc = 0;
+    struct mdss_dsi_ctrl_pdata *ctrl_pdata = platform_get_drvdata(mdss_local_pdev);
+
+    if(frame_rate == ctrl_pdata->panel_data.panel_info.mipi.frame_rate)
+    {
+        pr_debug("%s: new frame_rate same as active %d\n", __func__,frame_rate);
+    }
+    rc = mdss_dsi_clk_div_config(&ctrl_pdata->panel_data.panel_info, frame_rate);
+    if (rc)
+    {
+        pr_err("%s: unable to initialize the clk dividers\n", __func__);
+        return rc;
+    }
+    ctrl_pdata->panel_data.panel_info.mipi.frame_rate = frame_rate;
+    ctrl_pdata->pclk_rate = ctrl_pdata->panel_data.panel_info.mipi.dsi_pclk_rate;
+    ctrl_pdata->byte_clk_rate = ctrl_pdata->panel_data.panel_info.clk_rate / 8;// clk / 8 = byteclk. qualcomm code set the same way. 
+    return rc;
+}
+
+void mdss_change_fps(void)
+{
+    u32 status = 0;
+    struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
+    ctrl_pdata = platform_get_drvdata(mdss_local_pdev);
+
+    status = MIPI_INP((ctrl_pdata->ctrl_base) + MDSS_DSI_0_FIFO_STATUS);
+    if ((status & MDSS_DSI_0_FIFO_EMPTY_STATUS) != MDSS_DSI_0_FIFO_EMPTY_STATUS)
+    {
+        mdss_change_fps_error_flag = true;//need redo the mipi settings in timer
+        pr_debug("%s: mdss_change_fps_error_flag = %d\n", __func__,mdss_change_fps_error_flag);
+        return;
+    }
+    mdss_change_fps_error_flag = false;
+    mdss_set_phy_params(ctrl_pdata);
+}
+
+int mdss_dsi_set_fps(int frame_rate)
+{
+    int ret = 0;
+    struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
+    int frame_rate_active = 0;
+        
+    ctrl_pdata = platform_get_drvdata(mdss_local_pdev);
+    frame_rate_active = ctrl_pdata->panel_data.panel_info.mipi.frame_rate;
+
+    if((ctrl_pdata->panel_data.panel_info.huawei_dynamic_fps)
+        && ((LOW_FRAME_RATE == frame_rate) || (DEFAULT_FRAME_RATE == frame_rate)))
+    {
+        pr_err("set frame rate %d\n", frame_rate);
+        if(mdss_change_fps_error_flag)
+        {
+            mdss_fb_cancel_fps_timer();
+        }
+        dsi_panel_device_clk_set(frame_rate);
+        queue_delayed_work(mdp_dynamic_frame_rate_wq,
+                          &mdp_dynamic_frame_rate_worker,
+                          msecs_to_jiffies(MDSS_FPS_START_MS));
+    }
+    else
+    {
+        pr_debug("%s: set frame rate fail\n", __func__);
+        ret = -EINVAL;
+    }
+    return ret;
+}
+#endif  //CONFIG_HUAWEI_KERNEL
 static const struct of_device_id mdss_dsi_ctrl_dt_match[] = {
 	{.compatible = "qcom,mdss-dsi-ctrl"},
 	{}
@@ -1411,6 +1698,12 @@ static int __init mdss_dsi_driver_init(void)
 	int ret;
 
 	ret = mdss_dsi_register_driver();
+#ifdef CONFIG_HUAWEI_KERNEL
+    mutex_init(&mdss_fps_mutexlock);
+    mdp_dynamic_frame_rate_wq = create_singlethread_workqueue("mdp_dynamic_frame_rate_wq");
+    INIT_DELAYED_WORK(&mdp_dynamic_frame_rate_worker,
+                mdp_dynamic_frame_rate_workqueue_handler);
+#endif
 	if (ret) {
 		pr_err("mdss_dsi_register_driver() failed!\n");
 		return ret;

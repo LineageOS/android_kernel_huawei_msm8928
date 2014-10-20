@@ -56,6 +56,14 @@
 
 #define ADSP_STATE_READY_TIMEOUT_MS 3000
 
+#define HAC_EN_GPIO              112
+#define DEFUALT_HAC_SWITCH_VALUE 0x0
+#define HAC_ENABLE               1
+#define GPIO_PULL_UP             1
+#define GPIO_PULL_DOWN           0
+
+static int msm8226_hac_switch = DEFUALT_HAC_SWITCH_VALUE;
+
 static void *adsp_state_notifier;
 
 static int msm8226_auxpcm_rate = 8000;
@@ -78,6 +86,13 @@ void *def_tapan_mbhc_cal(void);
 static int msm_snd_enable_codec_ext_clk(struct snd_soc_codec *codec, int enable,
 					bool dapm);
 
+/* 1. enable mbhc's cs mode to detect headset and set some value to adapt auto MMI 
+ * 2. for auto MMI device detect, here set 
+       do_recalibration = false
+       use_vddio_meas = false
+   3. avoid happen noise when playing, clear var
+      micbias_enable_flags = 1 << MBHC_MICBIAS_ENABLE_THRESHOLD_HEADSET
+ */
 static struct wcd9xxx_mbhc_config mbhc_cfg = {
 	.read_fw_bin = false,
 	.calibration = NULL,
@@ -87,15 +102,19 @@ static struct wcd9xxx_mbhc_config mbhc_cfg = {
 	.gpio = 0,
 	.gpio_irq = 0,
 	.gpio_level_insert = 0,
+	/*set extn_cable to false, otherwise it will affect a call when switch speaker to headphone or headphone to speaker*/
+#ifdef CONFIG_HUAWEI_KERNEL
+	.detect_extn_cable = false,
+#else
 	.detect_extn_cable = true,
-	.micbias_enable_flags = 1 << MBHC_MICBIAS_ENABLE_THRESHOLD_HEADSET,
+#endif
 	.insert_detect = true,
 	.swap_gnd_mic = NULL,
 	.cs_enable_flags = (1 << MBHC_CS_ENABLE_POLLING |
 			    1 << MBHC_CS_ENABLE_INSERTION |
 			    1 << MBHC_CS_ENABLE_REMOVAL),
-	.do_recalibration = true,
-	.use_vddio_meas = true,
+	.do_recalibration = false,
+	.use_vddio_meas = false,
 };
 
 struct msm_auxpcm_gpio {
@@ -712,6 +731,79 @@ static const struct soc_enum msm_snd_enum[] = {
 	SOC_ENUM_SINGLE_EXT(8, proxy_rx_ch_text),
 };
 
+/* The function to pull up GPIO 151 to enable HAC*/
+static void hac_gpio_on(void)
+{
+    int ret = 0;
+    pr_debug("%s: Configure HAC GPIO %u",__func__, HAC_EN_GPIO);
+    ret = gpio_request(HAC_EN_GPIO,
+					  "HAC_EN_GPIO");
+    if (ret) 
+    {
+        pr_err("%s: Failed to configure hac enable "
+                "gpio %u\n", __func__, HAC_EN_GPIO);
+        return;
+    }
+
+    pr_debug("%s: Enable hac enable gpio %u\n",
+            __func__, HAC_EN_GPIO);
+    gpio_direction_output(HAC_EN_GPIO, GPIO_PULL_UP);
+}
+
+/* The function to pull down GPIO 151 to disable HAC*/
+static void hac_gpio_off(void)
+{
+    pr_debug("%s: Pull down and free hac enable gpio %u\n",
+            __func__, HAC_EN_GPIO);
+    gpio_direction_output(HAC_EN_GPIO, GPIO_PULL_DOWN);
+    gpio_free(HAC_EN_GPIO);
+}
+
+static const char *hac_switch_text[] = {"OFF","ON"};
+
+static const struct soc_enum msm8226_hac_switch_enum[] = {
+    SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(hac_switch_text),
+                        hac_switch_text),
+};
+
+/* The function to get hac status */
+static int msm8226_hac_switch_get(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
+{
+    if(NULL == kcontrol || NULL == ucontrol)
+    {
+        pr_err("%s: input pointer is null\n", __func__);
+    }
+	pr_debug("%s: msm8226_hac_switch = %d\n", __func__,
+			 msm8226_hac_switch);
+	ucontrol->value.integer.value[0] = msm8226_hac_switch;
+	return 0;
+}
+
+/* The function to set hac status */
+static int msm8226_hac_switch_put(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
+{
+    int ret = 0;
+    if(NULL == kcontrol || NULL == ucontrol)
+    {
+        pr_err("%s: input pointer is null\n", __func__);
+    }
+    msm8226_hac_switch = ucontrol->value.integer.value[0];
+    pr_debug("%s: msm8226_hac_switch = %d\n", __func__,msm8226_hac_switch);
+    if(HAC_ENABLE == msm8226_hac_switch)
+    {
+        hac_gpio_on();
+        ret = HAC_ENABLE;
+    }
+    else
+    {
+        hac_gpio_off();
+    }
+    return ret;
+}
+
+/* to add HAC structure in ALSA */
 static const struct snd_kcontrol_new msm_snd_controls[] = {
 	SOC_ENUM_EXT("SLIM_0_RX Channels", msm_snd_enum[0],
 		     msm_slim_0_rx_ch_get, msm_slim_0_rx_ch_put),
@@ -723,8 +815,9 @@ static const struct snd_kcontrol_new msm_snd_controls[] = {
 		     msm_btsco_rate_get, msm_btsco_rate_put),
 	SOC_ENUM_EXT("PROXY_RX Channels", msm_snd_enum[2],
 			msm_proxy_rx_ch_get, msm_proxy_rx_ch_put),
+    SOC_ENUM_EXT("HAC",msm8226_hac_switch_enum[0],
+            msm8226_hac_switch_get,msm8226_hac_switch_put),
 };
-
 static int msm_afe_set_config(struct snd_soc_codec *codec)
 {
 	int rc;
@@ -845,6 +938,10 @@ static int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 
 
 	pr_debug("%s(), dev_name%s\n", __func__, dev_name(cpu_dai->dev));
+#ifdef CONFIG_HUAWEI_KERNEL
+	pr_debug("%s(), huawei_audio mbhc: extn_cable(%d), cs(%lu)\n",
+			__func__, mbhc_cfg.detect_extn_cable, mbhc_cfg.cs_enable_flags);
+#endif
 
 	rtd->pmdown_time = 0;
 
@@ -938,7 +1035,12 @@ void *def_tapan_mbhc_cal(void)
 #undef S
 #define S(X, Y) ((WCD9XXX_MBHC_CAL_PLUG_TYPE_PTR(tapan_cal)->X) = (Y))
 	S(v_no_mic, 30);
+#ifdef CONFIG_HUAWEI_KERNEL
+	/* Allowing more headset with mic to be recognized */
+	S(v_hs_max, 3000);
+#else
 	S(v_hs_max, 2450);
+#endif
 #undef S
 #define S(X, Y) ((WCD9XXX_MBHC_CAL_BTN_DET_PTR(tapan_cal)->X) = (Y))
 	S(c[0], 62);
@@ -956,11 +1058,20 @@ void *def_tapan_mbhc_cal(void)
 	btn_low = wcd9xxx_mbhc_cal_btn_det_mp(btn_cfg, MBHC_BTN_DET_V_BTN_LOW);
 	btn_high = wcd9xxx_mbhc_cal_btn_det_mp(btn_cfg,
 					       MBHC_BTN_DET_V_BTN_HIGH);
+#ifdef CONFIG_HUAWEI_KERNEL
+	/* Expand single button range, according to practical values of msm8930 */
+	btn_low[0] = -500;
+	btn_high[0] = 60;
+	btn_low[1] = 61;
+	btn_high[1] = 62;
+	btn_low[2] = 63;
+#else
 	btn_low[0] = -50;
 	btn_high[0] = 20;
 	btn_low[1] = 21;
 	btn_high[1] = 61;
 	btn_low[2] = 62;
+#endif
 	btn_high[2] = 104;
 	btn_low[3] = 105;
 	btn_high[3] = 148;
@@ -1982,8 +2093,13 @@ static __devinit int msm8226_asoc_machine_probe(struct platform_device *pdev)
 	if (ret)
 		goto err;
 
+#ifdef CONFIG_HUAWEI_KERNEL
+	ret = snd_soc_of_parse_audio_routing(card,
+			"huawei,audio-routing");
+#else
 	ret = snd_soc_of_parse_audio_routing(card,
 			"qcom,audio-routing");
+#endif
 	if (ret)
 		goto err;
 
@@ -2003,8 +2119,13 @@ static __devinit int msm8226_asoc_machine_probe(struct platform_device *pdev)
 		goto err;
 	}
 
+#ifdef CONFIG_HUAWEI_KERNEL
+	pdata->mclk_gpio = of_get_named_gpio(pdev->dev.of_node,
+				"huawei,cdc-mclk-gpios", 0);
+#else
 	pdata->mclk_gpio = of_get_named_gpio(pdev->dev.of_node,
 				"qcom,cdc-mclk-gpios", 0);
+#endif
 	if (pdata->mclk_gpio < 0) {
 		dev_err(&pdev->dev,
 			"Looking up %s property in node %s failed %d\n",
@@ -2022,6 +2143,15 @@ static __devinit int msm8226_asoc_machine_probe(struct platform_device *pdev)
 
 	mbhc_cfg.gpio_level_insert = of_property_read_bool(pdev->dev.of_node,
 					"qcom,headset-jack-type-NC");
+/* Detection level should be low when headset is connected for NO-type jack */
+#ifdef CONFIG_HUAWEI_KERNEL
+    mbhc_cfg.gpio_level_insert = !of_property_read_bool(pdev->dev.of_node,
+                    "huawei,headset-jack-type-NO");
+    pr_debug("huawei_audio: mbhc_cfg.gpio_level_insert=%d\n", mbhc_cfg.gpio_level_insert);
+#else
+    mbhc_cfg.gpio_level_insert = of_property_read_bool(pdev->dev.of_node,
+                    "qcom,headset-jack-type-NO");
+#endif
 
 	ret = snd_soc_register_card(card);
 	if (ret == -EPROBE_DEFER)
@@ -2041,8 +2171,13 @@ static __devinit int msm8226_asoc_machine_probe(struct platform_device *pdev)
 		goto err;
 	}
 
+#ifdef CONFIG_HUAWEI_KERNEL
+	vdd_spkr_gpio = of_get_named_gpio(pdev->dev.of_node,
+				"huawei,cdc-vdd-spkr-gpios", 0);
+#else
 	vdd_spkr_gpio = of_get_named_gpio(pdev->dev.of_node,
 				"qcom,cdc-vdd-spkr-gpios", 0);
+#endif
 	if (vdd_spkr_gpio < 0) {
 		dev_dbg(&pdev->dev,
 			"Looking up %s property in node %s failed %d\n",
@@ -2077,6 +2212,7 @@ static __devinit int msm8226_asoc_machine_probe(struct platform_device *pdev)
 			goto err_vdd_spkr;
 		}
 	}
+
 
 	msm8226_setup_hs_jack(pdev, pdata);
 

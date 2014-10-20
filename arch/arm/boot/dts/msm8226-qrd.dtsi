@@ -17,6 +17,20 @@
 		status = "ok";
 	};
 
+        i2c@f9925000 { /* BLSP1 QUP3 */
+                nfc-nci@0e {
+                        compatible = "qcom,nfc-nci";
+                        reg = <0x0e>;
+                        qcom,irq-gpio = <&msmgpio 21 0x00>;
+                        qcom,dis-gpio = <&msmgpio 20 0x00>;
+                        qcom,clk-src = "BBCLK2";
+                        qcom,clk-en-gpio = <&msmgpio 0 0x00>;
+                        interrupt-parent = <&msmgpio>;
+                        interrupts = <21 0>;
+                        qcom,clk-gpio = <&pm8226_gpios 3 0>;
+                };
+        };
+
 	i2c@f9927000 { /* BLSP1 QUP5 */
 		synaptics@20 {
 			compatible = "synaptics,rmi4";
@@ -79,23 +93,26 @@
 		compatible = "gpio-keys";
 		input-name = "gpio-keys";
 
-		camera_focus {
-			label = "camera_focus";
-			gpios = <&msmgpio 108 0x1>;
-			linux,input-type = <1>;
-			linux,code = <0x210>;
-			gpio-key,wakeup;
-			debounce-interval = <15>;
-		};
+		/*we use gpio 107 and 108 for hall function,so we disable the following config*/
+		/*
+		*camera_focus {
+		*	label = "camera_focus";
+		*	gpios = <&msmgpio 108 0x1>;
+		*	linux,input-type = <1>;
+		*	linux,code = <0x210>;
+		*	gpio-key,wakeup;
+		*	debounce-interval = <15>;
+		*};
 
-		camera_snapshot {
-			label = "camera_snapshot";
-			gpios = <&msmgpio 107 0x1>;
-			linux,input-type = <1>;
-			linux,code = <0x2fe>;
-			gpio-key,wakeup;
-			debounce-interval = <15>;
-		};
+		*camera_snapshot {
+		*	label = "camera_snapshot";
+		*	gpios = <&msmgpio 107 0x1>;
+		*	linux,input-type = <1>;
+		*	linux,code = <0x2fe>;
+		*	gpio-key,wakeup;
+		*	debounce-interval = <15>;
+		*};
+		*/
 
 		vol_up {
 			label = "volume_up";
@@ -412,17 +429,8 @@
 		qcom,src-sel = <2>;		/* QPNP_PIN_SEL_FUNC_1 */
 		qcom,master-en = <1>;	/* Enable GPIO */
 	};
-
 	gpio@c100 { /* GPIO 2 */
-		qcom,mode = <1>;
-		qcom,output-type = <0>;
-		qcom,pull = <5>;
-		qcom,vin-sel = <3>;
-		qcom,out-strength = <3>;
-		qcom,src-sel = <2>;
-		qcom,master-en = <1>;
 	};
-
 	gpio@c200 { /* GPIO 3 */
 	};
 

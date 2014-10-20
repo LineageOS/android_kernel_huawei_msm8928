@@ -516,14 +516,12 @@ static void pil_release_mmap(struct pil_desc *desc)
 }
 
 #define IOMAP_SIZE SZ_4M
-
 static int pil_load_seg(struct pil_desc *desc, struct pil_seg *seg)
 {
 	int ret = 0, count;
 	phys_addr_t paddr;
 	char fw_name[30];
 	int num = seg->num;
-
 	if (seg->filesz) {
 		snprintf(fw_name, ARRAY_SIZE(fw_name), "%s.b%02d",
 				desc->name, num);

@@ -203,7 +203,7 @@ static uint32_t msm_isp_axi_get_plane_size(
 				plane_cfg[plane_idx].output_width;
 		else
 			size = plane_cfg[plane_idx].output_height *
-				plane_cfg[plane_idx].output_width / 2;
+				plane_cfg[plane_idx].output_width;
 		break;
 	case V4L2_PIX_FMT_NV14:
 	case V4L2_PIX_FMT_NV41:
@@ -212,7 +212,7 @@ static uint32_t msm_isp_axi_get_plane_size(
 				plane_cfg[plane_idx].output_width;
 		else
 			size = plane_cfg[plane_idx].output_height *
-				plane_cfg[plane_idx].output_width / 8;
+				plane_cfg[plane_idx].output_width;
 		break;
 	case V4L2_PIX_FMT_NV16:
 	case V4L2_PIX_FMT_NV61:
@@ -433,7 +433,8 @@ void msm_isp_calculate_framedrop(
 		HANDLE_TO_IDX(stream_cfg_cmd->axi_stream_handle)];
 	uint32_t framedrop_period = msm_isp_get_framedrop_period(
 	   stream_cfg_cmd->frame_skip_pattern);
-
+	stream_info->frame_skip_pattern =
+		stream_cfg_cmd->frame_skip_pattern;
 	if (stream_cfg_cmd->frame_skip_pattern == SKIP_ALL)
 		stream_info->framedrop_pattern = 0x0;
 	else
@@ -474,7 +475,7 @@ void msm_isp_calculate_bandwidth(
 			(axi_data->src_info[VFE_PIX_0].pixel_clock /
 			axi_data->src_info[VFE_PIX_0].width) *
 			stream_info->max_width;
-		stream_info->bandwidth = stream_info->bandwidth *
+		stream_info->bandwidth = (unsigned long)stream_info->bandwidth *
 			stream_info->format_factor / ISP_Q2;
 	} else {
 		int rdi = SRC_TO_INTF(stream_info->stream_src);
@@ -995,7 +996,8 @@ void msm_camera_io_dump_2(void __iomem *addr, int size)
 	int i;
 	u32 *p = (u32 *) addr;
 	u32 data;
-	ISP_DBG("%s: %p %d\n", __func__, addr, size);
+	pr_err("%s: %p %d\n", __func__, addr, size);
+	//ISP_DBG("%s: %p %d\n", __func__, addr, size);
 	line_str[0] = '\0';
 	p_str = line_str;
 	for (i = 0; i < size/4; i++) {
@@ -1007,13 +1009,15 @@ void msm_camera_io_dump_2(void __iomem *addr, int size)
 		snprintf(p_str, 12, "%08x ", data);
 		p_str += 9;
 		if ((i + 1) % 4 == 0) {
-			ISP_DBG("%s\n", line_str);
+			pr_err("%s\n", line_str);
+			//ISP_DBG("%s\n", line_str);
 			line_str[0] = '\0';
 			p_str = line_str;
 		}
 	}
 	if (line_str[0] != '\0')
-		ISP_DBG("%s\n", line_str);
+		pr_err("%s\n", line_str);
+		//ISP_DBG("%s\n", line_str);
 }
 
 /*Factor in Q2 format*/
@@ -1043,8 +1047,8 @@ static int msm_isp_update_stream_bandwidth(struct vfe_device *vfe_dev)
 	if (num_pix_streams > 0)
 		total_pix_bandwidth = total_pix_bandwidth /
 			num_pix_streams * (num_pix_streams - 1) +
-			axi_data->src_info[VFE_PIX_0].pixel_clock *
-			ISP_DEFAULT_FORMAT_FACTOR / ISP_Q2;
+			(unsigned long)axi_data->src_info[VFE_PIX_0].
+			pixel_clock * ISP_DEFAULT_FORMAT_FACTOR / ISP_Q2;
 	total_bandwidth = total_pix_bandwidth + total_rdi_bandwidth;
 
 	rc = msm_isp_update_bandwidth(ISP_VFE0 + vfe_dev->pdev->id,
@@ -1274,9 +1278,9 @@ static int msm_isp_stop_axi_stream(struct vfe_device *vfe_dev,
 	cur_stream_cnt = msm_isp_get_curr_stream_cnt(vfe_dev);
 	if (cur_stream_cnt == 0) {
 		if (camif_update == DISABLE_CAMIF_IMMEDIATELY) {
-			vfe_dev->hw_info->vfe_ops.axi_ops.halt(vfe_dev);
+			vfe_dev->hw_info->vfe_ops.axi_ops.halt(vfe_dev,1);
 		}
-		vfe_dev->hw_info->vfe_ops.core_ops.reset_hw(vfe_dev , ISP_RST_SOFT);
+		vfe_dev->hw_info->vfe_ops.core_ops.reset_hw(vfe_dev , 1);
 		vfe_dev->hw_info->vfe_ops.core_ops.init_hw_reg(vfe_dev);
 	}
 

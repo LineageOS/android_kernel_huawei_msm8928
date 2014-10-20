@@ -20,6 +20,7 @@
 #include "mdss_panel.h"
 #include "mdss_io_util.h"
 #include "mdss_dsi_cmd.h"
+#include <linux/msm_mdp.h>
 
 #define MMSS_SERDES_BASE_PHY 0x04f01000 /* mmss (De)Serializer CFG */
 
@@ -226,7 +227,6 @@ enum {
 #define DSI_EV_PLL_UNLOCKED		0x0001
 #define DSI_EV_MDP_FIFO_UNDERFLOW	0x0002
 #define DSI_EV_MDP_BUSY_RELEASE		0x80000000
-
 struct mdss_dsi_ctrl_pdata {
 	int ndx;	/* panel_num */
 	int (*on) (struct mdss_panel_data *pdata);
@@ -250,6 +250,7 @@ struct mdss_dsi_ctrl_pdata {
 	int mdss_dsi_clk_on;
 	int rst_gpio;
 	int disp_en_gpio;
+	int disp_en_gpio_vsn;
 	int disp_te_gpio;
 	int mode_gpio;
 	int rst_gpio_requested;
@@ -275,6 +276,22 @@ struct mdss_dsi_ctrl_pdata {
 	struct dsi_panel_cmds on_cmds;
 	struct dsi_panel_cmds off_cmds;
 
+#ifdef CONFIG_FB_AUTO_CABC
+	struct dsi_panel_cmds dsi_panel_cabc_ui_cmds;
+	struct dsi_panel_cmds dsi_panel_cabc_video_cmds;
+
+//remove dynamic gamma
+#endif
+#ifdef CONFIG_FB_DISPLAY_INVERSION
+	u32 inversion_state;
+	struct dsi_panel_cmds dsi_panel_inverse_on_cmds;
+	struct dsi_panel_cmds dsi_panel_inverse_off_cmds;
+#endif
+#ifdef CONFIG_HUAWEI_LCD
+	u32 first_wake_up;
+	struct dsi_panel_cmds temporary_pwm_cmds;
+	struct dsi_panel_cmds normal_pwm_cmds;
+#endif
 	struct dcs_cmd_list cmdlist;
 	struct completion dma_comp;
 	struct completion mdp_comp;
@@ -285,11 +302,30 @@ struct mdss_dsi_ctrl_pdata {
 	int mdp_busy;
 	struct mutex mutex;
 	struct mutex cmd_mutex;
+#ifdef CONFIG_HUAWEI_KERNEL
+	struct mutex put_mutex;
+#endif
 
 	struct dsi_buf tx_buf;
 	struct dsi_buf rx_buf;
-};
+#ifdef CONFIG_HUAWEI_LCD
+	bool esd_check_enable;
+	u32 panel_esd_cmd[10];
+	u32 panel_esd_cmd_value[10];
+	u32 panel_esd_cmd_len;
+#endif
+#ifdef CONFIG_HUAWEI_LCD
+	int bl_en_gpio;
+#endif
+#ifdef CONFIG_HUAWEI_LCD
+	struct dsi_panel_cmds dot_inversion_cmds;
+	struct dsi_panel_cmds column_inversion_cmds;
+#endif
 
+#ifdef CONFIG_HUAWEI_LCD
+	u32 long_read_flag;
+#endif
+};
 int dsi_panel_device_register(struct device_node *pan_node,
 				struct mdss_dsi_ctrl_pdata *ctrl_pdata);
 
@@ -343,4 +379,13 @@ int mdss_dsi_bta_status_check(struct mdss_dsi_ctrl_pdata *ctrl);
 int mdss_dsi_panel_init(struct device_node *node,
 		struct mdss_dsi_ctrl_pdata *ctrl_pdata,
 		bool cmd_cfg_cont_splash);
+
+#ifdef CONFIG_HUAWEI_KERNEL
+void mdss_change_fps(void);
+int mdss_dsi_wait4video_done_ret(struct mdss_dsi_ctrl_pdata *ctrl);
+int mdss_dsi_set_fps(int frame_rate);
+#endif
+#ifdef CONFIG_HUAWEI_LCD
+int panel_check_live_status(struct mdss_dsi_ctrl_pdata *ctrl);
+#endif
 #endif /* MDSS_DSI_H */

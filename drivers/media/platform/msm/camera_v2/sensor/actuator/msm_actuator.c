@@ -29,6 +29,9 @@ DEFINE_MSM_MUTEX(msm_actuator_mutex);
 
 static struct msm_actuator msm_vcm_actuator_table;
 static struct msm_actuator msm_piezo_actuator_table;
+#ifdef CONFIG_HUAWEI_KERNEL_CAMERA
+static int32_t msm_actuator_power_up(struct msm_actuator_ctrl_t *a_ctrl);
+#endif
 
 static struct i2c_driver msm_actuator_i2c_driver;
 static struct msm_actuator *actuators[] = {
@@ -303,6 +306,8 @@ static int32_t msm_actuator_move_focus(
 			a_ctrl->curr_region_index += sign_dir;
 		}
 		a_ctrl->curr_step_pos = target_step_pos;
+		a_ctrl->current_lens_pos = a_ctrl->step_position_table[a_ctrl->curr_step_pos];
+		CDBG("curr_step_pos=%d, current_lens_pos=%d\n", a_ctrl->curr_step_pos, a_ctrl->current_lens_pos);
 	}
 
 	reg_setting.reg_setting = a_ctrl->i2c_reg_tbl;
@@ -389,16 +394,51 @@ static int32_t msm_actuator_set_default_focus(
 	return rc;
 }
 
+static int32_t msm_actuator_reset(struct msm_actuator_ctrl_t *a_ctrl)
+{
+	int32_t rc  = 0;
+	uint16_t code = 0;
+	uint8_t buf[2];
+
+	code = a_ctrl->current_lens_pos;
+	printk("YOOY:%s: a_ctrl->curr_lens_pos = %d\n",__func__,a_ctrl->current_lens_pos);
+	while(code) {
+		printk("YOOY:%s: code is = %d\n",__func__,code);
+		code = (code > 30)?(code - 30) : 0;
+		buf[0] = (code >> 4);
+		buf[1] = ((code << 4) | 0x7) & 0xFF;
+		a_ctrl->i2c_client.i2c_func_tbl->i2c_write_seq(&a_ctrl->i2c_client, buf[0], &buf[1], 1);
+		usleep_range(15000, 16000);
+	}
+	buf[0] = buf[1] =  0;
+	a_ctrl->i2c_client.i2c_func_tbl->i2c_write_seq(&a_ctrl->i2c_client, buf[0], &buf[1], 1);
+	usleep_range(8000, 9000);
+	a_ctrl->current_lens_pos= 0;
+	return rc;
+}
+
 static int32_t msm_actuator_power_down(struct msm_actuator_ctrl_t *a_ctrl)
 {
 	int32_t rc = 0;
 	CDBG("Enter\n");
+#ifdef CONFIG_HUAWEI_KERNEL_CAMERA
+	/*if pwd gpio is high then we set to low*/
+	if (a_ctrl->vcm_enable && a_ctrl->vcm_power_up) {
+		rc = gpio_direction_output(a_ctrl->vcm_pwd, 0);
+		if (!rc)
+		{
+			//output to low success
+			a_ctrl->vcm_power_up = 0;
+			gpio_free(a_ctrl->vcm_pwd);
+		}
+	}
+#else
 	if (a_ctrl->vcm_enable) {
 		rc = gpio_direction_output(a_ctrl->vcm_pwd, 0);
 		if (!rc)
 			gpio_free(a_ctrl->vcm_pwd);
 	}
-
+#endif
 	kfree(a_ctrl->step_position_table);
 	a_ctrl->step_position_table = NULL;
 	kfree(a_ctrl->i2c_reg_tbl);
@@ -452,6 +492,10 @@ static int32_t msm_actuator_init(struct msm_actuator_ctrl_t *a_ctrl,
 	uint16_t i = 0;
 	struct msm_camera_cci_client *cci_client = NULL;
 	CDBG("Enter\n");
+#ifdef CONFIG_HUAWEI_KERNEL_CAMERA
+	/*if pwd gpio is low, will be set to HIGH in here*/
+	msm_actuator_power_up(a_ctrl);
+#endif
 
 	for (i = 0; i < ARRAY_SIZE(actuators); i++) {
 		if (set_info->actuator_params.act_type ==
@@ -575,7 +619,12 @@ static int32_t msm_actuator_config(struct msm_actuator_ctrl_t *a_ctrl,
 	CDBG("%s type %d\n", __func__, cdata->cfgtype);
 	switch (cdata->cfgtype) {
 	case CFG_GET_ACTUATOR_INFO:
+#ifdef CONFIG_HUAWEI_KERNEL_CAMERA
+		/*use dtsi file config*/
+		cdata->is_af_supported = a_ctrl->vcm_enable;
+#else
 		cdata->is_af_supported = 1;
+#endif
 		cdata->cfg.cam_name = a_ctrl->cam_name;
 		break;
 
@@ -604,6 +653,11 @@ static int32_t msm_actuator_config(struct msm_actuator_ctrl_t *a_ctrl,
 			&cdata->cfg.setpos);
 		if (rc < 0)
 			pr_err("actuator_set_position failed %d\n", rc);
+		break;
+	case CFG_ACTUATOR_RESET:
+		rc = msm_actuator_reset(a_ctrl);
+		if (rc < 0)
+			pr_err("msm_actuator_reset failed %d\n", rc);
 		break;
 	default:
 		break;
@@ -636,6 +690,7 @@ static struct msm_camera_i2c_fn_t msm_sensor_cci_func_tbl = {
 	.i2c_read = msm_camera_cci_i2c_read,
 	.i2c_read_seq = msm_camera_cci_i2c_read_seq,
 	.i2c_write = msm_camera_cci_i2c_write,
+	.i2c_write_seq = msm_camera_cci_i2c_write_seq,
 	.i2c_write_table = msm_camera_cci_i2c_write_table,
 	.i2c_write_seq_table = msm_camera_cci_i2c_write_seq_table,
 	.i2c_write_table_w_microdelay =
@@ -689,7 +744,24 @@ static int msm_actuator_close(struct v4l2_subdev *sd,
 	}
 	kfree(a_ctrl->i2c_reg_tbl);
 	a_ctrl->i2c_reg_tbl = NULL;
-
+#ifdef CONFIG_HUAWEI_KERNEL_CAMERA
+	/*check if need set PWD to low*/
+	if(a_ctrl->vcm_enable)
+	{
+		if((a_ctrl->vcm_pwd != 0) && a_ctrl->vcm_power_up)
+		{
+			//set pwd gpio to low
+			rc = gpio_direction_output(a_ctrl->vcm_pwd, 0);	
+			if (!rc)
+			{
+				//output to low success
+				a_ctrl->vcm_power_up = 0;
+				gpio_free(a_ctrl->vcm_pwd);
+				pr_info("%s: set pwd gpio to low and free ok\n",__func__);
+			}
+		}
+	}
+#endif
 	CDBG("Exit\n");
 	return rc;
 }
@@ -718,10 +790,35 @@ static long msm_actuator_subdev_ioctl(struct v4l2_subdev *sd,
 		return -ENOIOCTLCMD;
 	}
 }
-
 static int32_t msm_actuator_power_up(struct msm_actuator_ctrl_t *a_ctrl)
 {
 	int rc = 0;
+#ifdef CONFIG_HUAWEI_KERNEL_CAMERA
+	unsigned gpio_config = 0;
+	CDBG("%s called\n", __func__);
+
+	pr_info("vcm info: pwd gpio=%d vcm enable=%x vcm_power_up=%d\n", a_ctrl->vcm_pwd,a_ctrl->vcm_enable,
+		a_ctrl->vcm_power_up);
+	if (a_ctrl->vcm_enable && !a_ctrl->vcm_power_up) {
+		rc = gpio_request(a_ctrl->vcm_pwd, "msm_actuator");
+		if (!rc) {
+			pr_info("Enable VCM PWD\n");
+			//config actuator pwd gpio to output and no pull
+			gpio_config = GPIO_CFG(a_ctrl->vcm_pwd,  0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA);/*  gpio config */
+			rc = gpio_tlmm_config(gpio_config, GPIO_CFG_ENABLE);
+			if(rc < 0)
+			{
+				/* faild to config gpio */
+				pr_err("%s:%d gpio_tlmm_config %d fail\n",__func__,__LINE__,a_ctrl->vcm_pwd);
+			}
+			else
+			{
+				gpio_set_value(a_ctrl->vcm_pwd, 1);
+				a_ctrl->vcm_power_up = 1;
+			}
+		}
+	}
+#else
 	CDBG("%s called\n", __func__);
 
 	CDBG("vcm info: %x %x\n", a_ctrl->vcm_pwd,
@@ -733,6 +830,7 @@ static int32_t msm_actuator_power_up(struct msm_actuator_ctrl_t *a_ctrl)
 			gpio_direction_output(a_ctrl->vcm_pwd, 1);
 		}
 	}
+#endif
 	CDBG("Exit\n");
 	return rc;
 }
@@ -869,6 +967,34 @@ static int32_t msm_actuator_platform_probe(struct platform_device *pdev)
 		pr_err("failed rc %d\n", rc);
 		return rc;
 	}
+#ifdef CONFIG_HUAWEI_KERNEL_CAMERA
+	/*read vcm cam name from dtsi*/
+	rc = of_property_read_u32((&pdev->dev)->of_node, "qcom,actuator-cam-name", &msm_actuator_t->cam_name);
+	CDBG("%s qcom,actuator-cam-name %d, rc %d\n", __func__, msm_actuator_t->cam_name, rc);
+	if (rc < 0)
+	{
+		pr_err("%s:%d failed rc %d\n", __func__,__LINE__,rc);
+		return rc;
+	}
+	/*read vcm pwd gpio from dtsi*/
+	rc = of_property_read_u32((&pdev->dev)->of_node, "qcom,actuator-vcm-pwd", &msm_actuator_t->vcm_pwd);
+	CDBG("%s qcom,actuator-vcm-pwd %d, rc %d\n", __func__, msm_actuator_t->vcm_pwd, rc);
+	if (rc < 0)
+	{
+		pr_err("%s:%d failed rc %d\n", __func__,__LINE__,rc);
+		return rc;
+	}
+	/*read vcm enable or disable from dtsi*/
+	rc = of_property_read_u32((&pdev->dev)->of_node, "qcom,actuator-vcm-enable", &msm_actuator_t->vcm_enable);
+	CDBG("%s qcom,actuator-vcm-enable %d, rc %d\n", __func__, msm_actuator_t->vcm_enable, rc);
+	if (rc < 0)
+	{
+		pr_err("%s:%d failed rc %d\n", __func__,__LINE__,rc);
+		return rc;
+	}
+	/*init pwd gpio is low*/
+	msm_actuator_t->vcm_power_up = 0;
+#endif
 
 	msm_actuator_t->act_v4l2_subdev_ops = &msm_actuator_subdev_ops;
 	msm_actuator_t->actuator_mutex = &msm_actuator_mutex;

@@ -32,6 +32,7 @@
 #define CSI_DECODE_DPCM_10_8_10 5
 
 #define MAX_SENSOR_NAME 32
+#define MAX_PRODUCT_NAME 32
 
 #define MAX_ACT_MOD_NAME_SIZE 32
 #define MAX_ACT_NAME_SIZE 32
@@ -239,6 +240,7 @@ struct msm_camera_i2c_reg_array {
 	uint16_t reg_addr;
 	uint16_t reg_data;
 	uint32_t delay;
+	enum msm_camera_i2c_data_type data_type;
 };
 
 struct msm_camera_i2c_reg_setting {
@@ -318,12 +320,21 @@ struct csi_lane_params_t {
 	uint8_t csi_phy_sel;
 };
 
+struct msm_sensor_dig_gain {
+    uint16_t gr_gain;
+    uint16_t r_gain;
+    uint16_t b_gain;
+    uint16_t gb_gain;
+};
 struct msm_sensor_info_t {
 	char sensor_name[MAX_SENSOR_NAME];
 	int32_t    session_id;
 	int32_t     subdev_id[SUB_MODULE_MAX];
+	/*add project name for the project menu*/
+	char sensor_project_name[MAX_SENSOR_NAME];
+	struct msm_sensor_dig_gain sensor_otp_dig_gain;
+	char product_name[MAX_PRODUCT_NAME];
 };
-
 struct camera_vreg_t {
 	const char *reg_name;
 	enum camera_vreg_type type;
@@ -337,7 +348,16 @@ enum camb_position_t {
 	BACK_CAMERA_B,
 	FRONT_CAMERA_B,
 };
-
+enum camb_auto_exposure_mode_type{
+    CAMB_AEC_MODE_FRAME_AVERAGE,
+    CAMB_AEC_MODE_CENTER_WEIGHTED,
+    CAMB_AEC_MODE_SPOT_METERING,
+    CAMB_AEC_MODE_SMART_METERING,
+    CAMB_AEC_MODE_USER_METERING,
+    CAMB_AEC_MODE_SPOT_METERING_ADV,
+    CAMB_AEC_MODE_CENTER_WEIGHTED_ADV,
+    CAMB_AEC_MODE_MAX
+};
 enum camerab_mode_t {
 	CAMERA_MODE_2D_B = (1<<0),
 	CAMERA_MODE_3D_B = (1<<1)
@@ -350,6 +370,7 @@ struct msm_sensor_init_params {
 	enum camb_position_t position;
 	/* sensor mount angle */
 	uint32_t            sensor_mount_angle;
+	enum camb_auto_exposure_mode_type ae_meter_type;
 };
 
 struct sensorb_cfg_data {
@@ -435,6 +456,10 @@ enum msm_sensor_cfg_type_t {
 	CFG_SET_WHITE_BALANCE,
 	CFG_SET_AUTOFOCUS,
 	CFG_CANCEL_AUTOFOCUS,
+	CFG_GET_SENSOR_PROJECT_INFO,
+	/*CFG_WRITE_OTP_DATA will be used in vendor,so not add huawei kernel macro*/
+	CFG_WRITE_OTP_DATA,
+	CFG_WRITE_EXPOSURE_DATA
 };
 
 enum msm_actuator_cfg_type_t {
@@ -443,6 +468,7 @@ enum msm_actuator_cfg_type_t {
 	CFG_SET_DEFAULT_FOCUS,
 	CFG_SET_POSITION,
 	CFG_MOVE_FOCUS,
+	CFG_ACTUATOR_RESET
 };
 
 enum actuator_type {
@@ -534,6 +560,9 @@ enum af_camera_name {
 	ACTUATOR_MAIN_CAM_3,
 	ACTUATOR_MAIN_CAM_4,
 	ACTUATOR_MAIN_CAM_5,
+	ACTUATOR_MAIN_CAM_6,
+	ACTUATOR_MAIN_CAM_7,
+	ACTUATOR_MAIN_CAM_8,
 	ACTUATOR_WEB_CAM_0,
 	ACTUATOR_WEB_CAM_1,
 	ACTUATOR_WEB_CAM_2,
@@ -577,6 +606,12 @@ enum msm_camera_led_config_t {
 	MSM_CAMERA_LED_HIGH,
 	MSM_CAMERA_LED_INIT,
 	MSM_CAMERA_LED_RELEASE,
+	MSM_CAMERA_LED_TORCH_LOW,
+	MSM_CAMERA_LED_TORCH_MEDIUM,
+	MSM_CAMERA_LED_TORCH_LOW_HIGH,
+	MSM_CAMERA_LED_TORCH_POWER_NORMAL = 108,	//108
+	MSM_CAMERA_LED_TORCH_POWER_LOW,				//109
+       /* fix mistake */
 };
 
 struct msm_camera_led_cfg_t {

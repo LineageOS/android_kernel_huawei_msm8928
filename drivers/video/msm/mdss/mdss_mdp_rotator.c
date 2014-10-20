@@ -37,6 +37,8 @@ static int mdss_mdp_rotator_queue_helper(struct mdss_mdp_rotator_session *rot);
 static struct msm_sync_pt_data *mdss_mdp_rotator_sync_pt_create(
 			struct mdss_mdp_rotator_session *rot);
 
+static u32 count;
+
 static struct mdss_mdp_rotator_session *mdss_mdp_rotator_session_alloc(void)
 {
 	struct mdss_mdp_rotator_session *rot;
@@ -143,6 +145,12 @@ static int mdss_mdp_rotator_kickoff(struct mdss_mdp_ctl *ctl,
 
 	mutex_lock(&rot->lock);
 	rot->busy = true;
+	/* fRist kickoff change vbif settings */
+	if (!count) {
+		writel_relaxed(0x08010808, mdss_res->vbif_base + 0xB0);
+		writel_relaxed(0x02101010, mdss_res->vbif_base + 0xC0);
+		count++;
+	}
 	ret = mdss_mdp_writeback_display_commit(ctl, &wb_args);
 	if (ret) {
 		rot->busy = false;
@@ -202,7 +210,7 @@ static int mdss_mdp_rotator_queue_sub(struct mdss_mdp_rotator_session *rot,
 			   struct mdss_mdp_data *dst_data)
 {
 	struct mdss_mdp_pipe *rot_pipe = NULL;
-	struct mdss_mdp_ctl *ctl;
+	struct mdss_mdp_ctl *orig_ctl, *rot_ctl;
 	int ret;
 
 	if (!rot || !rot->ref_cnt)
@@ -218,20 +226,20 @@ static int mdss_mdp_rotator_queue_sub(struct mdss_mdp_rotator_session *rot,
 
 	pr_debug("queue rotator pnum=%d\n", rot_pipe->num);
 
-	ctl = rot_pipe->mixer->ctl;
-	if (ctl->shared_lock)
-		mutex_lock(ctl->shared_lock);
+	orig_ctl = rot_pipe->mixer->ctl;
+	if (orig_ctl->shared_lock)
+		mutex_lock(orig_ctl->shared_lock);
 
-	ctl = mdss_mdp_ctl_mixer_switch(ctl,
+	rot_ctl = mdss_mdp_ctl_mixer_switch(orig_ctl,
 			MDSS_MDP_WB_CTL_TYPE_BLOCK);
-	if (!ctl) {
+	if (!rot_ctl) {
 		ret = -EINVAL;
 		goto error;
 	} else {
-		rot->pipe->mixer = ctl->mixer_left;
+		rot->pipe->mixer = rot_ctl->mixer_left;
 	}
 
-	if (rot->params_changed || ctl->mdata->mixer_switched) {
+	if (rot->params_changed || rot_ctl->mdata->mixer_switched) {
 		rot->params_changed = 0;
 		rot_pipe->flags = rot->flags;
 		rot_pipe->src_fmt = mdss_mdp_get_format_params(rot->format);
@@ -257,12 +265,12 @@ static int mdss_mdp_rotator_queue_sub(struct mdss_mdp_rotator_session *rot,
 		goto error;
 	}
 
-	ret = mdss_mdp_rotator_kickoff(ctl, rot, dst_data);
+	ret = mdss_mdp_rotator_kickoff(rot_ctl, rot, dst_data);
 
 	return ret;
 error:
-	if (ctl->shared_lock)
-		mutex_unlock(ctl->shared_lock);
+	if (orig_ctl->shared_lock)
+		mutex_unlock(orig_ctl->shared_lock);
 	return ret;
 }
 
@@ -576,6 +584,9 @@ static int mdss_mdp_rotator_finish(struct mdss_mdp_rotator_session *rot)
 		else
 			mixer = tmp->mixer_left;
 		mdss_mdp_wb_mixer_destroy(mixer);
+		writel_relaxed(0x08080808, mdss_res->vbif_base + 0xB0);
+		writel_relaxed(0x10101010, mdss_res->vbif_base + 0xC0);
+		count = 0;
 	}
 	return ret;
 }

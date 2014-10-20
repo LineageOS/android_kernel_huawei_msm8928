@@ -50,6 +50,7 @@
 
 /* module params */
 #define WCNSS_CONFIG_UNSPECIFIED (-1)
+#define UINT32_MAX (0xFFFFFFFFU)
 
 static int has_48mhz_xo = WCNSS_CONFIG_UNSPECIFIED;
 module_param(has_48mhz_xo, int, S_IWUSR | S_IRUGO);
@@ -160,6 +161,8 @@ static DEFINE_SPINLOCK(reg_spinlock);
 #define WCNSS_VERSION_LEN			30
 #define WCNSS_MAX_BUILD_VER_LEN		256
 
+#define MAC_ADDRESS_STR "%02x:%02x:%02x:%02x:%02x:%02x"
+
 /* message types */
 #define WCNSS_CTRL_MSG_START	0x01000000
 #define	WCNSS_VERSION_REQ             (WCNSS_CTRL_MSG_START + 0)
@@ -209,7 +212,17 @@ static struct wcnss_pmic_dump wcnss_pmic_reg_dump[] = {
 	{"LVS1", 0x060},
 };
 
+#ifdef CONFIG_HUAWEI_WIFI
+#define NVBIN_FILE "wlan/prima/WCNSS_hw_wlan_nv.bin"
+#define NVBIN_FILE_3660B "wlan/prima/WCNSS_hw_wlan_nv_3660b.bin"
+#define WLAN_CHIP_QUALCOMM_WCN3660B   "2.4"
+#define WLAN_MAX_CONF_INFO_LEN 128
+#define QUALCOMM_WCN_CALDATA_FORMAT    "../wifi/WCNSS_hw_wlan_nv"
+extern char *get_wifi_device_type(void);
+const void *get_hw_wifi_pubfile_id(void);
+#else
 #define NVBIN_FILE "wlan/prima/WCNSS_qcom_wlan_nv.bin"
+#endif
 
 /*
  * On SMD channel 4K of maximum data can be transferred, including message
@@ -360,17 +373,62 @@ static struct {
 	int	fw_cal_available;
 	int	user_cal_read;
 	int	user_cal_available;
-	int	user_cal_rcvd;
+	u32	user_cal_rcvd;
 	int	user_cal_exp_size;
 	int	device_opened;
 	int	iris_xo_mode_set;
 	int	fw_vbatt_state;
+	char	wlan_nv_macAddr[WLAN_MAC_ADDR_SIZE];
 	struct mutex dev_lock;
 	wait_queue_head_t read_wait;
 	struct qpnp_adc_tm_btm_param vbat_monitor_params;
 	struct qpnp_adc_tm_chip *adc_tm_dev;
 	struct mutex vbat_monitor_mutex;
 } *penv = NULL;
+
+static ssize_t wcnss_wlan_macaddr_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	char macAddr[WLAN_MAC_ADDR_SIZE];
+
+	if (!penv)
+		return -ENODEV;
+
+	pr_debug("%s: Receive MAC Addr From user space: %s\n", __func__, buf);
+
+	if (WLAN_MAC_ADDR_SIZE != sscanf(buf, MAC_ADDRESS_STR,
+		 (int *)&macAddr[0], (int *)&macAddr[1],
+		 (int *)&macAddr[2], (int *)&macAddr[3],
+		 (int *)&macAddr[4], (int *)&macAddr[5])) {
+
+		pr_err("%s: Failed to Copy MAC\n", __func__);
+		return -EINVAL;
+	}
+
+	memcpy(penv->wlan_nv_macAddr, macAddr, sizeof(penv->wlan_nv_macAddr));
+
+	pr_info("%s: Write MAC Addr:" MAC_ADDRESS_STR "\n", __func__,
+		penv->wlan_nv_macAddr[0], penv->wlan_nv_macAddr[1],
+		penv->wlan_nv_macAddr[2], penv->wlan_nv_macAddr[3],
+		penv->wlan_nv_macAddr[4], penv->wlan_nv_macAddr[5]);
+
+	return count;
+}
+
+static ssize_t wcnss_wlan_macaddr_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	if (!penv)
+		return -ENODEV;
+
+	return scnprintf(buf, PAGE_SIZE, MAC_ADDRESS_STR,
+		penv->wlan_nv_macAddr[0], penv->wlan_nv_macAddr[1],
+		penv->wlan_nv_macAddr[2], penv->wlan_nv_macAddr[3],
+		penv->wlan_nv_macAddr[4], penv->wlan_nv_macAddr[5]);
+}
+
+static DEVICE_ATTR(wcnss_mac_addr, S_IRUSR | S_IWUSR,
+	wcnss_wlan_macaddr_show, wcnss_wlan_macaddr_store);
 
 static ssize_t wcnss_serial_number_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
@@ -726,8 +784,14 @@ static int wcnss_create_sysfs(struct device *dev)
 	if (ret)
 		goto remove_thermal;
 
+	ret = device_create_file(dev, &dev_attr_wcnss_mac_addr);
+	if (ret)
+		goto remove_version;
+
 	return 0;
 
+remove_version:
+	device_remove_file(dev, &dev_attr_wcnss_version);
 remove_thermal:
 	device_remove_file(dev, &dev_attr_thermal_mitigation);
 remove_serial:
@@ -742,6 +806,7 @@ static void wcnss_remove_sysfs(struct device *dev)
 		device_remove_file(dev, &dev_attr_serial_number);
 		device_remove_file(dev, &dev_attr_thermal_mitigation);
 		device_remove_file(dev, &dev_attr_wcnss_version);
+		device_remove_file(dev, &dev_attr_wcnss_mac_addr);
 	}
 }
 static void wcnss_smd_notify_event(void *data, unsigned int event)
@@ -802,6 +867,10 @@ wcnss_pronto_gpios_config(struct device *dev, bool enable)
 	int i, j;
 	int WCNSS_WLAN_NUM_GPIOS = 5;
 
+#ifdef CONFIG_HUAWEI_WIFI
+    pr_info("wcnss: %s enter;\n", __func__);
+#endif
+
 	for (i = 0; i < WCNSS_WLAN_NUM_GPIOS; i++) {
 		int gpio = of_get_gpio(dev->of_node, i);
 		if (enable) {
@@ -815,6 +884,9 @@ wcnss_pronto_gpios_config(struct device *dev, bool enable)
 			gpio_free(gpio);
 	}
 
+#ifdef CONFIG_HUAWEI_WIFI
+	pr_info("wcnss: %s exit,rc:%d;line:%d;\n", __func__,rc,__LINE__);
+#endif
 	return rc;
 
 fail:
@@ -822,6 +894,9 @@ fail:
 		int gpio = of_get_gpio(dev->of_node, i);
 		gpio_free(gpio);
 	}
+#ifdef CONFIG_HUAWEI_WIFI
+	pr_info("wcnss: %s exit,rc:%d;line:%d;\n", __func__,rc,__LINE__);
+#endif
 	return rc;
 }
 
@@ -830,6 +905,10 @@ wcnss_gpios_config(struct resource *gpios_5wire, bool enable)
 {
 	int i, j;
 	int rc = 0;
+
+#ifdef CONFIG_HUAWEI_WIFI
+    pr_info("wcnss: %s enter;\n", __func__);
+#endif
 
 	for (i = gpios_5wire->start; i <= gpios_5wire->end; i++) {
 		if (enable) {
@@ -842,11 +921,17 @@ wcnss_gpios_config(struct resource *gpios_5wire, bool enable)
 			gpio_free(i);
 	}
 
+#ifdef CONFIG_HUAWEI_WIFI
+	pr_info("wcnss: %s exit,rc:%d;line:%d;\n", __func__,rc,__LINE__);
+#endif
 	return rc;
 
 fail:
 	for (j = i-1; j >= gpios_5wire->start; j--)
 		gpio_free(j);
+#ifdef CONFIG_HUAWEI_WIFI
+	pr_info("wcnss: %s exit,rc:%d;line:%d;\n", __func__,rc,__LINE__);
+#endif
 	return rc;
 }
 
@@ -1038,6 +1123,20 @@ unsigned int wcnss_get_serial_number(void)
 	return 0;
 }
 EXPORT_SYMBOL(wcnss_get_serial_number);
+
+int wcnss_get_wlan_mac_address(char mac_addr[WLAN_MAC_ADDR_SIZE])
+{
+	if (!penv)
+		return -ENODEV;
+
+	memcpy(mac_addr, penv->wlan_nv_macAddr, WLAN_MAC_ADDR_SIZE);
+	pr_debug("%s: Get MAC Addr:" MAC_ADDRESS_STR "\n", __func__,
+		penv->wlan_nv_macAddr[0], penv->wlan_nv_macAddr[1],
+		penv->wlan_nv_macAddr[2], penv->wlan_nv_macAddr[3],
+		penv->wlan_nv_macAddr[4], penv->wlan_nv_macAddr[5]);
+	return 0;
+}
+EXPORT_SYMBOL(wcnss_get_wlan_mac_address);
 
 static int enable_wcnss_suspend_notify;
 
@@ -1585,11 +1684,38 @@ static void wcnss_nvbin_dnld(void)
 	unsigned int nv_blob_size = 0;
 	const struct firmware *nv = NULL;
 	struct device *dev = &penv->pdev->dev;
-
+#ifdef CONFIG_HUAWEI_WIFI
+	char *wifi_device_type = NULL;
+	char *wifi_pubfile_id = NULL;
+	char nvbin_path[WLAN_MAX_CONF_INFO_LEN] = {0};
+	wifi_device_type = get_wifi_device_type();
+	wifi_pubfile_id = (char *)get_hw_wifi_pubfile_id();
+#endif
 	down_read(&wcnss_pm_sem);
-
+/*wcn3660b use the diff nvbin file*/
+#ifdef CONFIG_HUAWEI_WIFI
+	snprintf(nvbin_path,sizeof(nvbin_path), "%s_%s.bin", QUALCOMM_WCN_CALDATA_FORMAT, wifi_pubfile_id);
+	ret = request_firmware(&nv, nvbin_path, dev);
+	if (ret || !nv || !nv->data || !nv->size)
+	{
+	    if(0 == strncmp(wifi_device_type, WLAN_CHIP_QUALCOMM_WCN3660B, strlen(WLAN_CHIP_QUALCOMM_WCN3660B)))
+	    {
+	        ret = request_firmware(&nv, NVBIN_FILE_3660B, dev);
+	        pr_err("wcnss: %s: firmware_path %s\n",__func__, NVBIN_FILE_3660B);
+	    }
+	    else
+	    {
+	        ret = request_firmware(&nv, NVBIN_FILE, dev);
+	        pr_err("wcnss: %s: firmware_path %s\n",__func__, NVBIN_FILE);
+	    }
+	}
+	else
+	{
+	    pr_err("wcnss: %s: firmware_path %s\n",__func__, nvbin_path);
+	}
+#else
 	ret = request_firmware(&nv, NVBIN_FILE, dev);
-
+#endif
 	if (ret || !nv || !nv->data || !nv->size) {
 		pr_err("wcnss: %s: request_firmware failed for %s\n",
 			__func__, NVBIN_FILE);
@@ -1844,6 +1970,10 @@ wcnss_trigger_config(struct platform_device *pdev)
 	int has_pronto_hw = of_property_read_bool(pdev->dev.of_node,
 									"qcom,has-pronto-hw");
 
+#ifdef CONFIG_HUAWEI_WIFI
+	pr_info("wcnss: %s:enter;has_48mhz_xo:%d;\n", __func__,has_48mhz_xo);
+#endif
+
 	if (of_property_read_u32(pdev->dev.of_node,
 			"qcom,wlan-rx-buff-count", &penv->wlan_rx_buff_count)) {
 		penv->wlan_rx_buff_count = WCNSS_DEF_WLAN_RX_BUFF_COUNT;
@@ -1863,7 +1993,14 @@ wcnss_trigger_config(struct platform_device *pdev)
 		} else {
 			has_48mhz_xo = pdata->has_48mhz_xo;
 		}
+/*add parameters has_48mhz_xo logs */
+#ifdef CONFIG_HUAWEI_WIFI
+	pr_info("wcnss: %s:set has_48mhz_xo:%d;\n", __func__,has_48mhz_xo);
+#endif
 	}
+#ifdef CONFIG_HUAWEI_WIFI
+	pr_info("wcnss: %s:has_48mhz_xo:%d;\n", __func__,has_48mhz_xo);
+#endif
 	penv->wcnss_hw_type = (has_pronto_hw) ? WCNSS_PRONTO_HW : WCNSS_RIVA_HW;
 	penv->wlan_config.use_48mhz_xo = has_48mhz_xo;
 
@@ -2091,6 +2228,9 @@ fail_power:
 		wcnss_gpios_config(penv->gpios_5wire, false);
 fail_gpio_res:
 	penv = NULL;
+#ifdef CONFIG_HUAWEI_WIFI
+	pr_info("wcnss: %s exit,line:%d\n", __func__,__LINE__);
+#endif
 	return ret;
 }
 
@@ -2165,7 +2305,7 @@ static ssize_t wcnss_wlan_write(struct file *fp, const char __user
 			*user_buffer, size_t count, loff_t *position)
 {
 	int rc = 0;
-	int size = 0;
+	size_t size = 0;
 
 	if (!penv || !penv->device_opened || penv->user_cal_available)
 		return -EFAULT;
@@ -2173,7 +2313,7 @@ static ssize_t wcnss_wlan_write(struct file *fp, const char __user
 	if (penv->user_cal_rcvd == 0 && count >= 4
 			&& !penv->user_cal_data) {
 		rc = copy_from_user((void *)&size, user_buffer, 4);
-		if (size > MAX_CALIBRATED_DATA_SIZE) {
+		if (!size || size > MAX_CALIBRATED_DATA_SIZE) {
 			pr_err(DEVICE " invalid size to write %d\n", size);
 			return -EFAULT;
 		}
@@ -2192,7 +2332,8 @@ static ssize_t wcnss_wlan_write(struct file *fp, const char __user
 	} else if (penv->user_cal_rcvd == 0 && count < 4)
 		return -EFAULT;
 
-	if (MAX_CALIBRATED_DATA_SIZE < count + penv->user_cal_rcvd) {
+	if ((UINT32_MAX - count < penv->user_cal_rcvd) ||
+	     MAX_CALIBRATED_DATA_SIZE < count + penv->user_cal_rcvd) {
 		pr_err(DEVICE " invalid size to write %d\n", count +
 				penv->user_cal_rcvd);
 		rc = -ENOMEM;
@@ -2231,6 +2372,10 @@ static int __devinit
 wcnss_wlan_probe(struct platform_device *pdev)
 {
 	int ret = 0;
+
+#ifdef CONFIG_HUAWEI_WIFI
+	pr_info("wcnss: %s enter;\n", __func__);
+#endif
 
 	/* verify we haven't been called more than once */
 	if (penv) {

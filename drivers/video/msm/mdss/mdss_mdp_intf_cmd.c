@@ -1,4 +1,4 @@
-/* Copyright (c) 2013, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -17,9 +17,6 @@
 #include "mdss_panel.h"
 
 #define VSYNC_EXPIRE_TICK 4
-
-#define START_THRESHOLD 4
-#define CONTINUE_THRESHOLD 4
 
 #define MAX_SESSIONS 2
 
@@ -46,12 +43,6 @@ struct mdss_mdp_cmd_ctx {
 	struct work_struct pp_done_work;
 	atomic_t pp_done_cnt;
 
-	/* te config */
-	u8 tear_check;
-	u16 height;	/* panel height */
-	u16 vporch;	/* vertical porches */
-	u16 start_threshold;
-	u32 vclk_line;	/* vsync clock per line */
 	struct mdss_panel_recovery recovery;
 };
 
@@ -101,96 +92,86 @@ exit:
 	return cnt;
 }
 
-/*
- * TE configuration:
- * dsi byte clock calculated base on 70 fps
- * around 14 ms to complete a kickoff cycle if te disabled
- * vclk_line base on 60 fps
- * write is faster than read
- * init == start == rdptr
- */
-static int mdss_mdp_cmd_tearcheck_cfg(struct mdss_mdp_mixer *mixer,
-			struct mdss_mdp_cmd_ctx *ctx, int enable)
-{
-	u32 cfg;
 
-	cfg = BIT(19); /* VSYNC_COUNTER_EN */
-	if (ctx->tear_check)
-		cfg |= BIT(20);	/* VSYNC_IN_EN */
-	cfg |= ctx->vclk_line;
+static int mdss_mdp_cmd_tearcheck_cfg(struct mdss_mdp_ctl *ctl,
+				      struct mdss_mdp_mixer *mixer)
+{
+	struct mdss_mdp_pp_tear_check *te;
+	struct mdss_panel_info *pinfo;
+	u32 vsync_clk_speed_hz, total_lines, vclks_line, cfg;
+
+	if (IS_ERR_OR_NULL(ctl->panel_data)) {
+		pr_err("no panel data\n");
+		return -ENODEV;
+	}
+
+	pinfo = &ctl->panel_data->panel_info;
+	te = &ctl->panel_data->panel_info.te;
+
+	mdss_mdp_vsync_clk_enable(1);
+
+	vsync_clk_speed_hz =
+		mdss_mdp_get_clk_rate(MDSS_CLK_MDP_VSYNC);
+
+	total_lines = mdss_panel_get_vtotal(pinfo);
+
+	total_lines *= pinfo->mipi.frame_rate;
+
+	vclks_line = (total_lines) ? vsync_clk_speed_hz / total_lines : 0;
+
+	cfg = BIT(19);
+	if (pinfo->mipi.hw_vsync_mode)
+		cfg |= BIT(20);
+
+	if (te->refx100)
+		vclks_line = vclks_line * pinfo->mipi.frame_rate *
+			100 / te->refx100;
+	else {
+		pr_warn("refx100 cannot be zero! Use 6000 as default\n");
+		vclks_line = vclks_line * pinfo->mipi.frame_rate *
+			100 / 6000;
+	}
+
+	cfg |= vclks_line;
+
+	pr_debug("%s: yres=%d vclks=%x height=%d init=%d rd=%d start=%d ",
+		__func__, pinfo->yres, vclks_line, te->sync_cfg_height,
+		 te->vsync_init_val, te->rd_ptr_irq, te->start_pos);
+	pr_debug("thrd_start =%d thrd_cont=%d\n",
+		te->sync_threshold_start, te->sync_threshold_continue);
 
 	mdss_mdp_pingpong_write(mixer, MDSS_MDP_REG_PP_SYNC_CONFIG_VSYNC, cfg);
 	mdss_mdp_pingpong_write(mixer, MDSS_MDP_REG_PP_SYNC_CONFIG_HEIGHT,
-				0xfff0); /* set to verh height */
-
+				te->sync_cfg_height);
 	mdss_mdp_pingpong_write(mixer, MDSS_MDP_REG_PP_VSYNC_INIT_VAL,
-						ctx->height);
-
+				te->vsync_init_val);
 	mdss_mdp_pingpong_write(mixer, MDSS_MDP_REG_PP_RD_PTR_IRQ,
-						ctx->height + 1);
-
+				te->rd_ptr_irq);
 	mdss_mdp_pingpong_write(mixer, MDSS_MDP_REG_PP_START_POS,
-						ctx->height);
-
+				te->start_pos);
 	mdss_mdp_pingpong_write(mixer, MDSS_MDP_REG_PP_SYNC_THRESH,
-		   (CONTINUE_THRESHOLD << 16) | (ctx->start_threshold));
-
-	mdss_mdp_pingpong_write(mixer, MDSS_MDP_REG_PP_TEAR_CHECK_EN, enable);
+				((te->sync_threshold_continue << 16) |
+				 te->sync_threshold_start));
+	mdss_mdp_pingpong_write(mixer, MDSS_MDP_REG_PP_TEAR_CHECK_EN,
+				te->tear_check_en);
 	return 0;
 }
 
-static int mdss_mdp_cmd_tearcheck_setup(struct mdss_mdp_ctl *ctl, int enable)
+static int mdss_mdp_cmd_tearcheck_setup(struct mdss_mdp_ctl *ctl)
 {
-	struct mdss_mdp_cmd_ctx *ctx = ctl->priv_data;
-	struct mdss_panel_info *pinfo;
 	struct mdss_mdp_mixer *mixer;
-
-	pinfo = &ctl->panel_data->panel_info;
-
-	if (pinfo->mipi.vsync_enable && enable) {
-		u32 mdp_vsync_clk_speed_hz, total_lines;
-
-		mdss_mdp_vsync_clk_enable(1);
-
-		mdp_vsync_clk_speed_hz =
-		mdss_mdp_get_clk_rate(MDSS_CLK_MDP_VSYNC);
-		pr_debug("%s: vsync_clk_rate=%d\n", __func__,
-					mdp_vsync_clk_speed_hz);
-
-		if (mdp_vsync_clk_speed_hz == 0) {
-			pr_err("can't get clk speed\n");
-			return -EINVAL;
-		}
-
-		ctx->tear_check = pinfo->mipi.hw_vsync_mode;
-		ctx->height = pinfo->yres;
-		ctx->vporch = pinfo->lcdc.v_back_porch +
-				    pinfo->lcdc.v_front_porch +
-				    pinfo->lcdc.v_pulse_width;
-
-		ctx->start_threshold = START_THRESHOLD;
-
-		total_lines = ctx->height + ctx->vporch;
-		total_lines *= pinfo->mipi.frame_rate;
-		ctx->vclk_line = mdp_vsync_clk_speed_hz / total_lines;
-
-		pr_debug("%s: fr=%d tline=%d vcnt=%d thold=%d vrate=%d\n",
-			__func__, pinfo->mipi.frame_rate, total_lines,
-				ctx->vclk_line, ctx->start_threshold,
-				mdp_vsync_clk_speed_hz);
-	} else {
-		enable = 0;
-	}
-
+	int rc = 0;
 	mixer = mdss_mdp_mixer_get(ctl, MDSS_MDP_MIXER_MUX_LEFT);
-	if (mixer)
-		mdss_mdp_cmd_tearcheck_cfg(mixer, ctx, enable);
-
+	if (mixer) {
+		rc = mdss_mdp_cmd_tearcheck_cfg(ctl, mixer);
+		if (rc)
+			goto err;
+	}
 	mixer = mdss_mdp_mixer_get(ctl, MDSS_MDP_MIXER_MUX_RIGHT);
 	if (mixer)
-		mdss_mdp_cmd_tearcheck_cfg(mixer, ctx, enable);
-
-	return 0;
+		rc = mdss_mdp_cmd_tearcheck_cfg(ctl, mixer);
+ err:
+	return rc;
 }
 
 static inline void mdss_mdp_cmd_clk_on(struct mdss_mdp_cmd_ctx *ctx)
@@ -261,7 +242,10 @@ static void mdss_mdp_cmd_readptr_done(void *arg)
 		mdss_mdp_irq_disable_nosync
 			(MDSS_MDP_IRQ_PING_PONG_RD_PTR, ctx->pp_num);
 		complete(&ctx->stop_comp);
-		schedule_work(&ctx->clk_work);
+	/*delete clk off opreation to avoid esd check freezed*/
+	#ifndef CONFIG_HUAWEI_LCD
+	schedule_work(&ctx->clk_work);
+	#endif
 	}
 
 	spin_unlock(&ctx->clk_lock);
@@ -359,6 +343,13 @@ static int mdss_mdp_cmd_add_vsync_handler(struct mdss_mdp_ctl *ctl,
 {
 	struct mdss_mdp_cmd_ctx *ctx;
 	unsigned long flags;
+	/*add qcom patch to solve the cmd esd issue
+	 *refactor command mode vsync control logic
+	 *Current logic is prone to corner case when mdss_mdp_remove_vsync_handler
+	 *is called twice: once from mdss_mdp_cmd_stop and again from vsync ctrl
+	 *logic. Need to properly identify the second call and avoid resetting the
+	 *rdptr ticks which prevent from clocks being turned off properly.*/
+	bool enable_rdptr = false;
 
 	ctx = (struct mdss_mdp_cmd_ctx *) ctl->priv_data;
 	if (!ctx) {
@@ -370,12 +361,14 @@ static int mdss_mdp_cmd_add_vsync_handler(struct mdss_mdp_ctl *ctl,
 	if (!handle->enabled) {
 		handle->enabled = true;
 		list_add(&handle->list, &ctx->vsync_handlers);
-		if (!handle->cmd_post_flush)
-			ctx->vsync_enabled = 1;
+		
+		enable_rdptr = !handle->cmd_post_flush;
+		if (enable_rdptr)
+			ctx->vsync_enabled++;
 	}
 	spin_unlock_irqrestore(&ctx->clk_lock, flags);
 
-	if (!handle->cmd_post_flush)
+	if (enable_rdptr)
 		mdss_mdp_cmd_clk_on(ctx);
 
 	return 0;
@@ -387,9 +380,12 @@ static int mdss_mdp_cmd_remove_vsync_handler(struct mdss_mdp_ctl *ctl,
 
 	struct mdss_mdp_cmd_ctx *ctx;
 	unsigned long flags;
-	struct mdss_mdp_vsync_handler *tmp;
-	int num_rdptr_vsync = 0;
-
+	/*add qcom patch to solve the cmd esd issue
+	 *refactor command mode vsync control logic
+	 *Current logic is prone to corner case when mdss_mdp_remove_vsync_handler
+	 *is called twice: once from mdss_mdp_cmd_stop and again from vsync ctrl
+	 *logic. Need to properly identify the second call and avoid resetting the
+	 *rdptr ticks which prevent from clocks being turned off properly.*/
 	ctx = (struct mdss_mdp_cmd_ctx *) ctl->priv_data;
 	if (!ctx) {
 		pr_err("%s: invalid ctx\n", __func__);
@@ -401,14 +397,13 @@ static int mdss_mdp_cmd_remove_vsync_handler(struct mdss_mdp_ctl *ctl,
 	if (handle->enabled) {
 		handle->enabled = false;
 		list_del_init(&handle->list);
-	}
-	list_for_each_entry(tmp, &ctx->vsync_handlers, list) {
-		if (!tmp->cmd_post_flush)
-			num_rdptr_vsync++;
-	}
-	if (!num_rdptr_vsync) {
-		ctx->vsync_enabled = 0;
-		ctx->rdptr_enabled = VSYNC_EXPIRE_TICK;
+
+		if (!handle->cmd_post_flush) {
+			if (ctx->vsync_enabled)
+				ctx->vsync_enabled--;
+			else
+				WARN(1, "unbalanced vsync disable");
+		}
 	}
 	spin_unlock_irqrestore(&ctx->clk_lock, flags);
 	return 0;
@@ -431,14 +426,19 @@ int mdss_mdp_cmd_reconfigure_splash_done(struct mdss_mdp_ctl *ctl, bool handoff)
 
 	return ret;
 }
-
+#ifdef CONFIG_HUAWEI_LCD
+extern struct dsi_status_data *pstatus_data;
+#endif
 static int mdss_mdp_cmd_wait4pingpong(struct mdss_mdp_ctl *ctl, void *arg)
 {
 	struct mdss_mdp_cmd_ctx *ctx;
 	unsigned long flags;
 	int need_wait = 0;
 	int rc = 0;
-
+#ifdef CONFIG_HUAWEI_LCD
+	char *envp[2] = {"PANEL_ALIVE=0", NULL};
+	struct mdss_panel_data *pdata = NULL;
+#endif
 	ctx = (struct mdss_mdp_cmd_ctx *) ctl->priv_data;
 	if (!ctx) {
 		pr_err("invalid ctx\n");
@@ -462,6 +462,25 @@ static int mdss_mdp_cmd_wait4pingpong(struct mdss_mdp_ctl *ctl, void *arg)
 						rc, ctl->num);
 			rc = -EPERM;
 			mdss_mdp_ctl_notify(ctl, MDP_NOTIFY_FRAME_TIMEOUT);
+		#ifdef CONFIG_HUAWEI_LCD
+			if(pstatus_data)
+			{
+				if(pstatus_data->mfd)
+				{
+					pdata = dev_get_platdata(&pstatus_data->mfd->pdev->dev);
+				}
+			}
+			//send panel alive=0 uevent,when occur timeout
+			if(pdata)
+			{
+				pdata->panel_info.panel_dead = true;
+				kobject_uevent_env(
+					&pstatus_data->mfd->fbi->dev->kobj,
+								KOBJ_CHANGE, envp);
+				pr_err("%s: Panel has gone bad, sending uevent - %s\n",
+								__func__, envp[0]);
+			}
+		#endif
 		} else {
 			rc = 0;
 		}
@@ -469,7 +488,6 @@ static int mdss_mdp_cmd_wait4pingpong(struct mdss_mdp_ctl *ctl, void *arg)
 
 	return rc;
 }
-
 static int mdss_mdp_cmd_set_partial_roi(struct mdss_mdp_ctl *ctl)
 {
 	int rc = 0;
@@ -506,6 +524,10 @@ int mdss_mdp_cmd_kickoff(struct mdss_mdp_ctl *ctl, void *arg)
 
 		rc = mdss_mdp_ctl_intf_event(ctl, MDSS_EVENT_PANEL_ON, NULL);
 		WARN(rc, "intf %d panel on error (%d)\n", ctl->intf_num, rc);
+		/*schedule the esd delay work*/
+#ifdef CONFIG_HUAWEI_LCD
+		mdss_dsi_status_check_ctl(ctl->mfd,true);
+#endif
 	}
 
 	mdss_mdp_cmd_set_partial_roi(ctl);
@@ -543,7 +565,10 @@ int mdss_mdp_cmd_stop(struct mdss_mdp_ctl *ctl)
 		pr_err("invalid ctx\n");
 		return -ENODEV;
 	}
-
+	/*cancel the esd delay work*/
+#ifdef CONFIG_HUAWEI_LCD
+	mdss_dsi_status_check_ctl(ctl->mfd,false);
+#endif
 	list_for_each_entry_safe(handle, tmp, &ctx->vsync_handlers, list)
 		mdss_mdp_cmd_remove_vsync_handler(ctl, handle);
 
@@ -568,6 +593,8 @@ int mdss_mdp_cmd_stop(struct mdss_mdp_ctl *ctl)
 					mdss_mdp_irq_disable
 						(MDSS_MDP_IRQ_PING_PONG_RD_PTR,
 								ctx->pp_num);
+					/*add the qcom patch to solve the cmd lcd esd issue*/
+					schedule_work(&ctx->clk_work);
 					ctx->rdptr_enabled = 0;
 				}
 			}
@@ -664,7 +691,8 @@ int mdss_mdp_cmd_start(struct mdss_mdp_ctl *ctl)
 	mdss_mdp_set_intr_callback(MDSS_MDP_IRQ_PING_PONG_COMP, ctx->pp_num,
 				   mdss_mdp_cmd_pingpong_done, ctl);
 
-	ret = mdss_mdp_cmd_tearcheck_setup(ctl, 1);
+	ret = mdss_mdp_cmd_tearcheck_setup(ctl);
+
 	if (ret) {
 		pr_err("tearcheck setup failed\n");
 		return ret;

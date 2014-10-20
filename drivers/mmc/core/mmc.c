@@ -20,10 +20,17 @@
 #include <linux/pm_runtime.h>
 #include <linux/reboot.h>
 
+#ifdef CONFIG_HW_MMC_TEST
+#include <linux/export.h>
+#endif
+
 #include "core.h"
 #include "bus.h"
 #include "mmc_ops.h"
 #include "sd_ops.h"
+#ifdef EMMC_8G_SIZE
+#define EMMC_8G_CAPACITY 15319040
+#endif
 
 static const unsigned int tran_exp[] = {
 	10000,		100000,		1000000,	10000000,
@@ -59,6 +66,11 @@ static const unsigned int tacc_mant[] = {
 	})
 
 static const struct mmc_fixup mmc_fixups[] = {
+#ifdef CONFIG_HUAWEI_KERNEL
+	/* Disable HPI function for Hynix EMMC Jedec 4.5*/
+	MMC_FIXUP_EXT_CSD_REV(CID_NAME_ANY, CID_MANFID_HYNIX,
+			      0x014a, add_quirk, MMC_QUIRK_BROKEN_HPI, 6),
+#endif
 	/*
 	 * Certain Hynix eMMC 4.41 cards might get broken when HPI feature
 	 * is used so disable the HPI feature for such buggy cards.
@@ -287,7 +299,11 @@ static void mmc_select_card_type(struct mmc_card *card)
 /*
  * Decode extended CSD.
  */
+#ifdef CONFIG_HW_MMC_TEST
+int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
+#else
 static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
+#endif
 {
 	int err = 0, idx;
 	unsigned int part_size;
@@ -331,6 +347,13 @@ static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
 			ext_csd[EXT_CSD_SEC_CNT + 1] << 8 |
 			ext_csd[EXT_CSD_SEC_CNT + 2] << 16 |
 			ext_csd[EXT_CSD_SEC_CNT + 3] << 24;
+
+#ifdef EMMC_8G_SIZE
+        if(card->ext_csd.sectors > EMMC_8G_CAPACITY )
+        {
+           card->ext_csd.sectors = EMMC_8G_CAPACITY;
+        }
+#endif
 
 		/* Cards with density > 2GiB are sector addressed */
 		if (card->ext_csd.sectors > (2u * 1024 * 1024 * 1024) / 512)
@@ -585,6 +608,9 @@ static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
 out:
 	return err;
 }
+#ifdef CONFIG_HW_MMC_TEST
+EXPORT_SYMBOL_GPL(mmc_read_ext_csd);
+#endif
 
 static inline void mmc_free_ext_csd(u8 *ext_csd)
 {
@@ -653,6 +679,26 @@ out:
 	mmc_free_ext_csd(bw_ext_csd);
 	return err;
 }
+#ifdef CONFIG_HUAWEI_KERNEL 
+static ssize_t mmc_samsung_smart(struct device *dev, 
+                                            struct device_attribute *attr, char *buf) 
+{ 
+    struct mmc_card *card = mmc_dev_to_card(dev); 
+    unsigned int size = PAGE_SIZE; 
+    unsigned int wrote; 
+
+    if (card->quirks & MMC_QUIRK_SAMSUNG_SMART) 
+    {
+        return mmc_samsung_smart_handle(card, buf); 
+    }
+    else
+    {
+        wrote = scnprintf(buf, size, "This eMMC is not provided by Samsung, only Samsung eMMC support this feature!\n"); 
+        return wrote;
+    }
+} 
+static DEVICE_ATTR(samsung_smart, S_IRUGO, mmc_samsung_smart, NULL); 
+#endif /* CONFIG_HUAWEI_KERNEL */ 
 
 MMC_DEV_ATTR(cid, "%08x%08x%08x%08x\n", card->raw_cid[0], card->raw_cid[1],
 	card->raw_cid[2], card->raw_cid[3]);
@@ -689,6 +735,9 @@ static struct attribute *mmc_std_attrs[] = {
 	&dev_attr_enhanced_area_size.attr,
 	&dev_attr_raw_rpmb_size_mult.attr,
 	&dev_attr_rel_sectors.attr,
+#ifdef CONFIG_HUAWEI_KERNEL 
+    &dev_attr_samsung_smart.attr, 
+#endif 
 	NULL,
 };
 
@@ -1284,7 +1333,14 @@ static int mmc_reboot_notify(struct notifier_block *notify_block,
 
 	return NOTIFY_OK;
 }
+#ifdef CONFIG_HUAWEI_KERNEL 
+static const struct mmc_fixup samsung_mmc_fixups[] = { 
+    /* Provide access to Samsung's e-MMC Smart Report via sysfs */
+    MMC_FIXUP(CID_NAME_ANY, 0x15, CID_OEMID_ANY, add_quirk_mmc, MMC_QUIRK_SAMSUNG_SMART), 
 
+    END_FIXUP 
+    }; 
+#endif 
 /*
  * Activate highest bus speed mode supported by both host and card.
  * On failure activate the next supported highest bus speed mode.
@@ -1420,6 +1476,13 @@ static int mmc_init_card(struct mmc_host *host, u32 ocr,
 		err = mmc_decode_cid(card);
 		if (err)
 			goto free_card;
+
+#ifdef CONFIG_HUAWEI_KERNEL 
+        /* Detect on first access quirky cards that need help when 
+         * powered-on 
+         */ 
+        mmc_fixup_device(card, samsung_mmc_fixups);   
+#endif
 	}
 
 	/*
@@ -1648,8 +1711,11 @@ err:
 
 	return err;
 }
-
+#ifdef CONFIG_HUAWEI_KERNEL
+int mmc_can_poweroff_notify(const struct mmc_card *card)
+#else
 static int mmc_can_poweroff_notify(const struct mmc_card *card)
+#endif
 {
 	return card &&
 		mmc_card_mmc(card) &&
@@ -1759,7 +1825,11 @@ static void mmc_detect(struct mmc_host *host)
 /*
  * Suspend callback from host.
  */
+#ifdef CONFIG_HUAWEI_KERNEL
+int mmc_suspend(struct mmc_host *host)
+#else
 static int mmc_suspend(struct mmc_host *host)
+#endif
 {
 	int err = 0;
 

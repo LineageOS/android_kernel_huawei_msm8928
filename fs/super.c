@@ -818,10 +818,16 @@ static void do_emergency_remount(struct work_struct *work)
 	printk("Emergency Remount complete\n");
 }
 
+#ifdef CONFIG_HW_SYSTEM_WR_PROTECT
+extern int blk_set_ro_secure_debuggable(int state);
+#endif
+
 void emergency_remount(void)
 {
 	struct work_struct *work;
-
+#ifdef CONFIG_HW_SYSTEM_WR_PROTECT	
+    blk_set_ro_secure_debuggable(0);
+#endif	
 	work = kmalloc(sizeof(*work), GFP_ATOMIC);
 	if (work) {
 		INIT_WORK(work, do_emergency_remount);
@@ -974,6 +980,8 @@ struct dentry *mount_bdev(struct file_system_type *fs_type,
 	fmode_t mode = FMODE_READ | FMODE_EXCL;
 	int error = 0;
 
+/* Delete several lines */
+
 	if (!(flags & MS_RDONLY))
 		mode |= FMODE_WRITE;
 
@@ -996,6 +1004,8 @@ struct dentry *mount_bdev(struct file_system_type *fs_type,
 	mutex_unlock(&bdev->bd_fsfreeze_mutex);
 	if (IS_ERR(s))
 		goto error_s;
+
+/* Delete several lines */
 
 	if (s->s_root) {
 		if ((flags ^ s->s_flags) & MS_RDONLY) {
@@ -1031,6 +1041,8 @@ struct dentry *mount_bdev(struct file_system_type *fs_type,
 		bdev->bd_super = s;
 	}
 
+/* Delete several lines */
+
 	return dget(s->s_root);
 
 error_s:
@@ -1038,6 +1050,7 @@ error_s:
 error_bdev:
 	blkdev_put(bdev, mode);
 error:
+/* Delete several lines */
 	return ERR_PTR(error);
 }
 EXPORT_SYMBOL(mount_bdev);

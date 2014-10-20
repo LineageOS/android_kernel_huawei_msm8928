@@ -390,7 +390,14 @@ struct mdss_mdp_writeback_arg {
 	struct mdss_mdp_data *data;
 	void *priv_data;
 };
-
+#ifdef CONFIG_HUAWEI_LCD
+struct dsi_status_data {
+	struct notifier_block fb_notifier;
+	struct delayed_work check_status;
+	struct msm_fb_data_type *mfd;
+	uint32_t check_interval;
+};
+#endif
 struct mdss_overlay_private {
 	ktime_t vsync_time;
 	struct sysfs_dirent *vsync_event_sd;
@@ -654,4 +661,7 @@ int mdss_mdp_pipe_program_pixel_extn(struct mdss_mdp_pipe *pipe);
 				(mfd->mdp.private1))->wb)
 
 int  mdss_mdp_ctl_reset(struct mdss_mdp_ctl *ctl);
+#ifdef CONFIG_HUAWEI_LCD
+void mdss_dsi_status_check_ctl(struct msm_fb_data_type *mfd, int sheduled);
+#endif
 #endif /* MDSS_MDP_H */

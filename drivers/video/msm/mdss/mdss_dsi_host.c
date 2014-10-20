@@ -26,6 +26,11 @@
 #include "mdss.h"
 #include "mdss_dsi.h"
 #include "mdss_panel.h"
+#include "mdss_mdp.h"
+
+#ifdef CONFIG_HUAWEI_KERNEL
+int mdss_dsi_set_fps_flag = false;//use for mdss_dsi_isr. means the isr is for change fps
+#endif
 
 #define VSYNC_PERIOD 17
 
@@ -105,6 +110,9 @@ void mdss_dsi_ctrl_init(struct mdss_dsi_ctrl_pdata *ctrl)
 	spin_lock_init(&ctrl->mdp_lock);
 	mutex_init(&ctrl->mutex);
 	mutex_init(&ctrl->cmd_mutex);
+#ifdef CONFIG_HUAWEI_KERNEL
+	mutex_init(&ctrl->put_mutex);
+#endif
 	mdss_dsi_buf_alloc(&ctrl->tx_buf, SZ_4K);
 	mdss_dsi_buf_alloc(&ctrl->rx_buf, SZ_4K);
 	ctrl->cmdlist_commit = mdss_dsi_cmdlist_commit;
@@ -116,6 +124,7 @@ void mdss_dsi_ctrl_init(struct mdss_dsi_ctrl_pdata *ctrl)
 		dsi_event.inited  = 1;
 	}
 }
+
 
 void mdss_dsi_clk_req(struct mdss_dsi_ctrl_pdata *ctrl, int enable)
 {
@@ -481,9 +490,16 @@ void mdss_dsi_controller_cfg(int enable,
 	if (readl_poll_timeout(((ctrl_pdata->ctrl_base) + 0x0008),
 			   status,
 			   ((status & 0x02) == 0),
-			       sleep_us, timeout_us))
+	/* add qcom patch to solve cmd lcd esd issue
+	 *Currently, Command engine will be blocked when sending
+	 *display off command in ESD test. Root cause is
+	 *panel BTA will affect DSI status. Reset dsi driver
+	 *when command engine is blocked.*/
+			     sleep_us, timeout_us)) {
 		pr_info("%s: DSI status=%x failed\n", __func__, status);
-
+		pr_info("%s: Doing sw reset\n", __func__);	
+		mdss_dsi_sw_reset(pdata);
+	}
 	/* Check for x_HS_FIFO_EMPTY */
 	if (readl_poll_timeout(((ctrl_pdata->ctrl_base) + 0x000c),
 			   status,
@@ -611,7 +627,9 @@ int mdss_dsi_bta_status_check(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 	}
 
 	pr_debug("%s: Checking BTA status\n", __func__);
-
+#ifdef CONFIG_HUAWEI_KERNEL
+	mutex_lock(&ctrl_pdata->cmd_mutex);
+#endif
 	mdss_dsi_clk_ctrl(ctrl_pdata, 1);
 	spin_lock_irqsave(&ctrl_pdata->mdp_lock, flag);
 	INIT_COMPLETION(ctrl_pdata->bta_comp);
@@ -626,10 +644,19 @@ int mdss_dsi_bta_status_check(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 		mdss_dsi_disable_irq(ctrl_pdata, DSI_BTA_TERM);
 		pr_err("%s: DSI BTA error: %i\n", __func__, ret);
 	}
-
 	mdss_dsi_clk_ctrl(ctrl_pdata, 0);
+#ifdef CONFIG_HUAWEI_KERNEL
+	mutex_unlock(&ctrl_pdata->cmd_mutex);
+#endif
 	pr_debug("%s: BTA done with ret: %d\n", __func__, ret);
-
+#ifdef CONFIG_HUAWEI_LCD
+	if(ret > 0)
+	{
+		/*if panel check error and enable the esd check bit in dtsi,report the event to hal layer*/
+		if(ctrl_pdata->esd_check_enable)
+			ret = panel_check_live_status(ctrl_pdata);
+	}
+#endif
 	return ret;
 }
 
@@ -849,8 +876,12 @@ int mdss_dsi_cmds_rx(struct mdss_dsi_ctrl_pdata *ctrl,
 		data = dsi_ctrl | 0x04; /* CMD_MODE_EN */
 		MIPI_OUTP((ctrl->ctrl_base) + 0x0004, data);
 	}
-
+/*fix qcom bug*/
+#ifdef CONFIG_HUAWEI_KERNEL
+	if (rlen <= 2) {
+#else		
 	if (rlen == 0) {
+#endif	
 		short_response = 1;
 		rx_byte = 4;
 	} else {
@@ -986,7 +1017,6 @@ end:
 }
 
 #define DMA_TX_TIMEOUT 200
-
 static int mdss_dsi_cmd_dma_tx(struct mdss_dsi_ctrl_pdata *ctrl,
 					struct dsi_buf *tp)
 {
@@ -994,7 +1024,9 @@ static int mdss_dsi_cmd_dma_tx(struct mdss_dsi_ctrl_pdata *ctrl,
 	int domain = MDSS_IOMMU_DOMAIN_UNSECURE;
 	char *bp;
 	unsigned long size, addr;
-
+#ifdef CONFIG_HUAWEI_LCD
+	bool iommu_attached = false;
+#endif
 	bp = tp->data;
 
 	len = ALIGN(tp->len, 4);
@@ -1009,8 +1041,14 @@ static int mdss_dsi_cmd_dma_tx(struct mdss_dsi_ctrl_pdata *ctrl,
 			pr_err("unable to map dma memory to iommu(%d)\n", ret);
 			return -ENOMEM;
 		}
+	#ifdef CONFIG_HUAWEI_LCD
+		iommu_attached = true;
+	#endif	
 	} else {
 		addr = tp->dmap;
+	#ifdef CONFIG_HUAWEI_LCD
+		iommu_attached = false;
+	#endif
 	}
 
 	INIT_COMPLETION(ctrl->dma_comp);
@@ -1041,14 +1079,17 @@ static int mdss_dsi_cmd_dma_tx(struct mdss_dsi_ctrl_pdata *ctrl,
 		ret = -ETIMEDOUT;
 	else
 		ret = tp->len;
-
+#ifdef CONFIG_HUAWEI_LCD
+	//unmap it when it have been maped at front
+	if (is_mdss_iommu_attached() && iommu_attached)
+#else
 	if (is_mdss_iommu_attached())
+#endif
 		msm_iommu_unmap_contig_buffer(addr,
 			mdss_get_iommu_domain(domain), 0, size);
 
 	return ret;
 }
-
 static int mdss_dsi_cmd_dma_rx(struct mdss_dsi_ctrl_pdata *ctrl,
 			struct dsi_buf *rp, int rx_byte)
 
@@ -1102,6 +1143,41 @@ void mdss_dsi_wait4video_done(struct mdss_dsi_ctrl_pdata *ctrl)
 	data &= ~DSI_INTR_VIDEO_DONE_MASK;
 	MIPI_OUTP((ctrl->ctrl_base) + 0x0110, data);
 }
+
+#ifdef CONFIG_HUAWEI_KERNEL
+//add ret base mdss_dsi_wait4video_done
+int mdss_dsi_wait4video_done_ret(struct mdss_dsi_ctrl_pdata *ctrl)
+{
+	unsigned long flag = 0;
+	u32 data = 0;
+    int ret = 0;
+    mdss_dsi_set_fps_flag = true;
+
+	/* DSI_INTL_CTRL */
+	data = MIPI_INP((ctrl->ctrl_base) + 0x0110);
+    if(!(data |DSI_INTR_VIDEO_DONE))
+    {
+        pr_debug("%s: dsi intl ctrl error. data=%x", __func__, data);
+    }
+	data |= DSI_INTR_VIDEO_DONE_MASK;
+	MIPI_OUTP((ctrl->ctrl_base) + 0x0110, data);
+
+	spin_lock_irqsave(&ctrl->mdp_lock, flag);
+	INIT_COMPLETION(ctrl->video_comp);
+	mdss_dsi_enable_irq(ctrl, DSI_VIDEO_TERM);
+	spin_unlock_irqrestore(&ctrl->mdp_lock, flag);
+
+	ret = wait_for_completion_timeout(&ctrl->video_comp,
+			msecs_to_jiffies(VSYNC_PERIOD * 4));
+
+	data = MIPI_INP((ctrl->ctrl_base) + 0x0110);
+	data &= ~DSI_INTR_VIDEO_DONE_MASK;
+	MIPI_OUTP((ctrl->ctrl_base) + 0x0110, data);
+
+    mdss_dsi_set_fps_flag = false;
+	return ret;
+}
+#endif  //CONFIG_HUAWEI_KERNEL
 
 static int mdss_dsi_wait4video_eng_busy(struct mdss_dsi_ctrl_pdata *ctrl)
 {
@@ -1184,6 +1260,7 @@ void mdss_dsi_cmdlist_rx(struct mdss_dsi_ctrl_pdata *ctrl,
 		req->cb(len);
 }
 
+
 void mdss_dsi_cmdlist_commit(struct mdss_dsi_ctrl_pdata *ctrl, int from_mdp)
 {
 	struct dcs_cmd_req *req;
@@ -1225,6 +1302,7 @@ need_lock:
 
 	mutex_unlock(&ctrl->cmd_mutex);
 }
+
 
 static void dsi_send_events(struct mdss_dsi_ctrl_pdata *ctrl, u32 events)
 {
@@ -1446,6 +1524,12 @@ irqreturn_t mdss_dsi_isr(int irq, void *ptr)
 	if (isr & DSI_INTR_VIDEO_DONE) {
 		spin_lock(&ctrl->mdp_lock);
 		mdss_dsi_disable_irq_nosync(ctrl, DSI_VIDEO_TERM);
+#ifdef CONFIG_HUAWEI_KERNEL
+    if(mdss_dsi_set_fps_flag)
+    {
+         mdss_change_fps();
+    }        
+#endif
 		complete(&ctrl->video_comp);
 		spin_unlock(&ctrl->mdp_lock);
 	}

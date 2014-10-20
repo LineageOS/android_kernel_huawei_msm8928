@@ -588,6 +588,39 @@ static int __init early_mem(char *p)
 }
 early_param("mem", early_mem);
 
+#ifdef CONFIG_FEATURE_HUAWEI_EMERGENCY_DATA
+#define DATAMOUNT_FLAG_FAIL 0x0587C90A
+#define DATAMOUNT_FLAG_SUCCESS 0 // datamount_flag initialization value
+
+/*
+ * global variable datamount_flag has two values:
+ * 0 - init value
+ * 1 - reboot caused by ext4_handle_error, or sync_blockdev return EIO
+ */
+static unsigned int datamount_flag = DATAMOUNT_FLAG_SUCCESS;
+unsigned int get_datamount_flag(void)
+{
+    return datamount_flag;
+}
+EXPORT_SYMBOL(get_datamount_flag);
+void set_datamount_flag(int value)
+{
+    datamount_flag = value;
+}
+EXPORT_SYMBOL(set_datamount_flag);
+
+static int __init early_param_huaweitype(char * p)
+{
+    if (p) {
+        if (!strcmp(p,"mountfail")) {
+            datamount_flag = DATAMOUNT_FLAG_FAIL;
+        }
+    }
+    return 0;
+}
+early_param("androidboot.huawei_type", early_param_huaweitype);
+#endif
+
 static void __init
 setup_ramdisk(int doload, int prompt, int image_start, unsigned int rd_sz)
 {
@@ -748,6 +781,28 @@ static int __init parse_tag_cmdline(const struct tag *tag)
 
 __tagtable(ATAG_CMDLINE, parse_tag_cmdline);
 
+#ifdef CONFIG_HUAWEI_KERNEL
+#define RUNMODE_FLAG_FACTORY 1
+#define RUNMODE_FLAG_NORMAL 0
+
+static unsigned int runmode_factory = RUNMODE_FLAG_NORMAL;
+
+int __init parse_tag_runmode_flag (const struct tag* tags )
+{
+    runmode_factory = (int)tags->u.revision.rev;
+    printk("Factory : parse_tag_runmode_flag() = %d\n", runmode_factory);
+    return 0;
+}
+__tagtable(ATAG_RUNMODE_FLAG, parse_tag_runmode_flag);
+/* the function interface to check factory/normal mode in kernel */
+bool is_runmode_factory(void)
+{
+    if (RUNMODE_FLAG_FACTORY == runmode_factory)
+        return true;
+    else
+        return false;
+}
+#endif
 /*
  * Scan the tag table for this tag, and call its parse function.
  * The tag table is built by the linker from all the __tagtable
@@ -934,9 +989,36 @@ static int __init meminfo_cmp(const void *_a, const void *_b)
 	return cmp < 0 ? -1 : cmp > 0 ? 1 : 0;
 }
 
+static int __init dt_scan_for_machine_name(unsigned long node, const char *uname,
+		int depth, void *data)
+{
+	char *name;
+	int ret;
+	unsigned long length;
+ 
+        ret = of_flat_dt_is_compatible(node, "huawei,hw_machine_name");
+	if( !ret )
+	{
+		/*printk(KERN_ALERT "huawei,hw_machine_name is null\n");*/
+		return 0;
+	}
+	
+	name = of_get_flat_dt_prop(node, "machine_name",&length);
+	if( !name || !length )
+	{
+		/*printk(KERN_ALERT "machine_name is null\n");*/
+		return 0;
+	}
+	
+	*(unsigned long *)data = (unsigned long)name;
+
+	return 1;
+}
+
 void __init setup_arch(char **cmdline_p)
 {
 	struct machine_desc *mdesc;
+	unsigned long machine_name_addr=0;
 
 	setup_processor();
 	mdesc = setup_machine_fdt(__atags_pointer);
@@ -944,6 +1026,9 @@ void __init setup_arch(char **cmdline_p)
 		mdesc = setup_machine_tags(machine_arch_type);
 	machine_desc = mdesc;
 	machine_name = mdesc->name;
+	of_scan_flat_dt(dt_scan_for_machine_name, &machine_name_addr);
+	if(machine_name_addr)       
+		machine_name = (const char*)machine_name_addr; 
 
 	setup_dma_zone(mdesc);
 
