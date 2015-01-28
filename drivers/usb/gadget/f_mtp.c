@@ -561,6 +561,12 @@ static ssize_t mtp_read(struct file *fp, char __user *buf,
 	int r = count, xfer, len;
 	int ret = 0;
 
+	/* XXX: Sometimes cdev is NULL, why? */
+	if (!cdev) {
+		printk(KERN_ERR "%s: cdev is NULL\n", __func__);
+		return -EINVAL;
+	}
+
 	DBG(cdev, "mtp_read(%d)\n", count);
 
 	len = ALIGN(count, dev->ep_out->maxpacket);
