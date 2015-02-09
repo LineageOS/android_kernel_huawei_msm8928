@@ -155,11 +155,6 @@ static inline int mmc_blk_part_switch(struct mmc_card *card,
 				      struct mmc_blk_data *md);
 static int get_card_status(struct mmc_card *card, u32 *status, int retries);
 
-#ifdef CONFIG_HUAWEI_MMC
-extern int mmc_suspend(struct mmc_host *host);
-extern int mmc_can_poweroff_notify(const struct mmc_card *card);
-#endif
-
 static inline void mmc_blk_clear_packed(struct mmc_queue_req *mqrq)
 {
 	mqrq->packed_cmd = MMC_PACKED_NONE;
@@ -3273,37 +3268,15 @@ static void mmc_blk_shutdown(struct mmc_card *card)
 		}
 	}
 
-#ifdef CONFIG_HUAWEI_MMC
-	if(card->ext_csd.bkops_en){
-		mmc_rpm_hold(card->host, &card->dev);
-		mmc_claim_host(card->host);
-		mmc_stop_bkops(card);
-		mmc_release_host(card->host);
-		mmc_rpm_release(card->host, &card->dev);
-	}
-
-
-	/* send power off notification or cmd7->cmd5 */
-	if (mmc_card_mmc(card)) {
-		mmc_rpm_hold(card->host, &card->dev);
-		if(card->issue_long_pon && mmc_can_poweroff_notify(card)){
-			mmc_send_long_pon(card);
-		}else{
-			mmc_suspend(card->host);
-		}
-		mmc_rpm_release(card->host, &card->dev);
-	}
-#else
 	/* send power off notification */
 	if (mmc_card_mmc(card)) {
 		mmc_rpm_hold(card->host, &card->dev);
 		mmc_claim_host(card->host);
 		mmc_stop_bkops(card);
 		mmc_release_host(card->host);
-		mmc_send_long_pon(card);
+		mmc_send_pon(card);
 		mmc_rpm_release(card->host, &card->dev);
 	}
-#endif
 	return;
 
 suspend_error:
