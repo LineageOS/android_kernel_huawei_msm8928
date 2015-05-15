@@ -1191,7 +1191,6 @@ SYSCALL_DEFINE2(umount, char __user *, name, int, flags)
 	struct mount *mnt;
 	int retval;
 	int lookup_flags = 0;
-    /* Delete several lines */
 
 	if (flags & ~(MNT_FORCE | MNT_DETACH | MNT_EXPIRE | UMOUNT_NOFOLLOW))
 		return -EINVAL;
@@ -1213,16 +1212,12 @@ SYSCALL_DEFINE2(umount, char __user *, name, int, flags)
 	if (!capable(CAP_SYS_ADMIN))
 		goto dput_and_out;
 
-    /* Delete several lines */
-
 	retval = do_umount(mnt, flags);
 dput_and_out:
 	/* we mustn't call path_put() as that would clear mnt_expiry_mark */
 	dput(path.dentry);
 	mntput_no_expire(mnt);
 out:
-    /* Delete several lines */
-
 	return retval;
 }
 
@@ -1660,8 +1655,6 @@ static int do_remount(struct path *path, int flags, int mnt_flags,
 		      void *data)
 {
 	int err;
-    /* Delete several lines */
-
 	struct super_block *sb = path->mnt->mnt_sb;
 	struct mount *mnt = real_mount(path->mnt);
 
@@ -1678,7 +1671,6 @@ static int do_remount(struct path *path, int flags, int mnt_flags,
 	if (err)
 		return err;
 
-    /* Delete several lines */
 	down_write(&sb->s_umount);
 	if (flags & MS_BIND)
 		err = change_mount_flags(path->mnt, flags);
@@ -1696,9 +1688,6 @@ static int do_remount(struct path *path, int flags, int mnt_flags,
 		touch_mnt_namespace(mnt->mnt_ns);
 		br_write_unlock(vfsmount_lock);
 	}
-
-    /* Delete several lines */
-
 	return err;
 }
 
@@ -1868,10 +1857,10 @@ static int do_new_mount(struct path *path, char *type, int flags,
 	if (!type)
 		return -EINVAL;
 
-        /* we need capabilities... */
-        if (!capable(CAP_SYS_ADMIN))
-		    return -EPERM;
-	
+	/* we need capabilities... */
+	if (!capable(CAP_SYS_ADMIN))
+		return -EPERM;
+
 	mnt = do_kern_mount(type, flags, name, data);
 	if (IS_ERR(mnt))
 		return PTR_ERR(mnt);
