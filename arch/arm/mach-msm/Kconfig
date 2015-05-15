@@ -3031,11 +3031,4 @@ config HUAWEI_KERNEL_DEBUG
 	default n
 	help
 	  Enable sysrq, dump mode and some debug masks by default.
-
-config HUAWEI_DEBUG_MODE
-	bool "debug mode support"
-	depends on HUAWEI_KERNEL
-        default n
-	help
-	  in debug mode,you can use sysrq and dump mode 	 
 endif

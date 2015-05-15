@@ -48,20 +48,8 @@
 /* Whether we react on sysrq keys or just ignore them */
 static int __read_mostly sysrq_enabled = SYSRQ_DEFAULT_ENABLE;
 static bool __read_mostly sysrq_always_enabled;
-#ifdef CONFIG_HUAWEI_DEBUG_MODE
-extern char *saved_command_line;
-#endif
 static bool sysrq_on(void)
 {
-#ifdef CONFIG_HUAWEI_DEBUG_MODE
-    if(strstr(saved_command_line,"huawei_debug_mode=1")!=NULL
-	    || strstr(saved_command_line,"emcno=1")!=NULL)
-    {
-    	printk("For debug mode,sysrq_enabled is true");
-    	sysrq_enabled = 1;
-    	//sysrq_always_enabled = 1;
-    }
-#endif
 	return sysrq_enabled || sysrq_always_enabled;
 }
 

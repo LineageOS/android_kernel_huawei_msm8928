@@ -80,9 +80,6 @@
 #ifdef CONFIG_FEATURE_HUAWEI_EMERGENCY_DATA
 #define MOUNTFAIL_MAGIC_NUM 0x77665527
 #endif
-#ifdef CONFIG_HUAWEI_DEBUG_MODE
-extern char *saved_command_line;
-#endif
 
 static int restart_mode;
 void *restart_reason;
@@ -511,13 +508,6 @@ static int __init msm_restart_init(void)
 	dload_mode_addr = MSM_IMEM_BASE + DLOAD_MODE_ADDR;
 	emergency_dload_mode_addr = MSM_IMEM_BASE +
 		EMERGENCY_DLOAD_MODE_ADDR;
-#ifdef CONFIG_HUAWEI_DEBUG_MODE		
-	if(strstr(saved_command_line,"huawei_debug_mode=1")!=NULL
-	    || strstr(saved_command_line,"emcno=1")!=NULL)
-	{
-		download_mode = 1;
-	}
-#endif
 	set_dload_mode(download_mode);
 #endif
 	msm_tmr0_base = msm_timer_get_timer0_base();

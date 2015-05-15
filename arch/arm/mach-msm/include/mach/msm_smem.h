@@ -160,9 +160,6 @@ typedef struct
     unsigned int update_flag[2];           /* sd auto update flag */
     unsigned char sb_seme_data[16];
     /* add the huawei_debug to match the aboot & sbl */
-#ifdef CONFIG_HUAWEI_DEBUG_MODE    
-    unsigned int huawei_debug;
-#endif
     unsigned int reserved;                  /* reserved for filling */
 }smem_exten_huawei_paramater;
 
