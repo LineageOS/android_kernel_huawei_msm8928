@@ -1306,21 +1306,6 @@ config PANIC_ON_DATA_CORRUPTION
 	 recoverable data corruption scenarios to system-halting panics,
 	 for easier detection and debug.
 
-config HW_PANIC_ON_DELAY_AT_INIT_N_REBOOT
-	bool "Panic on init/reboot/shutdown delay"
-	depends on HUAWEI_KERNEL
-	default n
-	help
-	  Do panic if there is a delay in:
-	    1. Any of the init/entry functions of any module
-	    2. During shutdown procedure of any devices during halt/reboot
-	    3. During the halt and reboot of the kernel (covering #2 above)
-	  This is to aid debugging of modules which doesnt respond well during
-	  the initialization and reboot/shutdown. The panic logs can be collected
-	  via ramdump which can be examined to identify the device causing issue.
-
-	  If unsure, say No.
-
 source "samples/Kconfig"
 
 source "lib/Kconfig.kgdb"
