@@ -26,9 +26,6 @@
 #define HASH_SHIFT ilog2(PAGE_SIZE / sizeof(struct list_head))
 #define HASH_SIZE (1UL << HASH_SHIFT)
 
-#ifdef CONFIG_EXT4_HUAWEI_DEBUG
-extern unsigned char do_not_check_permission_flag;
-#endif
 #ifdef CONFIG_HW_FEATURE_STORAGE_DIAGNOSE_LOG
 #include <linux/store_log.h>
 #endif
@@ -1875,17 +1872,9 @@ static int do_new_mount(struct path *path, char *type, int flags,
 	if (!type)
 		return -EINVAL;
 
-#ifdef CONFIG_EXT4_HUAWEI_DEBUG
-    /* if ext4 happens errors, wo don't want to check permission */
-    if (0 == do_not_check_permission_flag)
-    {
-#endif
         /* we need capabilities... */
         if (!capable(CAP_SYS_ADMIN))
 		    return -EPERM;
-#ifdef CONFIG_EXT4_HUAWEI_DEBUG
-    }
-#endif
 	
 	mnt = do_kern_mount(type, flags, name, data);
 	if (IS_ERR(mnt))

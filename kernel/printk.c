@@ -149,9 +149,6 @@ static int console_may_schedule;
 #ifdef CONFIG_PRINTK
 
 static char __log_buf[__LOG_BUF_LEN];
-#ifdef CONFIG_EXT4_HUAWEI_DEBUG
-const char *kmsg_buf = __log_buf;
-#endif
 static char *log_buf = __log_buf;
 static int log_buf_len = __LOG_BUF_LEN;
 static unsigned logged_chars; /* Number of chars produced since last read+clear operation */
