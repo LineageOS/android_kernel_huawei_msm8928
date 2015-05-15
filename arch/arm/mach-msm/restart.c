@@ -95,12 +95,7 @@ static void *emergency_dload_mode_addr;
 
 /* Download mode master kill-switch */
 static int dload_set(const char *val, struct kernel_param *kp);
-#ifndef CONFIG_HUAWEI_KERNEL_DEBUG
-/* disable ramdump by default*/
-static int download_mode = 0;
-#else
 static int download_mode = 1;
-#endif
 module_param_call(download_mode, dload_set, param_get_int,
 			&download_mode, 0644);
 static int panic_prep_restart(struct notifier_block *this,

@@ -77,11 +77,7 @@
 #define NUM_OF_COUNTERS 3
 #define MAX_BUF_SIZE  512
 
-#ifndef CONFIG_HUAWEI_KERNEL_DEBUG
-static int msm_pm_debug_mask = 0;
-#else
 static int msm_pm_debug_mask = 1;
-#endif
 module_param_named(
 	debug_mask, msm_pm_debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP
 );
