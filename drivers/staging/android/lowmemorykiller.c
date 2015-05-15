@@ -48,10 +48,6 @@
 #define _ZONE ZONE_NORMAL
 #endif
 
-#ifdef CONFIG_HUAWEI_KSTATE
-#include <linux/hw_kstate.h>
-#endif
-
 static uint32_t lowmem_debug_level = 1;
 static int lowmem_adj[6] = {
 	0,
@@ -345,9 +341,6 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 			     selected->pid, selected->comm,
 			     selected_oom_score_adj, selected_tasksize);
 		lowmem_deathpending_timeout = jiffies + HZ;
-#ifdef CONFIG_HUAWEI_KSTATE
-		kstate(KSTATE_FREEZER_MASK, "[PID %d KILLED][SIG %d]", selected->tgid, SIGKILL);
-#endif
 #ifdef CONFIG_HUAWEI_KERNEL
 		/* Set TIF_MEMDIE tsk_thread flag before send kill signal to theselected thread.
 		 * This is to fit a usual code sequence and avoidpotential race issue. */
