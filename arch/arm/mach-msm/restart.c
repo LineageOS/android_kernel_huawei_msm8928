@@ -77,9 +77,6 @@
 #define QFUSE_MAGIC_OFFSET  0x24
 #endif
 #endif
-#ifdef CONFIG_FEATURE_HUAWEI_EMERGENCY_DATA
-#define MOUNTFAIL_MAGIC_NUM 0x77665527
-#endif
 
 static int restart_mode;
 void *restart_reason;
@@ -424,10 +421,6 @@ static void msm_restart_prepare(const char *cmd)
 #ifdef CONFIG_HUAWEI_KERNEL
 		}  else if (!strncmp(cmd, "emergency_restart", 17)) {
 			printk("do nothing\n");
-#endif
-#ifdef CONFIG_FEATURE_HUAWEI_EMERGENCY_DATA
-		} else if (!strncmp(cmd, "mountfail", strlen("mountfail"))) {
-		    __raw_writel(MOUNTFAIL_MAGIC_NUM, restart_reason);
 #endif
 #ifdef CONFIG_HUAWEI_KERNEL
         } else if(!strncmp(cmd, "qfuse", 5)) {

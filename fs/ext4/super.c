@@ -50,17 +50,9 @@
 #include "xattr.h"
 #include "acl.h"
 #include "mballoc.h"
-#ifdef CONFIG_EXT4_HUAWEI_READ_ONLY_RECOVERY
-#include <linux/reboot.h>
-#endif
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/ext4.h>
-
-#ifdef CONFIG_FEATURE_HUAWEI_EMERGENCY_DATA
-#include <asm/setup.h>
-extern unsigned int get_datamount_flag(void);
-#endif
 
 static struct proc_dir_entry *ext4_proc_root;
 static struct kset *ext4_kset;
@@ -476,7 +468,7 @@ static void ext4_handle_error(struct super_block *sb)
 {
 	if (sb->s_flags & MS_RDONLY)
 		return;
-        
+
 	if (!test_opt(sb, ERRORS_CONT)) {
 		journal_t *journal = EXT4_SB(sb)->s_journal;
 
@@ -491,58 +483,6 @@ static void ext4_handle_error(struct super_block *sb)
 	if (test_opt(sb, ERRORS_PANIC))
 		panic("EXT4-fs (device %s): panic forced after error\n",
 			sb->s_id);
-
-#ifdef CONFIG_EXT4_HUAWEI_READ_ONLY_RECOVERY
-if(strstr(saved_command_line,"androidboot.huawei_bootmode=boot")!=NULL)
-{
-	struct ext4_super_block *es = EXT4_SB(sb)->s_es;
-
-    /* Update error status flag and restart */
-	es->s_state |= cpu_to_le16(EXT4_ERROR_FS);
-    ext4_commit_super(sb, 1);
-#ifdef CONFIG_FEATURE_HUAWEI_EMERGENCY_DATA
-        /*
-         * if is factory mode, same to orignal.
-         * if flag equal to 0, this phone boot not caused by ext4_handle_error, so reboot.
-         * if flag equal to 1, this phone boot caused by ext4_handle_error, so not reboot again.
-         */
-        if (is_runmode_factory()) { // factory mode
-            kernel_restart(NULL);
-        } else { // not factory mode
-            if (get_datamount_flag() == 0) {
-                kernel_restart("mountfail");
-            }
-        }
-#else
-        kernel_restart(NULL);
-#endif
-    }
-#endif
-    
-}
-
-/* move function ext4_msg&__ext4_warning from below to here */
-void ext4_msg(struct super_block *sb, const char *prefix, const char *fmt, ...)
-{
-	struct va_format vaf;
-	va_list args;
-	va_start(args, fmt);
-	vaf.fmt = fmt;
-	vaf.va = &args;
-	printk("%sEXT4-fs (%s): %pV\n", prefix, sb->s_id, &vaf);
-	va_end(args);
-}
-void __ext4_warning(struct super_block *sb, const char *function,
-		    unsigned int line, const char *fmt, ...)
-{
-	struct va_format vaf;
-	va_list args;
-	va_start(args, fmt);
-	vaf.fmt = fmt;
-	vaf.va = &args;
-	printk(KERN_WARNING "EXT4-fs warning (device %s): %s:%d: %pV\n",
-	       sb->s_id, function, line, &vaf);
-	va_end(args);
 }
 
 void __ext4_error(struct super_block *sb, const char *function,
@@ -719,7 +659,31 @@ void __ext4_abort(struct super_block *sb, const char *function,
 		panic("EXT4-fs panic from previous error\n");
 }
 
-/* move function ext4_msg&__ext4_warning from here to above */
+void ext4_msg(struct super_block *sb, const char *prefix, const char *fmt, ...)
+{
+	struct va_format vaf;
+	va_list args;
+
+	va_start(args, fmt);
+	vaf.fmt = fmt;
+	vaf.va = &args;
+	printk("%sEXT4-fs (%s): %pV\n", prefix, sb->s_id, &vaf);
+	va_end(args);
+}
+
+void __ext4_warning(struct super_block *sb, const char *function,
+		    unsigned int line, const char *fmt, ...)
+{
+	struct va_format vaf;
+	va_list args;
+
+	va_start(args, fmt);
+	vaf.fmt = fmt;
+	vaf.va = &args;
+	printk(KERN_WARNING "EXT4-fs warning (device %s): %s:%d: %pV\n",
+	       sb->s_id, function, line, &vaf);
+	va_end(args);
+}
 
 void __ext4_grp_locked_error(const char *function, unsigned int line,
 			     struct super_block *sb, ext4_group_t grp,
@@ -3219,7 +3183,7 @@ static int ext4_fill_super(struct super_block *sb, void *data, int silent)
 		bh = sb_bread(sb, logical_sb_block);
 		if (!bh) {
 			ext4_msg(sb, KERN_ERR,
-					"Can't read superblock on 2nd try");
+			       "Can't read superblock on 2nd try");
 			goto failed_mount;
 		}
 		es = (struct ext4_super_block *)(((char *)bh->b_data) + offset);
@@ -4070,7 +4034,7 @@ static int ext4_commit_super(struct super_block *sb, int sync)
 		error = buffer_write_io_error(sbh);
 		if (error) {
 			ext4_msg(sb, KERN_ERR, "I/O error while writing "
-					"superblock");
+			       "superblock");
 			clear_buffer_write_io_error(sbh);
 			set_buffer_uptodate(sbh);
 		}
@@ -4920,6 +4884,7 @@ static void ext4_exit_feat_adverts(void)
 	wait_for_completion(&ext4_feat->f_kobj_unregister);
 	kfree(ext4_feat);
 }
+
 /* Shared across all ext4 file systems */
 wait_queue_head_t ext4__ioend_wq[EXT4_WQ_HASH_SZ];
 struct mutex ext4__aio_mutex[EXT4_WQ_HASH_SZ];
@@ -4937,6 +4902,7 @@ static int __init ext4_init_fs(void)
 		mutex_init(&ext4__aio_mutex[i]);
 		init_waitqueue_head(&ext4__ioend_wq[i]);
 	}
+
 	err = ext4_init_pageio();
 	if (err)
 		return err;
