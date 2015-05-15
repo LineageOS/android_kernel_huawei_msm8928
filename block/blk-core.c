@@ -37,9 +37,6 @@
 
 #include "blk.h"
 #ifdef CONFIG_HW_SYSTEM_WR_PROTECT
-#ifdef CONFIG_HW_FEATURE_STORAGE_DIAGNOSE_LOG
-#include <linux/store_log.h>
-#endif
 #endif
 EXPORT_TRACEPOINT_SYMBOL_GPL(block_bio_remap);
 EXPORT_TRACEPOINT_SYMBOL_GPL(block_rq_remap);
@@ -1841,17 +1838,6 @@ void submit_bio(int rw, struct bio *bio)
             if((strstr(devname,PART_SYSTEM)!=NULL) &&
                     ro_secure_debuggable)
             {
-#ifdef CONFIG_HW_FEATURE_STORAGE_DIAGNOSE_LOG
-                MSG_WRAPPER(STORAGE_ERROR_BASE|EXT4_RUNNING_ERROR_BASE|EXT4_ERR_CAPS,
-                        "%s(%d)[Parent: %s(%d)]: %s block %Lu on %s (%u sectors) %d %s.\n",
-                        current->comm, task_pid_nr(current),current->parent->comm,task_pid_nr(current->parent),
-                        (rw & WRITE) ? "WRITE" : "READ",
-                        (unsigned long long)bio->bi_sector,
-                        devname,
-                        count,
-                        ro_secure_debuggable,
-                        (strstr(saved_command_line,"androidboot.widvine_state=locked") != NULL) ? "locked" : "unlock");
-#else
                 printk(KERN_DEBUG "[HW]:EXT4_ERR_CAPS:%s(%d)[Parent: %s(%d)]: %s block %Lu on %s (%u sectors) %d %s.\n",
                         current->comm, task_pid_nr(current), current->parent->comm,task_pid_nr(current->parent),
                         (rw & WRITE) ? "WRITE" : "READ",
@@ -1861,7 +1847,6 @@ void submit_bio(int rw, struct bio *bio)
                         ro_secure_debuggable,
                         (strstr(saved_command_line,"androidboot.widvine_state=locked") != NULL) ? "locked" : "unlock");
 
-#endif
                 bio_endio(bio, -EIO);
                 return;
             }
