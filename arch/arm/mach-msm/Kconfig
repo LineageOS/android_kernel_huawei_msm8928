@@ -3038,12 +3038,4 @@ config HUAWEI_DEBUG_MODE
         default n
 	help
 	  in debug mode,you can use sysrq and dump mode 	 
-
-config HUAWEI_FEATURE_NFF
-	bool "save bootup log to sdcard if long power event"
-	depends on HUAWEI_KERNEL
-        default n
-	help
-	  in debug mode,you can use sysrq and dump mode 	 
-
 endif

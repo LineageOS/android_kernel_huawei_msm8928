@@ -41,10 +41,6 @@
 #ifdef CONFIG_HUAWEI_KERNEL
 #include <linux/huawei_apanic.h>
 #endif
-#ifdef CONFIG_HUAWEI_FEATURE_NFF
-#include <linux/huawei_boot_log.h>
-extern void*  boot_log_virt ;
-#endif
 
 #define WDT0_RST	0x38
 #define WDT0_EN		0x40
@@ -136,27 +132,6 @@ static void set_dload_mode(int on)
 void clear_dload_mode(void)
 {
 	set_dload_mode(0);
-}
-#endif
-#ifdef CONFIG_HUAWEI_FEATURE_NFF
-static void clear_bootup_flag(void)
-{
-    /*if the HUAWEI_BOOT_LOG_ADDR can be used, donot map again*/
-    uint32_t *reboot_flag_addr = NULL;
-    if(NULL == boot_log_virt )
-    {
-         reboot_flag_addr = (uint32_t *)ioremap_nocache(HUAWEI_BOOT_LOG_ADDR,HUAWEI_BOOT_LOG_SIZE);
-    }
-    else
-    {
-        reboot_flag_addr = boot_log_virt ;
-    }
-    if(NULL != reboot_flag_addr)
-    {
-        __raw_writel( 0x00000000, reboot_flag_addr);
-        mb();
-    }
-    return;
 }
 #endif
 static bool get_dload_mode(void)
@@ -424,9 +399,6 @@ static void msm_restart_prepare(const char *cmd)
 	__raw_writel(RESTART_FLAG_MAGIC_NUM, restart_flag_addr);
 #endif
 	pm8xxx_reset_pwr_off(1);
-#ifdef CONFIG_HUAWEI_FEATURE_NFF
-    clear_bootup_flag();
-#endif     
 	/* Hard reset the PMIC unless memory contents must be maintained. */
 	if (get_dload_mode() || (cmd != NULL && cmd[0] != '\0'))
 		qpnp_pon_system_pwr_off(PON_POWER_OFF_WARM_RESET);

@@ -29,14 +29,6 @@
 
 #include <asm/ioctls.h>
 
-#ifdef CONFIG_HUAWEI_FEATURE_NFF
-#include <linux/huawei_boot_log.h>
-#include <mach/msm_smem.h>
-#include <linux/io.h>
- /*chang the boot_log_virt from local variable to globle variable, it will be used when restart */
-void*  boot_log_virt  = NULL;
-#endif
-
 #ifndef CONFIG_LOGCAT_SIZE
 #define CONFIG_LOGCAT_SIZE 256
 #endif
@@ -884,10 +876,6 @@ static int __init init_log(struct logger_log *log)
 static int __init logger_init(void)
 {
 	int ret;
-#ifdef CONFIG_HUAWEI_FEATURE_NFF
-	struct boot_log_struct *boot_log = NULL;
-    /*chang the boot_log_virt from local variable to globle variable, it will be used when restart */
-#endif
 
 	ret = init_log(&log_main);
 	if (unlikely(ret))
@@ -918,23 +906,6 @@ out:
 		//do nothing
 	}
 	minor_of_power = log_power.misc.minor;
-#endif
-
-#ifdef CONFIG_HUAWEI_FEATURE_NFF
-	/* get the share memory address */
-    boot_log_virt = ioremap_nocache(HUAWEI_BOOT_LOG_ADDR,HUAWEI_BOOT_LOG_SIZE);
-	boot_log = (struct boot_log_struct *)((unsigned int)boot_log_virt + MAGIC_NUMBER_SIZE);
-	if(NULL != boot_log) {
-		/* save logcat main and system address */
-		boot_log->logcat_main_addr = virt_to_phys(_buf_log_main);
-		boot_log->logcat_main_size = CONFIG_LOGCAT_SIZE*1024;
-		boot_log->logcat_system_addr = virt_to_phys(_buf_log_system);
-		boot_log->logcat_system_size = CONFIG_LOGCAT_SIZE*1024;
-
-		boot_log->boot_process_mask = boot_log->boot_process_mask | LOGCAT_MAIN_MASK;
-		boot_log->boot_process_mask = boot_log->boot_process_mask | LOGCAT_SYSTEM_MASK;
-        /*donot unmap bacause the memery will be used when restart*/
-	}
 #endif
 
 	return ret;

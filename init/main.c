@@ -79,11 +79,6 @@
 #include <asm/smp.h>
 #endif
 
-#ifdef CONFIG_HUAWEI_FEATURE_NFF
-#include <linux/huawei_boot_log.h>
-#include <linux/kallsyms.h>
-#endif
-
 static int kernel_init(void *);
 
 extern void init_IRQ(void);
@@ -468,34 +463,6 @@ static void __init mm_init(void)
 	pgtable_cache_init();
 	vmalloc_init();
 }
-#ifdef CONFIG_HUAWEI_FEATURE_NFF
-void  huawei_save_nff_kernel_init(void)
-{
-    struct boot_log_struct *boot_log = NULL;
-    /* get the previous saved phys address  and convert to cirt address*/
-    void * boot_log_virt =  ioremap_nocache(HUAWEI_BOOT_LOG_ADDR,HUAWEI_BOOT_LOG_SIZE);
-
-    boot_log = (struct boot_log_struct *)((unsigned int)boot_log_virt + MAGIC_NUMBER_SIZE);
-
-	if(NULL != boot_log) {
-		/* save log address and size */
-#ifdef CONFIG_KALLSYMS
-		boot_log->kernel_addr = virt_to_phys((void *)kallsyms_lookup_name("__log_buf"));
-#else
-		boot_log->kernel_addr = 0;
-#endif
-#ifdef CONFIG_LOG_BUF_SHIFT
-		boot_log->kernel_log_size = (1 << CONFIG_LOG_BUF_SHIFT);
-#else
-		boot_log->kernel_log_size = 0;
-#endif
-		boot_log->boot_process_mask = boot_log->boot_process_mask | LOGCAT_MAIN_MASK;
-		boot_log->boot_process_mask = boot_log->boot_process_mask | LOGCAT_SYSTEM_MASK;
-             iounmap((void*)boot_log_virt);
-	}   
-    return;
-}
-#endif
 
 asmlinkage void __init start_kernel(void)
 {
@@ -556,9 +523,6 @@ asmlinkage void __init start_kernel(void)
 	sort_main_extable();
 	trap_init();
 	mm_init();
-#ifdef CONFIG_HUAWEI_FEATURE_NFF
-    huawei_save_nff_kernel_init();
-#endif
 	/*
 	 * Set up the scheduler prior starting any interrupts (such as the
 	 * timer interrupt). Full topology setup happens at smp_init()
