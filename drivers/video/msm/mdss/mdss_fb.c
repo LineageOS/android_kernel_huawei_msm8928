@@ -391,39 +391,9 @@ static ssize_t mdss_show_panel_status(struct device *dev,
 	return ret;
 }
 #endif
-#ifdef CONFIG_HUAWEI_KERNEL
-// add frame_rate attr for debug
-static ssize_t framerate_show(struct device *dev,
-                 struct device_attribute *attr, char *buf)
-{
-    ssize_t ret = 0;
-    struct fb_info *fbi = dev_get_drvdata(dev);
-    struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)fbi->par;
-
-    ret = scnprintf(buf, PAGE_SIZE, "frame_rate = %d\n",
-                                mfd->panel_info->mipi.frame_rate);
-    return ret;
-}
-static ssize_t framerate_store(struct device *dev,
-                  struct device_attribute *attr,
-                  const char *buf, size_t count)
-{
-    unsigned long frame_rate;
-
-    if (strict_strtoul(buf, 10, &frame_rate))  //10 just for debug
-        return -EINVAL;
-    if (!frame_rate)
-        return -EINVAL;
-    mdss_dsi_set_fps(frame_rate);
-    return count;
-}
-#endif  //CONFIG_HUAWEI_KERNEL
 
 static DEVICE_ATTR(msm_fb_type, S_IRUGO, mdss_fb_get_type, NULL);
 static DEVICE_ATTR(msm_fb_split, S_IRUGO, mdss_fb_get_split, NULL);
-#ifdef CONFIG_HUAWEI_KERNEL
-static DEVICE_ATTR(frame_rate, S_IRUSR | S_IWUSR, framerate_show, framerate_store);
-#endif
 static DEVICE_ATTR(show_blank_event, S_IRUGO, mdss_mdp_show_blank_event, NULL);
 #ifdef CONFIG_HUAWEI_LCD
 static DEVICE_ATTR(inversion_mode, S_IRUGO|S_IWUSR|S_IWGRP, mdss_show_inversion_mode, mdss_store_inversion_mode);
@@ -432,9 +402,6 @@ static DEVICE_ATTR(panel_status, S_IRUGO, mdss_show_panel_status, NULL);
 static struct attribute *mdss_fb_attrs[] = {
 	&dev_attr_msm_fb_type.attr,
 	&dev_attr_msm_fb_split.attr,
-#ifdef CONFIG_HUAWEI_KERNEL
-    &dev_attr_frame_rate.attr,
-#endif
 	&dev_attr_show_blank_event.attr,
 #ifdef CONFIG_HUAWEI_LCD
 	&dev_attr_inversion_mode.attr,

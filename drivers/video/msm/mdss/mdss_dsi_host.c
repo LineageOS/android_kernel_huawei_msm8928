@@ -28,10 +28,6 @@
 #include "mdss_panel.h"
 #include "mdss_mdp.h"
 
-#ifdef CONFIG_HUAWEI_KERNEL
-int mdss_dsi_set_fps_flag = false;//use for mdss_dsi_isr. means the isr is for change fps
-#endif
-
 #define VSYNC_PERIOD 17
 
 static struct mdss_dsi_ctrl_pdata *left_ctrl_pdata;
@@ -1144,41 +1140,6 @@ void mdss_dsi_wait4video_done(struct mdss_dsi_ctrl_pdata *ctrl)
 	MIPI_OUTP((ctrl->ctrl_base) + 0x0110, data);
 }
 
-#ifdef CONFIG_HUAWEI_KERNEL
-//add ret base mdss_dsi_wait4video_done
-int mdss_dsi_wait4video_done_ret(struct mdss_dsi_ctrl_pdata *ctrl)
-{
-	unsigned long flag = 0;
-	u32 data = 0;
-    int ret = 0;
-    mdss_dsi_set_fps_flag = true;
-
-	/* DSI_INTL_CTRL */
-	data = MIPI_INP((ctrl->ctrl_base) + 0x0110);
-    if(!(data |DSI_INTR_VIDEO_DONE))
-    {
-        pr_debug("%s: dsi intl ctrl error. data=%x", __func__, data);
-    }
-	data |= DSI_INTR_VIDEO_DONE_MASK;
-	MIPI_OUTP((ctrl->ctrl_base) + 0x0110, data);
-
-	spin_lock_irqsave(&ctrl->mdp_lock, flag);
-	INIT_COMPLETION(ctrl->video_comp);
-	mdss_dsi_enable_irq(ctrl, DSI_VIDEO_TERM);
-	spin_unlock_irqrestore(&ctrl->mdp_lock, flag);
-
-	ret = wait_for_completion_timeout(&ctrl->video_comp,
-			msecs_to_jiffies(VSYNC_PERIOD * 4));
-
-	data = MIPI_INP((ctrl->ctrl_base) + 0x0110);
-	data &= ~DSI_INTR_VIDEO_DONE_MASK;
-	MIPI_OUTP((ctrl->ctrl_base) + 0x0110, data);
-
-    mdss_dsi_set_fps_flag = false;
-	return ret;
-}
-#endif  //CONFIG_HUAWEI_KERNEL
-
 static int mdss_dsi_wait4video_eng_busy(struct mdss_dsi_ctrl_pdata *ctrl)
 {
 	int ret = 0;
@@ -1524,12 +1485,6 @@ irqreturn_t mdss_dsi_isr(int irq, void *ptr)
 	if (isr & DSI_INTR_VIDEO_DONE) {
 		spin_lock(&ctrl->mdp_lock);
 		mdss_dsi_disable_irq_nosync(ctrl, DSI_VIDEO_TERM);
-#ifdef CONFIG_HUAWEI_KERNEL
-    if(mdss_dsi_set_fps_flag)
-    {
-         mdss_change_fps();
-    }        
-#endif
 		complete(&ctrl->video_comp);
 		spin_unlock(&ctrl->mdp_lock);
 	}

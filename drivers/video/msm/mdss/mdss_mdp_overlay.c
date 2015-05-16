@@ -2203,11 +2203,6 @@ static int mdss_fb_set_metadata(struct msm_fb_data_type *mfd,
 		ret = mdss_mdp_wb_set_format(mfd,
 				metadata->data.mixer_cfg.writeback_format);
 		break;
-#ifdef CONFIG_HUAWEI_KERNEL
-    case metadata_op_frame_rate:
-        ret = mdss_dsi_set_fps(metadata->data.panel_frame_rate);
-        break;
-#endif
 	case metadata_op_wb_secure:
 		ret = mdss_mdp_wb_set_secure(mfd, metadata->data.secure_en);
 		break;
