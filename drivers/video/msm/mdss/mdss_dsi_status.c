@@ -100,10 +100,10 @@ static void check_dsi_ctrl_status(struct work_struct *work)
 		pr_err("%s:mipi dsi and panel have suspended!\n", __func__);
 		return;
 	}
-	/*if panel not enable esd check switch in dtsi,we do not check bta*/
-	if(!ctrl_pdata->esd_check_enable)
-	{
-		pr_info("%s: ctrl_pdata->esd_check_enable = %d,not check mipi bta!\n", __func__,(int)ctrl_pdata->esd_check_enable);
+	/* if esd check is not enabled for panel in dtsi, we do not check bta */
+	if (!ctrl_pdata->esd_check_enable) {
+		pr_info("%s: ctrl_pdata->esd_check_enable=%d, not checking mipi bta!\n",
+			__func__, (int)ctrl_pdata->esd_check_enable);
 		return;
 	}
 #else

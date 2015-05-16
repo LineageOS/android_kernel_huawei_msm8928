@@ -646,9 +646,9 @@ int mdss_dsi_bta_status_check(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 #endif
 	pr_debug("%s: BTA done with ret: %d\n", __func__, ret);
 #ifdef CONFIG_HUAWEI_LCD
-	if(ret > 0)
-	{
-		/*if panel check error and enable the esd check bit in dtsi,report the event to hal layer*/
+	if (ret > 0) {
+		/* if panel check error and esd check is enabled in dtsi,
+		   report the event to hal layer */
 		if(ctrl_pdata->esd_check_enable)
 			ret = panel_check_live_status(ctrl_pdata);
 	}
