@@ -34,11 +34,6 @@
 #endif
 DEFINE_LED_TRIGGER(bl_led_trigger);
 
-#ifdef CONFIG_HUAWEI_LCD
-static char read_dcs_cmd[2] = {0x00, 0x00}; /* DTYPE_DCS_READ */
-u32 panel_read_flag=false;
-#endif
-
 void mdss_dsi_panel_pwm_cfg(struct mdss_dsi_ctrl_pdata *ctrl)
 {
 	int ret;
@@ -538,10 +533,6 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 #endif
 	/*remove the code that first called do nothing when power on or power down*/
 	/*now power on or power down, we do reset even if it is first called.*/
-	if (panel_read_flag)
-	{
-		mdss_dsi_panel_cmd_read(ctrl,read_dcs_cmd[0],read_dcs_cmd[1],NULL,NULL,0);
-	}
 
 	if (ctrl->on_cmds.cmd_cnt)
 		mdss_dsi_panel_cmds_send(ctrl, &ctrl->on_cmds);
@@ -1271,23 +1262,6 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->off_cmds,
 		"qcom,mdss-dsi-off-command", "qcom,mdss-dsi-off-command-state");
 
-	/* add dynamic log */
-#ifdef CONFIG_HUAWEI_LCD
-	rc = of_property_read_u32(np, "huawei,mdss-panel-read-flag", &tmp);
-	panel_read_flag= (!rc ? tmp : 0);
-
-	if (panel_read_flag)
-	{
-		data = of_get_property(np, "huawei,panel-read-register", &len);
-		if ((!data) || (len != 2)) {
-			pr_err("%s: Unable to read panel read register settings",
-			       __func__);
-			goto error;
-		}
-		read_dcs_cmd[0] = data[0];
-		read_dcs_cmd[1] = data[1];
-	}
-#endif
 #ifdef CONFIG_FB_AUTO_CABC
 	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->dsi_panel_cabc_ui_cmds,
 		"qcom,panel-cabc-ui-cmds", "qcom,cabc-ui-cmds-dsi-state");
