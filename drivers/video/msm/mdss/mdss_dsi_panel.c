@@ -24,7 +24,6 @@
 
 #include "mdss_dsi.h"
 
-/* Add head file */
 #include <linux/hw_lcd_common.h>
 #include <misc/app_info.h>
 
@@ -159,34 +158,26 @@ static struct dsi_cmd_desc backlight_cmd = {
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 1, sizeof(led_pwm1)},
 	led_pwm1
 };
+
 static char dimming_off[2] = {0x53, 0x24};	/* DTYPE_DCS_WRITE1 */
 static struct dsi_cmd_desc dimming_cmd = {
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 1, sizeof(dimming_off)},
 	dimming_off
 };
 
-/* add backlight control log */
-/* add dynamic log */
 static void mdss_dsi_panel_bklt_dcs(struct mdss_dsi_ctrl_pdata *ctrl, int level)
 {
 	struct dcs_cmd_req cmdreq;
 
 	pr_debug("%s: level=%d\n", __func__, level);
-	if(!level)
-	{
-		memset(&cmdreq, 0, sizeof(cmdreq));
-		cmdreq.cmds = &dimming_cmd;
-		cmdreq.cmds_cnt = 1;
-		cmdreq.flags = CMD_REQ_COMMIT | CMD_CLK_CTRL;
-		cmdreq.rlen = 0;
-		cmdreq.cb = NULL;
 
-		mdss_dsi_cmdlist_put(ctrl, &cmdreq);
-	}
 	led_pwm1[1] = (unsigned char)level;
 
 	memset(&cmdreq, 0, sizeof(cmdreq));
-	cmdreq.cmds = &backlight_cmd;
+	if (!level)
+		cmdreq.cmds = &dimming_cmd;
+	else
+		cmdreq.cmds = &backlight_cmd;
 	cmdreq.cmds_cnt = 1;
 	cmdreq.flags = CMD_REQ_COMMIT | CMD_CLK_CTRL;
 	cmdreq.rlen = 0;
@@ -194,6 +185,7 @@ static void mdss_dsi_panel_bklt_dcs(struct mdss_dsi_ctrl_pdata *ctrl, int level)
 
 	mdss_dsi_cmdlist_put(ctrl, &cmdreq);
 }
+
 #ifdef CONFIG_HUAWEI_LCD
 static void mdss_dsi_panel_bias_en(struct mdss_panel_data *pdata, int enable)
 {
@@ -205,63 +197,55 @@ static void mdss_dsi_panel_bias_en(struct mdss_panel_data *pdata, int enable)
 	}
 
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
-				panel_data);
+				  panel_data);
 	
-	if (!gpio_is_valid(ctrl_pdata->disp_en_gpio)) {
-		pr_debug("%s:%d, reset line not configured\n",
-			   __func__, __LINE__);
-	}
+	if (!gpio_is_valid(ctrl_pdata->disp_en_gpio))
+		pr_debug("%s: disp_en_gpio not configured\n", __func__);
 
-	if (!gpio_is_valid(ctrl_pdata->disp_en_gpio_vsn)) {
-		pr_debug("%s:%d, reset line not configured\n",
-			__func__, __LINE__);
-	}
+	if (!gpio_is_valid(ctrl_pdata->disp_en_gpio_vsn))
+		pr_debug("%s: disp_en_gpio_vsn not configured\n", __func__);
 	
-	if (!gpio_is_valid(ctrl_pdata->bl_en_gpio)) {
-		pr_debug("%s:%d, reset line not configured\n",
-			__func__, __LINE__);
-	}
+	if (!gpio_is_valid(ctrl_pdata->bl_en_gpio))
+		pr_debug("%s: bl_en_gpio not configured\n", __func__);
 	
 	if (!gpio_is_valid(ctrl_pdata->rst_gpio)) {
-		pr_debug("%s:%d, reset line not configured\n",
-			__func__, __LINE__);
+		pr_debug("%s: rst_gpio not configured\n", __func__);
 		return;
 	}
 	
-	if (enable) 
-	{
+	if (enable) {
 		if (gpio_is_valid(ctrl_pdata->rst_gpio))
-		{
 			gpio_set_value((ctrl_pdata->rst_gpio), 1);
-		}
+
 		LCD_MDELAY(1);
+
 		if (gpio_is_valid(ctrl_pdata->disp_en_gpio))
-		{
 			gpio_set_value((ctrl_pdata->disp_en_gpio), 1);
-		}
+
 		LCD_MDELAY(5);
 		if (gpio_is_valid(ctrl_pdata->disp_en_gpio_vsn))
-		{
 			gpio_set_value((ctrl_pdata->disp_en_gpio_vsn), 1);
-		}
+
 		LCD_MDELAY(5);
+
 		if (gpio_is_valid(ctrl_pdata->bl_en_gpio))
-		{
 			gpio_set_value((ctrl_pdata->bl_en_gpio), 1);
-		}
 	} else {
 		if (gpio_is_valid(ctrl_pdata->bl_en_gpio))
 			gpio_set_value((ctrl_pdata->bl_en_gpio), 0);
+
 		/*disable negative voltage*/
 		if (gpio_is_valid(ctrl_pdata->disp_en_gpio_vsn))
 			gpio_set_value((ctrl_pdata->disp_en_gpio_vsn), 0);
+
 		LCD_MDELAY(5);
+
 		if (gpio_is_valid(ctrl_pdata->disp_en_gpio))
 			gpio_set_value((ctrl_pdata->disp_en_gpio), 0);
-	}	
+	}
 }
 #endif
-/* redo lcd driver code */
+
 void mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
@@ -280,23 +264,26 @@ void mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 		pr_debug("%s:%d, reset line not configured\n",
 			   __func__, __LINE__);
 	}
-	
+
 	if (!gpio_is_valid(ctrl_pdata->rst_gpio)) {
 		pr_debug("%s:%d, reset line not configured\n",
 			   __func__, __LINE__);
 		return;
 	}
+
 	pr_debug("%s: enable = %d\n", __func__, enable);
 	pinfo = &(ctrl_pdata->panel_data.panel_info);
-/* reset lcd when power on */
+
 	if (enable) {
-	#ifndef CONFIG_HUAWEI_LCD		
+#ifndef CONFIG_HUAWEI_LCD
 		if (gpio_is_valid(ctrl_pdata->disp_en_gpio))
 			gpio_set_value((ctrl_pdata->disp_en_gpio), 1);
-	#else
-		mdss_dsi_panel_bias_en(pdata,1);
+#else
+		/* reset lcd when power on */
+		mdss_dsi_panel_bias_en(pdata, 1);
 		LCD_MDELAY(20);
-	#endif
+#endif
+
 		for (i = 0; i < pdata->panel_info.rst_seq_len; ++i) {
 			gpio_set_value((ctrl_pdata->rst_gpio),
 				pdata->panel_info.rst_seq[i]);
@@ -318,14 +305,13 @@ void mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 		}
 	} else {
 		gpio_set_value((ctrl_pdata->rst_gpio), 0);
-	#ifndef CONFIG_HUAWEI_LCD
+#ifndef CONFIG_HUAWEI_LCD
 		if (gpio_is_valid(ctrl_pdata->disp_en_gpio))
 			gpio_set_value((ctrl_pdata->disp_en_gpio), 0);
-	#else
+#else
 		LCD_MDELAY(10);
-		mdss_dsi_panel_bias_en(pdata,0);
-	#endif
-
+		mdss_dsi_panel_bias_en(pdata, 0);
+#endif
 	}
 }
 
@@ -385,7 +371,8 @@ static int mdss_dsi_panel_partial_update(struct mdss_panel_data *pdata)
 }
 
 #ifdef CONFIG_FB_AUTO_CABC
-static int mdss_dsi_panel_cabc_ctrl(struct mdss_panel_data *pdata,struct msmfb_cabc_config cabc_cfg)
+static int mdss_dsi_panel_cabc_ctrl(struct mdss_panel_data *pdata,
+				    struct msmfb_cabc_config cabc_cfg)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
 
@@ -399,23 +386,28 @@ static int mdss_dsi_panel_cabc_ctrl(struct mdss_panel_data *pdata,struct msmfb_c
 	{
 		case CABC_MODE_UI:
 			if (ctrl_pdata->dsi_panel_cabc_ui_cmds.cmd_cnt)
-				mdss_dsi_panel_cmds_send(ctrl_pdata, &ctrl_pdata->dsi_panel_cabc_ui_cmds);
+				mdss_dsi_panel_cmds_send(ctrl_pdata,
+					&ctrl_pdata->dsi_panel_cabc_ui_cmds);
 			break;
 		case CABC_MODE_MOVING:
 		case CABC_MODE_STILL:
 			if (ctrl_pdata->dsi_panel_cabc_video_cmds.cmd_cnt)
-				mdss_dsi_panel_cmds_send(ctrl_pdata, &ctrl_pdata->dsi_panel_cabc_video_cmds);
+				mdss_dsi_panel_cmds_send(ctrl_pdata,
+					&ctrl_pdata->dsi_panel_cabc_video_cmds);
 			break;
 		default:
-			pr_err("%s: invalid cabc mode: %d\n", __func__, cabc_cfg.mode);
+			pr_err("%s: invalid cabc mode: %d\n", __func__,
+			       cabc_cfg.mode);
 			break;
 	}
 	pr_info("%s: CABC mode=%d\n", __func__, cabc_cfg.mode);
 	return 0;
 }
 #endif
+
 #ifdef CONFIG_FB_DISPLAY_INVERSION
-static int mdss_dsi_lcd_set_display_inversion(struct mdss_panel_data *pdata,unsigned int inversion_mode)
+static int mdss_dsi_lcd_set_display_inversion(struct mdss_panel_data *pdata,
+					      unsigned int inversion_mode)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
 	if (pdata == NULL) {
@@ -427,25 +419,30 @@ static int mdss_dsi_lcd_set_display_inversion(struct mdss_panel_data *pdata,unsi
 
 	switch(inversion_mode)
 	{
-		/* in each inversion mode,we send the corresponding commonds and reset inversion state */
+		/* in each inversion mode, we send the corresponding commands
+		   and reset inversion state */
 		case INVERSION_OFF:
 			if (ctrl_pdata->dsi_panel_inverse_off_cmds.cmd_cnt)
-				mdss_dsi_panel_cmds_send(ctrl_pdata, &ctrl_pdata->dsi_panel_inverse_off_cmds);
+				mdss_dsi_panel_cmds_send(ctrl_pdata,
+					&ctrl_pdata->dsi_panel_inverse_off_cmds);
 			ctrl_pdata->inversion_state = INVERSION_OFF;
 			break;
 		case INVERSION_ON:
 			if (ctrl_pdata->dsi_panel_inverse_on_cmds.cmd_cnt)
-				mdss_dsi_panel_cmds_send(ctrl_pdata, &ctrl_pdata->dsi_panel_inverse_on_cmds);
+				mdss_dsi_panel_cmds_send(ctrl_pdata,
+					&ctrl_pdata->dsi_panel_inverse_on_cmds);
 			ctrl_pdata->inversion_state = INVERSION_ON;
 			break;
 		default:
-			pr_err("%s: invalid inversion mode: %d\n", __func__, inversion_mode);
+			pr_err("%s: invalid inversion mode: %d\n", __func__,
+			       inversion_mode);
 			break;
 	}
 	pr_info("%s: inversion mode=%d\n", __func__, inversion_mode);
 	return 0;
 }
 #endif
+
 static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 							u32 bl_level)
 {
@@ -476,15 +473,18 @@ static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 		mdss_dsi_panel_bklt_pwm(ctrl_pdata, bl_level);
 		break;
 	case BL_DCS_CMD:
-		/* make sure the first pwm signal longer than 2us when panel wake up from sleep*/
-		if(bl_level > 18 || !ctrl_pdata->first_wake_up
-			                || ctrl_pdata->temporary_pwm_cmds.cmd_cnt == 0
-			                || ctrl_pdata->normal_pwm_cmds.cmd_cnt == 0){
+		/* make sure the first pwm signal is longer than 2us when panel
+		   wakes up from sleep */
+		if (bl_level > 18 || !ctrl_pdata->first_wake_up
+				|| ctrl_pdata->temporary_pwm_cmds.cmd_cnt == 0
+				|| ctrl_pdata->normal_pwm_cmds.cmd_cnt == 0) {
 			mdss_dsi_panel_bklt_dcs(ctrl_pdata, bl_level);
-		}else{
-			mdss_dsi_panel_cmds_send(ctrl_pdata, &ctrl_pdata->temporary_pwm_cmds);
+		} else {
+			mdss_dsi_panel_cmds_send(ctrl_pdata,
+				&ctrl_pdata->temporary_pwm_cmds);
 			mdss_dsi_panel_bklt_dcs(ctrl_pdata, bl_level);
-			mdss_dsi_panel_cmds_send(ctrl_pdata, &ctrl_pdata->normal_pwm_cmds);
+			mdss_dsi_panel_cmds_send(ctrl_pdata,
+				&ctrl_pdata->normal_pwm_cmds);
 		}
 		ctrl_pdata->first_wake_up = 0;
 		break;
@@ -494,16 +494,11 @@ static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 		break;
 	}
 }
-/* only transmit 11 29 when power on */
-/* add dynamic log */
-/* delete reset func */
+
 static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 {
 	struct mipi_panel_info *mipi;
 	struct mdss_dsi_ctrl_pdata *ctrl = NULL;
-#ifdef CONFIG_HUAWEI_LCD
-	struct dsi_panel_cmds cmds;
-#endif
 
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
@@ -516,27 +511,21 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 
 	pr_debug("%s: ctrl=%p ndx=%d\n", __func__, ctrl, ctrl->ndx);
 
-#ifndef CONFIG_HUAWEI_LCD
-	if (ctrl->on_cmds.cmd_cnt)
-		mdss_dsi_panel_cmds_send(ctrl, &ctrl->on_cmds);
-#else
-	memset(&cmds, sizeof(cmds), 0);	
-
-/* if inversion mode has been setted open, we open inversion function after reset*/
+/* if inversion mode has been set, we open inversion function after reset */
 #ifdef CONFIG_FB_DISPLAY_INVERSION
-	if((INVERSION_ON == ctrl->inversion_state) && ctrl ->dsi_panel_inverse_on_cmds.cmd_cnt )
-	{
-		mdss_dsi_panel_cmds_send(ctrl, &ctrl->dsi_panel_inverse_on_cmds);
+	if (INVERSION_ON == ctrl->inversion_state
+			&& ctrl->dsi_panel_inverse_on_cmds.cmd_cnt) {
+		mdss_dsi_panel_cmds_send(ctrl,
+			&ctrl->dsi_panel_inverse_on_cmds);
 		pr_debug("%s: display inversion open, inversion_state=%d\n",
 			 __func__, ctrl->inversion_state);
 	}
 #endif
-	/*remove the code that first called do nothing when power on or power down*/
-	/*now power on or power down, we do reset even if it is first called.*/
 
 	if (ctrl->on_cmds.cmd_cnt)
 		mdss_dsi_panel_cmds_send(ctrl, &ctrl->on_cmds);
 
+#ifdef CONFIG_HUAWEI_LCD
 	ctrl->first_wake_up = 1;
 #endif
 
@@ -561,18 +550,20 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 
 	mipi  = &pdata->panel_info.mipi;
 
-	/* power off when panel off */
 	if (ctrl->off_cmds.cmd_cnt)
 		mdss_dsi_panel_cmds_send(ctrl, &ctrl->off_cmds);
 
 	pr_debug("%s:-\n", __func__);
 	return 0;
 }
+
 #ifdef CONFIG_HUAWEI_LCD
-static int mdss_dsi_panel_inversion_ctrl(struct mdss_panel_data *pdata,u32 imode)
+static int mdss_dsi_panel_inversion_ctrl(struct mdss_panel_data *pdata,
+					 u32 imode)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
 	int ret = 0;
+
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
 		return -EINVAL;
@@ -582,13 +573,15 @@ static int mdss_dsi_panel_inversion_ctrl(struct mdss_panel_data *pdata,u32 imode
 	
 	switch(imode)
 	{
-		case COLUMN_INVERSION: //column inversion mode
+		case COLUMN_INVERSION:
 			if (ctrl_pdata->column_inversion_cmds.cmd_cnt)
-				mdss_dsi_panel_cmds_send(ctrl_pdata ,&ctrl_pdata->column_inversion_cmds);
+				mdss_dsi_panel_cmds_send(ctrl_pdata,
+					&ctrl_pdata->column_inversion_cmds);
 			break;
-		case DOT_INVERSION:// dot inversion mode
+		case DOT_INVERSION:
 			if (ctrl_pdata->dot_inversion_cmds.cmd_cnt)
-				mdss_dsi_panel_cmds_send(ctrl_pdata ,&ctrl_pdata->dot_inversion_cmds);
+				mdss_dsi_panel_cmds_send(ctrl_pdata,
+					&ctrl_pdata->dot_inversion_cmds);
 			break;
 		default:
 			ret = -EINVAL;
@@ -597,10 +590,9 @@ static int mdss_dsi_panel_inversion_ctrl(struct mdss_panel_data *pdata,u32 imode
 	}
 	pr_info("%s: dot inversion enable=%d\n", __func__, imode);
 	return ret;
-
 }
 
-/* himax ic need to use long packet to read */
+/* himax ic needs to use long packet to read */
 static int mdss_dsi_check_panel_status(struct mdss_panel_data *pdata)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
@@ -617,50 +609,49 @@ static int mdss_dsi_check_panel_status(struct mdss_panel_data *pdata)
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
 
-	if (ctrl_pdata->long_read_flag)
-	{
+	if (ctrl_pdata->long_read_flag) {
 		expect_value = 0x1C;
 		read_length = 3;
 	}
 
-	do{
-		mdss_dsi_panel_cmd_read(ctrl_pdata,0x0A,0x00,NULL,&data,read_length);
+	do {
+		mdss_dsi_panel_cmd_read(ctrl_pdata, 0x0A, 0x00, NULL, &data,
+			read_length);
 		pr_info("%s: 0x0A = 0x%x\n", __func__, data);
 		count--;
-	}while((expect_value != data)&&(count>0));
+	} while (expect_value != data && count > 0);
 
-
-	if(0 == count)
+	if (!count)
 		ret = -EINVAL;
-	
+
 	return ret;
 }
-
 #endif
+
 #ifdef CONFIG_HUAWEI_LCD
-/*if Panel IC works well, return 1, else return -1 */
+/* if Panel IC works well, return 1, else return -1 */
+#define REPEAT_COUNT 5
 int panel_check_live_status(struct mdss_dsi_ctrl_pdata *ctrl)
 {
 	int count = 0;
 	int j = 0;
-	/* success on retrun 1,otherwise return 0 or -1 */
-	int ret = 1;
+	int ret = 1; /* success 1, otherwise 0 or -1 */
 	char data = 0;
-	#define REPEAT_COUNT 5
-	for(j = 0;j < ctrl->panel_esd_cmd_len;j++)
-	{
+
+	for (j = 0;j < ctrl->panel_esd_cmd_len;j++) {
 		count = 0;
-		do
-		{
-			mdss_dsi_panel_cmd_read(ctrl,ctrl->panel_esd_cmd[j],0x00,NULL,&data,1);
+		do {
+			mdss_dsi_panel_cmd_read(ctrl, ctrl->panel_esd_cmd[j],
+				0x00, NULL, &data, 1);
 			count++;
-			/*when we read the 0x0d register,0x20 means enter color inversion mode,not esd issue*/
-			if(ctrl->panel_esd_cmd[j] == 0x0d && data == 0x20)
+
+			/* when we read the 0x0d register, 0x20 means enter
+			   color inversion mode, not esd issue*/
+			if (ctrl->panel_esd_cmd[j] == 0x0d && data == 0x20)
 				break;
-		}while((count<REPEAT_COUNT)&&(data != ctrl->panel_esd_cmd_value[j]));
+		} while(count < REPEAT_COUNT && data != ctrl->panel_esd_cmd_value[j]);
 		
-		if(count == REPEAT_COUNT)
-		{			
+		if (count == REPEAT_COUNT) {			
 			pr_info("%s: panel ic error, reg 0x%02X should be 0x%02x, but read data is 0x%02x\n",
 			        __func__, ctrl->panel_esd_cmd[j],
 			        ctrl->panel_esd_cmd_value[j], data);
@@ -668,7 +659,7 @@ int panel_check_live_status(struct mdss_dsi_ctrl_pdata *ctrl)
 			break;
 		}
 	}
-	
+
 	return ret;
 }
 #endif
@@ -1401,11 +1392,11 @@ int mdss_dsi_panel_init(struct device_node *node,
 	
 #ifdef CONFIG_HUAWEI_LCD
 	ctrl_pdata->panel_data.set_inversion_mode = mdss_dsi_panel_inversion_ctrl;
-	ctrl_pdata->panel_data.check_panel_status= mdss_dsi_check_panel_status;
+	ctrl_pdata->panel_data.check_panel_status = mdss_dsi_check_panel_status;
 #endif
-	/*save ctrl_pdata */
 #if defined(CONFIG_HUAWEI_KERNEL) && defined(CONFIG_DEBUG_FS)
 	lcd_dbg_set_dsi_ctrl_pdata(ctrl_pdata);
 #endif
+
 	return 0;
 }

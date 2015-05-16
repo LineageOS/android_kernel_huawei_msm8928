@@ -42,6 +42,7 @@ config HUAWEI_LCD
 	default n
 	---help---
 	  use huawei feature
+
 config HUAWEI_LCD_BIAS_TEST
 	depends on HUAWEI_LCD
 	bool "LCD BIAS test"
@@ -53,10 +54,8 @@ config FB_AUTO_CABC
 	bool "Support for AUTO_CABC fuction"
 	depends on HUAWEI_LCD
 	default n
-#//remove dynamic gamma
 
 config FB_DISPLAY_INVERSION
 	bool "Support DISPLAY_INVERSION fuction for LCD"
 	depends on FB_MSM
 	default n
-

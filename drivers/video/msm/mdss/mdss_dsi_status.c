@@ -31,6 +31,7 @@
 #include "mdss_mdp.h"
 
 #define STATUS_CHECK_INTERVAL 5000
+
 #ifndef CONFIG_HUAWEI_LCD
 struct dsi_status_data {
 	struct notifier_block fb_notifier;
@@ -39,6 +40,7 @@ struct dsi_status_data {
 	uint32_t check_interval;
 };
 #endif
+
 struct dsi_status_data *pstatus_data;
 static uint32_t interval = STATUS_CHECK_INTERVAL;
 
@@ -79,6 +81,7 @@ static void check_dsi_ctrl_status(struct work_struct *work)
 								__func__);
 		return;
 	}
+
 #ifdef CONFIG_HUAWEI_LCD
 	mdp5_data = mfd_to_mdp5_data(pdsi_status->mfd);
 	if (!mdp5_data) {
@@ -90,13 +93,11 @@ static void check_dsi_ctrl_status(struct work_struct *work)
 		pr_err("%s: mdss_mdp_ctl not available\n", __func__);
 		return;
 	}
-	if (pdsi_status->mfd->shutdown_pending)
-	{
+	if (pdsi_status->mfd->shutdown_pending) {
 		pr_err("%s: DSI turning off, avoiding BTA status check\n",__func__);
 		return;
 	}
-	if(!pdsi_status->mfd->panel_power_on)
-	{
+	if (!pdsi_status->mfd->panel_power_on) {
 		pr_err("%s:mipi dsi and panel have suspended!\n", __func__);
 		return;
 	}
@@ -112,15 +113,15 @@ static void check_dsi_ctrl_status(struct work_struct *work)
 #endif
 	if (ctl->shared_lock)
 		mutex_lock(ctl->shared_lock);
-//fix flappy bird loss frame
-/*the command lcd need the ov_lock to lock "ctl->wait_pingpong()" function
- *when kick off wait_pingpong() have the lock ov_lock*/
+
+/* the command lcd needs the ov_lock to lock "ctl->wait_pingpong()" */
 #ifdef CONFIG_HUAWEI_LCD
-	if(pdata->panel_info.type == MIPI_CMD_PANEL)
+	if (pdata->panel_info.type == MIPI_CMD_PANEL)
 		mutex_lock(&mdp5_data->ov_lock);
 #else
 	mutex_lock(&mdp5_data->ov_lock);
 #endif
+
 	/*
 	 * For the command mode panels, we return pan display
 	 * IOCTL on vsync interrupt. So, after vsync interrupt comes
@@ -135,13 +136,15 @@ static void check_dsi_ctrl_status(struct work_struct *work)
 		ctl->wait_pingpong(ctl, NULL);
 
 	pr_debug("%s: DSI ctrl wait for ping pong done\n", __func__);
-/*ov_lock and share_lock just lock wait_pingpong,not lock check_status*/
+
+/* ov_lock and share_lock just lock wait_pingpong, not check_status */
 #ifdef CONFIG_HUAWEI_LCD
-	if(pdata->panel_info.type == MIPI_CMD_PANEL)
+	if (pdata->panel_info.type == MIPI_CMD_PANEL)
 		mutex_unlock(&mdp5_data->ov_lock);
 	if (ctl->shared_lock)
 		mutex_unlock(ctl->shared_lock);
 #endif
+
 #ifndef CONFIG_HUAWEI_LCD
 	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
 #endif
@@ -152,7 +155,7 @@ static void check_dsi_ctrl_status(struct work_struct *work)
 	mutex_unlock(&mdp5_data->ov_lock);
 #endif
 
-/*share_lock just lock wait_pingpong,so move it to front after*/
+/* share_lock just locks wait_pingpong, so move it to front */
 #ifndef CONFIG_HUAWEI_LCD
 	if (ctl->shared_lock)
 		mutex_unlock(ctl->shared_lock);
@@ -172,33 +175,28 @@ static void check_dsi_ctrl_status(struct work_struct *work)
 		}
 	}
 }
+
 /*
- * sheduled based on mipi timing start
- * cancelled based on mipi timing stop
+ * scheduled based on mipi timing start
+ * canceled based on mipi timing stop
  */
 #ifdef CONFIG_HUAWEI_LCD
 void mdss_dsi_status_check_ctl(struct msm_fb_data_type *mfd, int sheduled)
 {
-	if(!mfd)
-	{
+	if (!mfd) {
 		pr_err("%s: mfd not available\n", __func__);
 		return ;
 	}	
-	if(!pstatus_data)
-	{
+	if (!pstatus_data) {
 		pr_err("%s: pstatus_data not available\n", __func__);
 		return ;
 	}
-	pr_debug("%s:scheduled=%d\n",__func__,sheduled);
+	pr_debug("%s: scheduled=%d\n", __func__, sheduled);
 	pstatus_data->mfd = mfd;
-	if(sheduled) 
-	{
+	if (sheduled) {
 		schedule_delayed_work(&pstatus_data->check_status,
 			msecs_to_jiffies(pstatus_data->check_interval));
-	}
-	else
-	{	
-		//return until last work finish 
+	} else {	
 		cancel_delayed_work_sync(&pstatus_data->check_status);
 	}
 }
@@ -238,7 +236,6 @@ static int fb_event_callback(struct notifier_block *self,
 }
 #endif
 
-
 int __init mdss_dsi_status_init(void)
 {
 	int rc = 0;
@@ -248,6 +245,7 @@ int __init mdss_dsi_status_init(void)
 		pr_err("%s: can't allocate memory\n", __func__);
 		return -ENOMEM;
 	}
+
 #ifndef CONFIG_HUAWEI_LCD
 	pstatus_data->fb_notifier.notifier_call = fb_event_callback;
 
@@ -259,6 +257,7 @@ int __init mdss_dsi_status_init(void)
 		return -EPERM;
 	}
 #endif
+
 	pstatus_data->check_interval = interval;
 	pr_info("%s: DSI status check interval:%d\n", __func__,	interval);
 

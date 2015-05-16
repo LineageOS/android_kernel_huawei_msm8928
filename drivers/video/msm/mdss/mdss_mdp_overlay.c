@@ -2626,6 +2626,7 @@ static int mdss_mdp_overlay_off(struct msm_fb_data_type *mfd)
 		pr_debug("cleaning up pipes on fb%d\n", mfd->index);
 		mdss_mdp_overlay_kickoff(mfd, NULL);
 	}
+
 #ifdef CONFIG_HUAWEI_LCD
 	if (atomic_dec_return(&ov_active_panels) == 0)
 		mdss_mdp_rotator_release_all();
@@ -2641,10 +2642,12 @@ static int mdss_mdp_overlay_off(struct msm_fb_data_type *mfd)
 			mdss_mdp_ctl_destroy(mdp5_data->ctl);
 			mdp5_data->ctl = NULL;
 		}
+
 #ifndef CONFIG_HUAWEI_LCD
 		if (atomic_dec_return(&ov_active_panels) == 0)
 			mdss_mdp_rotator_release_all();
 #endif
+
 		rc = pm_runtime_put(&mfd->pdev->dev);
 		if (rc)
 			pr_err("unable to suspend w/pm_runtime_put (%d)\n", rc);

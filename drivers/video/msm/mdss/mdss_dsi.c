@@ -10,6 +10,7 @@
  * GNU General Public License for more details.
  *
  */
+
 #include <linux/module.h>
 #include <linux/interrupt.h>
 #include <linux/spinlock.h>
@@ -1218,6 +1219,7 @@ int dsi_panel_device_register(struct device_node *pan_node,
 
 	ctrl_pdata->disp_en_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
 		"qcom,platform-enable-gpio", 0);
+
 	if (!gpio_is_valid(ctrl_pdata->disp_en_gpio)) {
 		pr_err("%s:%d, Disp_en gpio not specified\n",
 						__func__, __LINE__);
@@ -1231,7 +1233,6 @@ int dsi_panel_device_register(struct device_node *pan_node,
 		}
 
 #ifdef CONFIG_HUAWEI_LCD
-
 		rc = gpio_tlmm_config(GPIO_CFG(
 				ctrl_pdata->disp_en_gpio, 0,
 				GPIO_CFG_OUTPUT,
@@ -1294,25 +1295,19 @@ int dsi_panel_device_register(struct device_node *pan_node,
 			gpio_free(ctrl_pdata->bl_en_gpio);
 			return -ENODEV;
 		}
-		pr_debug("%s: bl_gpio=%d\n", __func__,
-					ctrl_pdata->bl_en_gpio);
+		pr_debug("%s: bl_gpio=%d\n", __func__, ctrl_pdata->bl_en_gpio);
 	}
 
-#endif
-
-
-#ifdef CONFIG_HUAWEI_LCD
-	/*get lcd negative voltage gpio110*/
+	/* get lcd negative voltage gpio110 */
 	ctrl_pdata->disp_en_gpio_vsn = of_get_named_gpio(ctrl_pdev->dev.of_node,
 		"qcom,platform-enable-gpio-vsn", 0);
-	//enable LCD_BIASDRV_EN2
+
+	/* enable LCD_BIASDRV_EN2 */
 	if (!gpio_is_valid(ctrl_pdata->disp_en_gpio_vsn)) {
-		pr_err("%s:%d, Disp_en gpio not specified\n",
-						__func__, __LINE__);
-	}
-	else
-	{
-		rc = gpio_request(ctrl_pdata->disp_en_gpio_vsn, "disp_enable_vsn");
+		pr_err("%s: disp_en_gpio_vsn not configured\n", __func__);
+	} else {
+		rc = gpio_request(ctrl_pdata->disp_en_gpio_vsn,
+				  "disp_enable_vsn");
 		if (rc) {
 			pr_err("request disp_en_gpio_vsn failed, rc=%d\n",
 				rc);
@@ -1337,12 +1332,12 @@ int dsi_panel_device_register(struct device_node *pan_node,
 		rc = gpio_direction_output(ctrl_pdata->disp_en_gpio_vsn,1);
 		if (rc) {
 			pr_err("set_direction for disp_en gpio vsn failed, rc=%d\n",
-			 rc);
+			       rc);
 			gpio_free(ctrl_pdata->disp_en_gpio_vsn);
 			return -ENODEV;
 		}
 		pr_debug("%s: disp_gpio_vsn=%d\n", __func__,
-					ctrl_pdata->disp_en_gpio_vsn);
+			 ctrl_pdata->disp_en_gpio_vsn);
 	}
 #endif
 	if (pinfo->type == MIPI_CMD_PANEL) {
@@ -1466,8 +1461,8 @@ int dsi_panel_device_register(struct device_node *pan_node,
 			ctrl_pdata->pclk_rate, ctrl_pdata->byte_clk_rate);
 
 	ctrl_pdata->ctrl_state = CTRL_STATE_UNKNOWN;
-	/* open cont_splash_enable in dtsi file */
-		if (pinfo->cont_splash_enabled) {
+
+	if (pinfo->cont_splash_enabled) {
 		pinfo->panel_power_on = 1;
 		rc = mdss_dsi_panel_power_on(&(ctrl_pdata->panel_data), 1);
 		if (rc) {

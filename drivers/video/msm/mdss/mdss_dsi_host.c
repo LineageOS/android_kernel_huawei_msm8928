@@ -623,6 +623,7 @@ int mdss_dsi_bta_status_check(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 	}
 
 	pr_debug("%s: Checking BTA status\n", __func__);
+
 #ifdef CONFIG_HUAWEI_KERNEL
 	mutex_lock(&ctrl_pdata->cmd_mutex);
 #endif
@@ -640,6 +641,7 @@ int mdss_dsi_bta_status_check(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 		mdss_dsi_disable_irq(ctrl_pdata, DSI_BTA_TERM);
 		pr_err("%s: DSI BTA error: %i\n", __func__, ret);
 	}
+
 	mdss_dsi_clk_ctrl(ctrl_pdata, 0);
 #ifdef CONFIG_HUAWEI_KERNEL
 	mutex_unlock(&ctrl_pdata->cmd_mutex);
@@ -649,10 +651,11 @@ int mdss_dsi_bta_status_check(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 	if (ret > 0) {
 		/* if panel check error and esd check is enabled in dtsi,
 		   report the event to hal layer */
-		if(ctrl_pdata->esd_check_enable)
+		if (ctrl_pdata->esd_check_enable)
 			ret = panel_check_live_status(ctrl_pdata);
 	}
 #endif
+
 	return ret;
 }
 
@@ -1013,6 +1016,7 @@ end:
 }
 
 #define DMA_TX_TIMEOUT 200
+
 static int mdss_dsi_cmd_dma_tx(struct mdss_dsi_ctrl_pdata *ctrl,
 					struct dsi_buf *tp)
 {
@@ -1023,6 +1027,7 @@ static int mdss_dsi_cmd_dma_tx(struct mdss_dsi_ctrl_pdata *ctrl,
 #ifdef CONFIG_HUAWEI_LCD
 	bool iommu_attached = false;
 #endif
+
 	bp = tp->data;
 
 	len = ALIGN(tp->len, 4);
@@ -1037,14 +1042,11 @@ static int mdss_dsi_cmd_dma_tx(struct mdss_dsi_ctrl_pdata *ctrl,
 			pr_err("unable to map dma memory to iommu(%d)\n", ret);
 			return -ENOMEM;
 		}
-	#ifdef CONFIG_HUAWEI_LCD
+#ifdef CONFIG_HUAWEI_LCD
 		iommu_attached = true;
-	#endif	
+#endif
 	} else {
 		addr = tp->dmap;
-	#ifdef CONFIG_HUAWEI_LCD
-		iommu_attached = false;
-	#endif
 	}
 
 	INIT_COMPLETION(ctrl->dma_comp);
@@ -1075,8 +1077,9 @@ static int mdss_dsi_cmd_dma_tx(struct mdss_dsi_ctrl_pdata *ctrl,
 		ret = -ETIMEDOUT;
 	else
 		ret = tp->len;
+
 #ifdef CONFIG_HUAWEI_LCD
-	//unmap it when it have been maped at front
+	/* only unmap if attached at start */
 	if (is_mdss_iommu_attached() && iommu_attached)
 #else
 	if (is_mdss_iommu_attached())
@@ -1086,6 +1089,7 @@ static int mdss_dsi_cmd_dma_tx(struct mdss_dsi_ctrl_pdata *ctrl,
 
 	return ret;
 }
+
 static int mdss_dsi_cmd_dma_rx(struct mdss_dsi_ctrl_pdata *ctrl,
 			struct dsi_buf *rp, int rx_byte)
 
@@ -1221,7 +1225,6 @@ void mdss_dsi_cmdlist_rx(struct mdss_dsi_ctrl_pdata *ctrl,
 		req->cb(len);
 }
 
-
 void mdss_dsi_cmdlist_commit(struct mdss_dsi_ctrl_pdata *ctrl, int from_mdp)
 {
 	struct dcs_cmd_req *req;
@@ -1263,7 +1266,6 @@ need_lock:
 
 	mutex_unlock(&ctrl->cmd_mutex);
 }
-
 
 static void dsi_send_events(struct mdss_dsi_ctrl_pdata *ctrl, u32 events)
 {

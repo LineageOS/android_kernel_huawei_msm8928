@@ -279,8 +279,6 @@ struct mdss_dsi_ctrl_pdata {
 #ifdef CONFIG_FB_AUTO_CABC
 	struct dsi_panel_cmds dsi_panel_cabc_ui_cmds;
 	struct dsi_panel_cmds dsi_panel_cabc_video_cmds;
-
-//remove dynamic gamma
 #endif
 #ifdef CONFIG_FB_DISPLAY_INVERSION
 	u32 inversion_state;
@@ -313,19 +311,13 @@ struct mdss_dsi_ctrl_pdata {
 	u32 panel_esd_cmd[10];
 	u32 panel_esd_cmd_value[10];
 	u32 panel_esd_cmd_len;
-#endif
-#ifdef CONFIG_HUAWEI_LCD
 	int bl_en_gpio;
-#endif
-#ifdef CONFIG_HUAWEI_LCD
 	struct dsi_panel_cmds dot_inversion_cmds;
 	struct dsi_panel_cmds column_inversion_cmds;
-#endif
-
-#ifdef CONFIG_HUAWEI_LCD
 	u32 long_read_flag;
 #endif
 };
+
 int dsi_panel_device_register(struct device_node *pan_node,
 				struct mdss_dsi_ctrl_pdata *ctrl_pdata);
 

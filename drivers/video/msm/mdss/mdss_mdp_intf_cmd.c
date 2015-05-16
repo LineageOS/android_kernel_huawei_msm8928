@@ -242,10 +242,10 @@ static void mdss_mdp_cmd_readptr_done(void *arg)
 		mdss_mdp_irq_disable_nosync
 			(MDSS_MDP_IRQ_PING_PONG_RD_PTR, ctx->pp_num);
 		complete(&ctx->stop_comp);
-	/*delete clk off opreation to avoid esd check freezed*/
-	#ifndef CONFIG_HUAWEI_LCD
+/* delete clk off opreation to avoid esd check freeze */
+#ifndef CONFIG_HUAWEI_LCD
 	schedule_work(&ctx->clk_work);
-	#endif
+#endif
 	}
 
 	spin_unlock(&ctx->clk_lock);
@@ -461,25 +461,20 @@ static int mdss_mdp_cmd_wait4pingpong(struct mdss_mdp_ctl *ctl, void *arg)
 						rc, ctl->num);
 			rc = -EPERM;
 			mdss_mdp_ctl_notify(ctl, MDP_NOTIFY_FRAME_TIMEOUT);
-		#ifdef CONFIG_HUAWEI_LCD
-			if(pstatus_data)
-			{
-				if(pstatus_data->mfd)
-				{
-					pdata = dev_get_platdata(&pstatus_data->mfd->pdev->dev);
-				}
-			}
-			//send panel alive=0 uevent,when occur timeout
-			if(pdata)
-			{
+#ifdef CONFIG_HUAWEI_LCD
+			if (pstatus_data && pstatus_data->mfd)
+				pdata = dev_get_platdata(&pstatus_data->mfd->pdev->dev);
+
+			/* send panel alive=0 uevent when a timeout occurs */
+			if (pdata) {
 				pdata->panel_info.panel_dead = true;
 				kobject_uevent_env(
 					&pstatus_data->mfd->fbi->dev->kobj,
-								KOBJ_CHANGE, envp);
+					KOBJ_CHANGE, envp);
 				pr_err("%s: Panel has gone bad, sending uevent - %s\n",
-								__func__, envp[0]);
+				       __func__, envp[0]);
 			}
-		#endif
+#endif
 		} else {
 			rc = 0;
 		}
@@ -487,6 +482,7 @@ static int mdss_mdp_cmd_wait4pingpong(struct mdss_mdp_ctl *ctl, void *arg)
 
 	return rc;
 }
+
 static int mdss_mdp_cmd_set_partial_roi(struct mdss_mdp_ctl *ctl)
 {
 	int rc = 0;
@@ -523,9 +519,9 @@ int mdss_mdp_cmd_kickoff(struct mdss_mdp_ctl *ctl, void *arg)
 
 		rc = mdss_mdp_ctl_intf_event(ctl, MDSS_EVENT_PANEL_ON, NULL);
 		WARN(rc, "intf %d panel on error (%d)\n", ctl->intf_num, rc);
-		/*schedule the esd delay work*/
+/*schedule the esd delay work*/
 #ifdef CONFIG_HUAWEI_LCD
-		mdss_dsi_status_check_ctl(ctl->mfd,true);
+		mdss_dsi_status_check_ctl(ctl->mfd, true);
 #endif
 	}
 
@@ -564,9 +560,10 @@ int mdss_mdp_cmd_stop(struct mdss_mdp_ctl *ctl)
 		pr_err("invalid ctx\n");
 		return -ENODEV;
 	}
-	/*cancel the esd delay work*/
+
+/*cancel the esd delay work*/
 #ifdef CONFIG_HUAWEI_LCD
-	mdss_dsi_status_check_ctl(ctl->mfd,false);
+	mdss_dsi_status_check_ctl(ctl->mfd, false);
 #endif
 	list_for_each_entry_safe(handle, tmp, &ctx->vsync_handlers, list)
 		mdss_mdp_cmd_remove_vsync_handler(ctl, handle);

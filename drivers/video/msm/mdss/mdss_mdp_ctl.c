@@ -1908,17 +1908,16 @@ int mdss_mdp_display_commit(struct mdss_mdp_ctl *ctl, void *arg)
 	}
 
 	mdss_mdp_ctl_notify(ctl, MDP_NOTIFY_FRAME_READY);
-// dont display continuing if occur wait pingpong timeout
+
+/* dont continue if pingpong timeout */
 #ifndef CONFIG_HUAWEI_LCD
 	if (ctl->wait_pingpong)
 		ctl->wait_pingpong(ctl, NULL);
 #else
-	if (ctl->wait_pingpong)
-	{
+	if (ctl->wait_pingpong) {
 		ret = ctl->wait_pingpong(ctl, NULL);
-		if (ret)
-		{
-			pr_err("error wait_pingpong \n");
+		if (ret) {
+			pr_err("%s: error wait_pingpong\n", __func__);
 			goto done;
 		}
 	}

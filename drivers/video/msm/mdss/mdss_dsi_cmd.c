@@ -656,6 +656,7 @@ int mdss_dsi_cmdlist_put(struct mdss_dsi_ctrl_pdata *ctrl,
 	struct dcs_cmd_req *req;
 	struct dcs_cmd_list *clist;
 	int ret = 0;
+
 #ifdef CONFIG_HUAWEI_KERNEL
 	mutex_lock(&ctrl->put_mutex);
 #endif

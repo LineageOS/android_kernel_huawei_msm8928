@@ -149,7 +149,7 @@ static int mdss_mdp_rotator_kickoff(struct mdss_mdp_ctl *ctl,
 
 	mutex_lock(&rot->lock);
 	rot->busy = true;
-	/* fRist kickoff change vbif settings */
+	/* on first kickoff, change vbif settings */
 	if (!count) {
 		writel_relaxed(0x08010808, mdss_res->vbif_base + 0xB0);
 		writel_relaxed(0x02101010, mdss_res->vbif_base + 0xC0);

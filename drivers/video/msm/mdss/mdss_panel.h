@@ -349,7 +349,7 @@ struct mdss_panel_data {
 	int (*event_handler) (struct mdss_panel_data *pdata, int e, void *arg);
 
 	struct mdss_panel_data *next;
-	//remove dynamic gamma
+
 #ifdef CONFIG_FB_AUTO_CABC
 	int (*config_cabc) (struct mdss_panel_data *pdata,struct msmfb_cabc_config cabc_cfg);
 #endif
@@ -361,6 +361,7 @@ struct mdss_panel_data {
 	int (*check_panel_status)(struct mdss_panel_data *pdata);
 #endif
 };
+
 /**
  * mdss_get_panel_framerate() - get panel frame rate based on panel information
  * @panel_info:	Pointer to panel info containing all panel information
