@@ -198,10 +198,6 @@ static void mdss_dsi_panel_bklt_dcs(struct mdss_dsi_ctrl_pdata *ctrl, int level)
 	cmdreq.cb = NULL;
 
 	mdss_dsi_cmdlist_put(ctrl, &cmdreq);
-
-#ifdef CONFIG_HUAWEI_LCD
-	LCD_LOG_DBG("%s: level=%d\n", __func__, level);
-#endif
 }
 #ifdef CONFIG_HUAWEI_LCD
 static void mdss_dsi_panel_bias_en(struct mdss_panel_data *pdata, int enable)
@@ -399,7 +395,7 @@ static int mdss_dsi_panel_cabc_ctrl(struct mdss_panel_data *pdata,struct msmfb_c
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
 
 	if (pdata == NULL) {
-		LCD_LOG_ERR("%s: Invalid input data\n", __func__);
+		pr_err("%s: Invalid input data\n", __func__);
 		return -EINVAL;
 	}
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
@@ -416,10 +412,10 @@ static int mdss_dsi_panel_cabc_ctrl(struct mdss_panel_data *pdata,struct msmfb_c
 				mdss_dsi_panel_cmds_send(ctrl_pdata, &ctrl_pdata->dsi_panel_cabc_video_cmds);
 			break;
 		default:
-			LCD_LOG_ERR("%s: invalid cabc mode: %d\n", __func__, cabc_cfg.mode);
+			pr_err("%s: invalid cabc mode: %d\n", __func__, cabc_cfg.mode);
 			break;
 	}
-	LCD_LOG_INFO("exit %s : CABC mode= %d\n",__func__,cabc_cfg.mode);
+	pr_info("%s: CABC mode=%d\n", __func__, cabc_cfg.mode);
 	return 0;
 }
 #endif
@@ -448,10 +444,10 @@ static int mdss_dsi_lcd_set_display_inversion(struct mdss_panel_data *pdata,unsi
 			ctrl_pdata->inversion_state = INVERSION_ON;
 			break;
 		default:
-			LCD_LOG_ERR("%s: invalid inversion mode: %d\n", __func__,inversion_mode);
+			pr_err("%s: invalid inversion mode: %d\n", __func__, inversion_mode);
 			break;
 	}
-	LCD_LOG_INFO("exit %s : inversion mode= %d\n",__func__,inversion_mode);
+	pr_info("%s: inversion mode=%d\n", __func__, inversion_mode);
 	return 0;
 }
 #endif
@@ -536,7 +532,8 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 	if((INVERSION_ON == ctrl->inversion_state) && ctrl ->dsi_panel_inverse_on_cmds.cmd_cnt )
 	{
 		mdss_dsi_panel_cmds_send(ctrl, &ctrl->dsi_panel_inverse_on_cmds);
-		LCD_LOG_DBG("%s:display inversion open:inversion_state = [%d]\n",__func__,ctrl->inversion_state);
+		pr_debug("%s: display inversion open, inversion_state=%d\n",
+			 __func__, ctrl->inversion_state);
 	}
 #endif
 	/*remove the code that first called do nothing when power on or power down*/
@@ -550,7 +547,6 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 		mdss_dsi_panel_cmds_send(ctrl, &ctrl->on_cmds);
 
 	ctrl->first_wake_up = 1;
-	LCD_LOG_INFO("exit %s\n",__func__);
 #endif
 
 	pr_debug("%s:-\n", __func__);
@@ -577,9 +573,7 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 	/* power off when panel off */
 	if (ctrl->off_cmds.cmd_cnt)
 		mdss_dsi_panel_cmds_send(ctrl, &ctrl->off_cmds);
-#ifdef CONFIG_HUAWEI_LCD
-	LCD_LOG_INFO("exit %s\n",__func__);
-#endif
+
 	pr_debug("%s:-\n", __func__);
 	return 0;
 }
@@ -589,7 +583,7 @@ static int mdss_dsi_panel_inversion_ctrl(struct mdss_panel_data *pdata,u32 imode
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
 	int ret = 0;
 	if (pdata == NULL) {
-		LCD_LOG_ERR("%s: Invalid input data\n", __func__);
+		pr_err("%s: Invalid input data\n", __func__);
 		return -EINVAL;
 	}
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
@@ -607,10 +601,10 @@ static int mdss_dsi_panel_inversion_ctrl(struct mdss_panel_data *pdata,u32 imode
 			break;
 		default:
 			ret = -EINVAL;
-			LCD_LOG_ERR("%s: invalid inversion mode: %d\n", __func__, imode);
+			pr_err("%s: invalid inversion mode: %d\n", __func__, imode);
 			break;
 	}
-	LCD_LOG_INFO("exit %s ,dot inversion enable= %d \n",__func__,imode);
+	pr_info("%s: dot inversion enable=%d\n", __func__, imode);
 	return ret;
 
 }
@@ -626,7 +620,7 @@ static int mdss_dsi_check_panel_status(struct mdss_panel_data *pdata)
 	int read_length = 1;
 
 	if (pdata == NULL) {
-		LCD_LOG_ERR("%s: Invalid input data\n", __func__);
+		pr_err("%s: Invalid input data\n", __func__);
 		return -EINVAL;
 	}
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
@@ -640,7 +634,7 @@ static int mdss_dsi_check_panel_status(struct mdss_panel_data *pdata)
 
 	do{
 		mdss_dsi_panel_cmd_read(ctrl_pdata,0x0A,0x00,NULL,&data,read_length);
-		LCD_LOG_INFO("exit %s ,0x0A = 0x%x \n",__func__,data);
+		pr_info("%s: 0x0A = 0x%x\n", __func__, data);
 		count--;
 	}while((expect_value != data)&&(count>0));
 
@@ -676,8 +670,9 @@ int panel_check_live_status(struct mdss_dsi_ctrl_pdata *ctrl)
 		
 		if(count == REPEAT_COUNT)
 		{			
-			LCD_LOG_INFO("panel ic error: in %s,  reg 0x%02X should be 0x%02x, but read data =0x%02x \n",
-					__func__,ctrl->panel_esd_cmd[j],ctrl->panel_esd_cmd_value[j],data);
+			pr_info("%s: panel ic error, reg 0x%02X should be 0x%02x, but read data is 0x%02x\n",
+			        __func__, ctrl->panel_esd_cmd[j],
+			        ctrl->panel_esd_cmd_value[j], data);
 			ret = -1;
 			break;
 		}
@@ -1301,8 +1296,8 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	{
 		data = of_get_property(np, "huawei,panel-read-register", &len);
 		if ((!data) || (len != 2)) {
-			LCD_LOG_ERR("%s:%d, Unable to read panel read register settings",
-			       __func__, __LINE__);
+			pr_err("%s: Unable to read panel read register settings",
+			       __func__);
 			goto error;
 		}
 		read_dcs_cmd[0] = data[0];
@@ -1345,8 +1340,7 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	/*10 is the max len of the esd check cmd */
 	if ((!data) || (!len)||(len > 10)) {
 		ctrl_pdata->esd_check_enable = false;
-		LCD_LOG_INFO("%s:%d, Panel esd check not enable",
-		       __func__, __LINE__);
+		pr_info("%s: Panel esd check not enabled", __func__);
 	}
 	else
 	{
@@ -1356,16 +1350,14 @@ static int mdss_panel_parse_dt(struct device_node *np,
 		data = of_get_property(np, "qcom,mdss-dsi-panel-esd-cmd-value", &len);
 		if ((!data) || (len != ctrl_pdata->panel_esd_cmd_len)) {
 			ctrl_pdata->esd_check_enable = false;
-			LCD_LOG_INFO("%s:%d, Panel esd check value not correct",
-		       	__func__, __LINE__);
+			pr_info("%s: Panel esd check value not correct", __func__);
 		}
 		else
 		{
 			ctrl_pdata->esd_check_enable = true;
 			for (i = 0; i < len; i++)
 				ctrl_pdata->panel_esd_cmd_value[i] = data[i];
-			LCD_LOG_INFO("%s:%d, Panel esd check enable",
-		       	__func__, __LINE__);
+			pr_info("%s: Panel esd check enabled", __func__);
 		}
 	}	
 #endif
