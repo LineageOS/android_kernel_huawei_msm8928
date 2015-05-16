@@ -114,6 +114,5 @@ void setup_lcd_power(void);
 void lcd_dbg_set_dsi_ctrl_pdata(struct mdss_dsi_ctrl_pdata *ctrl);
 struct mdss_dsi_ctrl_pdata *lcd_dbg_get_dsi_ctrl_pdata(void);
 int lcd_dbg_mipi_prcess_ic_reg(int op_type,int reg, int cmd_type, int param_num, char *param_buf,int *read_value, int delay_ms);
-int lcd_debugfs_init(void);
 #endif
 #endif

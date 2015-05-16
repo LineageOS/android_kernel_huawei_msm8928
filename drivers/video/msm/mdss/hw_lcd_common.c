@@ -79,6 +79,8 @@
 #define LCD_ID_PULL_UP  1
 #define LCD_ID_PULL_DOWN  0
 
+int lcd_debug_mask = LCD_INFO;
+
 struct of_device_id huawei_mdss_dsi_panel_match[] = {
 	{.compatible = "huawei,lcd_panel_idA"},
 	{}

@@ -26,7 +26,6 @@
 
 /* Add head file */
 #include <linux/hw_lcd_common.h>
-#include <hw_lcd_debug.h>
 #include <misc/app_info.h>
 
 #ifdef CONFIG_FB_DISPLAY_INVERSION
@@ -34,11 +33,6 @@
 #define INVERSION_ON 1
 #endif
 DEFINE_LED_TRIGGER(bl_led_trigger);
-
-int lcd_debug_mask = LCD_INFO;
-module_param_named(lcd_debug_mask, lcd_debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP);
-static bool enable_initcode_debugging = FALSE;
-module_param_named(enable_initcode_debugging, enable_initcode_debugging, bool, S_IRUGO | S_IWUSR);
 
 #ifdef CONFIG_HUAWEI_LCD
 static char read_dcs_cmd[2] = {0x00, 0x00}; /* DTYPE_DCS_READ */
@@ -545,37 +539,20 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 		LCD_LOG_DBG("%s:display inversion open:inversion_state = [%d]\n",__func__,ctrl->inversion_state);
 	}
 #endif
-	/*check if file is opened successfully load the init code*/
-	if (enable_initcode_debugging && !hw_parse_dsi_cmds(&cmds))
+	/*remove the code that first called do nothing when power on or power down*/
+	/*now power on or power down, we do reset even if it is first called.*/
+	if (panel_read_flag)
 	{
-
-		LCD_LOG_INFO("read from debug file and write to LCD!\n");
-
-		cmds.link_state = ctrl->on_cmds.link_state;
-		if (cmds.cmd_cnt)
-			mdss_dsi_panel_cmds_send(ctrl, &cmds);
-
-		hw_free_dsi_cmds(&cmds);
+		mdss_dsi_panel_cmd_read(ctrl,read_dcs_cmd[0],read_dcs_cmd[1],NULL,NULL,0);
 	}
-	else
-	{
-		/*remove the code that first called do nothing when power on or power down*/
-		/*now power on or power down, we do reset even if it is first called.*/
-		if (panel_read_flag)
-		{
-			mdss_dsi_panel_cmd_read(ctrl,read_dcs_cmd[0],read_dcs_cmd[1],NULL,NULL,0);
-		}
 
-		if (ctrl->on_cmds.cmd_cnt)
-			mdss_dsi_panel_cmds_send(ctrl, &ctrl->on_cmds);
-	}
+	if (ctrl->on_cmds.cmd_cnt)
+		mdss_dsi_panel_cmds_send(ctrl, &ctrl->on_cmds);
+
 	ctrl->first_wake_up = 1;
 	LCD_LOG_INFO("exit %s\n",__func__);
 #endif
-	/*set mipi status*/
-#if defined(CONFIG_HUAWEI_KERNEL) && defined(CONFIG_DEBUG_FS)
-	atomic_set(&mipi_path_status,MIPI_PATH_OPEN);
-#endif
+
 	pr_debug("%s:-\n", __func__);
 	return 0;
 }
@@ -589,10 +566,7 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 		pr_err("%s: Invalid input data\n", __func__);
 		return -EINVAL;
 	}
-	/*set mipi status*/
-#if defined(CONFIG_HUAWEI_KERNEL) && defined(CONFIG_DEBUG_FS)
-	atomic_set(&mipi_path_status,MIPI_PATH_CLOSE);
-#endif
+
 	ctrl = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
 
