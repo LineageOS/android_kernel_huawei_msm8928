@@ -79,10 +79,8 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata, int enable)
 #endif
 
 	} else {
-/*reset should change to low after mipi off, we reset lcd in here instead of BLANK*/
-#ifdef CONFIG_HUAWEI_LCD
+
 		mdss_dsi_panel_reset(pdata, 0);
-#endif
 
 		ret = msm_dss_enable_vreg(
 			ctrl_pdata->power_data.vreg_config,
