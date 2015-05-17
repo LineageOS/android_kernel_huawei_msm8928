@@ -592,7 +592,6 @@ static int mdss_dsi_panel_inversion_ctrl(struct mdss_panel_data *pdata,
 	return ret;
 }
 
-/* himax ic needs to use long packet to read */
 static int mdss_dsi_check_panel_status(struct mdss_panel_data *pdata)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
@@ -608,11 +607,6 @@ static int mdss_dsi_check_panel_status(struct mdss_panel_data *pdata)
 	}
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
-
-	if (ctrl_pdata->long_read_flag) {
-		expect_value = 0x1C;
-		read_length = 3;
-	}
 
 	do {
 		mdss_dsi_panel_cmd_read(ctrl_pdata, 0x0A, 0x00, NULL, &data,
@@ -1280,9 +1274,6 @@ static int mdss_panel_parse_dt(struct device_node *np,
 #ifdef CONFIG_HUAWEI_LCD
 	rc = of_property_read_u32(np, "huawei,delaytime-before-bl", &tmp);
 	pinfo->delaytime_before_bl = (!rc ? tmp : 0);
-
-	rc = of_property_read_u32(np, "huawei,long-read-flag", &tmp);
-	ctrl_pdata->long_read_flag= (!rc ? tmp : 0);
 #endif
 #ifdef CONFIG_HUAWEI_LCD
 	data = of_get_property(np, "qcom,mdss-dsi-panel-esd-cmd", &len);

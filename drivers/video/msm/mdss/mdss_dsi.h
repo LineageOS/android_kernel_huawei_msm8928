@@ -314,7 +314,6 @@ struct mdss_dsi_ctrl_pdata {
 	int bl_en_gpio;
 	struct dsi_panel_cmds dot_inversion_cmds;
 	struct dsi_panel_cmds column_inversion_cmds;
-	u32 long_read_flag;
 #endif
 };
 
