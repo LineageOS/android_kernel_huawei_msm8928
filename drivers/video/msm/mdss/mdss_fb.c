@@ -839,30 +839,6 @@ void mdss_fb_set_backlight(struct msm_fb_data_type *mfd, u32 bkl_lvl)
 	}
 }
 
-#ifdef CONFIG_HUAWEI_LCD
-void mdss_fb_update_backlight_wq_handler(struct work_struct *work)
-{
-	struct mdss_panel_data *pdata;
-	struct msm_fb_data_type *mfd;
-	mfd = container_of(to_delayed_work(work), struct msm_fb_data_type,
-			   bkl_work);
-
-	mutex_lock(&mfd->bl_lock);
-	if (mfd->unset_bl_level) {
-		pdata = dev_get_platdata(&mfd->pdev->dev);
-		if (pdata && pdata->set_backlight) {
-			mfd->bl_level = mfd->unset_bl_level;
-			pdata->set_backlight(pdata, mfd->bl_level);
-			mfd->bl_level_old = mfd->unset_bl_level;
-			mfd->unset_bl_level = 0;
-			pr_info("%s: set backlight to %d\n", __func__,
-				mfd->bl_level);
-		}
-	}
-	mfd->bl_updated = 1;
-	mutex_unlock(&mfd->bl_lock);
-}
-#else
 void mdss_fb_update_backlight(struct msm_fb_data_type *mfd)
 {
 	struct mdss_panel_data *pdata;
@@ -879,7 +855,6 @@ void mdss_fb_update_backlight(struct msm_fb_data_type *mfd)
 		}
 	}
 }
-#endif
 
 static int mdss_fb_blank_sub(int blank_mode, struct fb_info *info,
 			     int op_enable)
@@ -956,9 +931,6 @@ static int mdss_fb_blank_sub(int blank_mode, struct fb_info *info,
 			curr_pwr_state = mfd->panel_power_on;
 			mfd->panel_power_on = false;
 			mfd->bl_updated = 0;
-
-			cancel_delayed_work_sync(&mfd->bkl_work);
-			pr_debug("%s: cancel bkl_delay work\n", __func__);
 
 			ret = mfd->mdp.off_fnc(mfd);
 			if (ret)
@@ -1331,9 +1303,7 @@ static int mdss_fb_register(struct msm_fb_data_type *mfd)
 	init_completion(&mfd->power_set_comp);
 	init_waitqueue_head(&mfd->commit_wait_q);
 	init_waitqueue_head(&mfd->idle_wait_q);
-#ifdef CONFIG_HUAWEI_LCD
-	INIT_DELAYED_WORK(&mfd->bkl_work, mdss_fb_update_backlight_wq_handler);
-#endif
+
 	ret = fb_alloc_cmap(&fbi->cmap, 256, 0);
 	if (ret)
 		pr_err("fb_alloc_cmap() failed!\n");
@@ -1848,15 +1818,7 @@ static int __mdss_fb_perform_commit(struct msm_fb_data_type *mfd)
 					mfd->index);
 	}
 	if (!ret)
-#ifdef CONFIG_HUAWEI_LCD
-	{
-		pr_debug("%s: schedule work delaytime=%d ms\n", __func__,
-			 mfd->panel_info->delaytime_before_bl);
-		schedule_delayed_work(&mfd->bkl_work,msecs_to_jiffies(mfd->panel_info->delaytime_before_bl));
-	}
-#else
 		mdss_fb_update_backlight(mfd);
-#endif
 
 	if (IS_ERR_VALUE(ret) || !sync_pt_data->flushed)
 		mdss_fb_signal_timeline(sync_pt_data);

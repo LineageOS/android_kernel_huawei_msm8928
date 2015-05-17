@@ -1272,10 +1272,6 @@ static int mdss_panel_parse_dt(struct device_node *np,
 		"qcom,panel-column-inversion-mode-cmds", "qcom,column-inversion-cmds-dsi-state");
 #endif
 #ifdef CONFIG_HUAWEI_LCD
-	rc = of_property_read_u32(np, "huawei,delaytime-before-bl", &tmp);
-	pinfo->delaytime_before_bl = (!rc ? tmp : 0);
-#endif
-#ifdef CONFIG_HUAWEI_LCD
 	data = of_get_property(np, "qcom,mdss-dsi-panel-esd-cmd", &len);
 	/*10 is the max len of the esd check cmd */
 	if (!data || !len || len > 10) {

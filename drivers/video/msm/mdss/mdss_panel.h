@@ -286,9 +286,6 @@ struct mdss_panel_info {
 	u32 pdest;
 	u32 bl_max;
 	u32 bl_min;
-#ifdef CONFIG_HUAWEI_LCD
-	u32 delaytime_before_bl;
-#endif
 	u32 fb_num;
 	u32 clk_rate;
 	u32 clk_min;
