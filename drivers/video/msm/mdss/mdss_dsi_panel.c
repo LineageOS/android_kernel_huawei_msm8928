@@ -370,41 +370,6 @@ static int mdss_dsi_panel_partial_update(struct mdss_panel_data *pdata)
 	return rc;
 }
 
-#ifdef CONFIG_FB_AUTO_CABC
-static int mdss_dsi_panel_cabc_ctrl(struct mdss_panel_data *pdata,
-				    struct msmfb_cabc_config cabc_cfg)
-{
-	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
-
-	if (pdata == NULL) {
-		pr_err("%s: Invalid input data\n", __func__);
-		return -EINVAL;
-	}
-	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
-				panel_data);
-	switch(cabc_cfg.mode)
-	{
-		case CABC_MODE_UI:
-			if (ctrl_pdata->dsi_panel_cabc_ui_cmds.cmd_cnt)
-				mdss_dsi_panel_cmds_send(ctrl_pdata,
-					&ctrl_pdata->dsi_panel_cabc_ui_cmds);
-			break;
-		case CABC_MODE_MOVING:
-		case CABC_MODE_STILL:
-			if (ctrl_pdata->dsi_panel_cabc_video_cmds.cmd_cnt)
-				mdss_dsi_panel_cmds_send(ctrl_pdata,
-					&ctrl_pdata->dsi_panel_cabc_video_cmds);
-			break;
-		default:
-			pr_err("%s: invalid cabc mode: %d\n", __func__,
-			       cabc_cfg.mode);
-			break;
-	}
-	pr_info("%s: CABC mode=%d\n", __func__, cabc_cfg.mode);
-	return 0;
-}
-#endif
-
 #ifdef CONFIG_FB_DISPLAY_INVERSION
 static int mdss_dsi_lcd_set_display_inversion(struct mdss_panel_data *pdata,
 					      unsigned int inversion_mode)
@@ -1230,12 +1195,6 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->off_cmds,
 		"qcom,mdss-dsi-off-command", "qcom,mdss-dsi-off-command-state");
 
-#ifdef CONFIG_FB_AUTO_CABC
-	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->dsi_panel_cabc_ui_cmds,
-		"qcom,panel-cabc-ui-cmds", "qcom,cabc-ui-cmds-dsi-state");
-	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->dsi_panel_cabc_video_cmds,
-		"qcom,panel-cabc-video-cmds", "qcom,cabc-video-cmds-dsi-state");
-#endif
 #ifdef CONFIG_FB_DISPLAY_INVERSION
 	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->dsi_panel_inverse_on_cmds,
 		"qcom,panel-inverse-on-cmds", "qcom,inverse-on-cmds-dsi-state");
@@ -1313,9 +1272,6 @@ int mdss_dsi_panel_init(struct device_node *node,
 		return rc;
 	}
 
-#ifdef CONFIG_FB_AUTO_CABC
-	ctrl_pdata->panel_data.config_cabc = mdss_dsi_panel_cabc_ctrl;
-#endif
 #ifdef CONFIG_FB_DISPLAY_INVERSION
 	ctrl_pdata->panel_data.lcd_set_display_inversion = mdss_dsi_lcd_set_display_inversion;
 #endif

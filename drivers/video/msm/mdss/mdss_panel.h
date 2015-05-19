@@ -347,9 +347,6 @@ struct mdss_panel_data {
 
 	struct mdss_panel_data *next;
 
-#ifdef CONFIG_FB_AUTO_CABC
-	int (*config_cabc) (struct mdss_panel_data *pdata,struct msmfb_cabc_config cabc_cfg);
-#endif
 #ifdef CONFIG_FB_DISPLAY_INVERSION
 	int (*lcd_set_display_inversion)(struct mdss_panel_data *pdata,unsigned int inversion_mode);
 #endif

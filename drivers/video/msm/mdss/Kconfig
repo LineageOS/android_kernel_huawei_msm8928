@@ -50,11 +50,6 @@ config HUAWEI_LCD_BIAS_TEST
 	---help---
 	Choose y to enable the huawei lcd bias voltage test feature
 
-config FB_AUTO_CABC
-	bool "Support for AUTO_CABC fuction"
-	depends on HUAWEI_LCD
-	default n
-
 config FB_DISPLAY_INVERSION
 	bool "Support DISPLAY_INVERSION fuction for LCD"
 	depends on FB_MSM

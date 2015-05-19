@@ -102,12 +102,6 @@ static int __mdss_fb_sync_buf_done_callback(struct notifier_block *p,
 
 static int __mdss_fb_display_thread(void *data);
 static int mdss_fb_pan_idle(struct msm_fb_data_type *mfd);
-#ifdef CONFIG_FB_AUTO_CABC
-static int mdss_fb_config_cabc(struct msm_fb_data_type *mfd,
-			       struct msmfb_cabc_config cabc_cfg);
-struct msmfb_cabc_config last_cabc_mode;
-u32 last_cabc_setting = false;
-#endif
 static int mdss_fb_send_panel_event(struct msm_fb_data_type *mfd,
 					int event, void *arg);
 void mdss_fb_no_update_notify_timer_cb(unsigned long data)
@@ -897,18 +891,6 @@ static int mdss_fb_blank_sub(int blank_mode, struct fb_info *info,
 			mutex_lock(&mfd->update.lock);
 			mfd->update.type = NOTIFY_TYPE_UPDATE;
 			mutex_unlock(&mfd->update.lock);
-#ifdef CONFIG_FB_AUTO_CABC
-			/* writeback panel doesn't need the following setting,
-			   it is only for lcd panels */
-			if (pdata->panel_info.type != WRITEBACK_PANEL
-					&& true == last_cabc_setting) {
-				/* when lcd resumes, set the saved cabc values */
-				mdss_fb_config_cabc(mfd, last_cabc_mode);
-				last_cabc_setting = false;
-				pr_info("%s: Waiting for LCD resume, then set cabc mode=%d\n",
-					__func__, last_cabc_mode.mode);
-			}
-#endif
 		}
 		break;
 
@@ -2118,35 +2100,6 @@ static int mdss_fb_set_lut(struct fb_info *info, void __user *p)
 	return 0;
 }
 
-#ifdef CONFIG_FB_AUTO_CABC
-/***************************************************************
-Function: mdss_fb_config_cabc
-Description: Config CABC parameter
-Parameters:
-	struct msm_fb_data_type *mfd: mfd pointer
-	struct msmfb_cabc_config cabc_cfg: CABC config structure
-Return:
-	0: success
-***************************************************************/
-static int mdss_fb_config_cabc(struct msm_fb_data_type *mfd,
-			       struct msmfb_cabc_config cabc_cfg)
-{
-	int ret = 0;
-	struct mdss_panel_data *pdata = NULL;
-
-	pdata = dev_get_platdata(&mfd->pdev->dev);
-	if (pdata && pdata->config_cabc) {
-		ret = pdata->config_cabc(pdata,cabc_cfg);
-	} else {
-		pr_err("%s: This panel can not support auto cabc function\n",
-		       __func__);
-		ret = EINVAL;
-	}
-
-	return ret;
-}
-#endif
-
 #ifdef CONFIG_FB_DISPLAY_INVERSION
 /***************************************************************
 Function: msm_fb_set_display_inversion
@@ -2367,9 +2320,6 @@ static int mdss_fb_display_commit(struct fb_info *info,
 static int mdss_fb_ioctl(struct fb_info *info, unsigned int cmd,
 			 unsigned long arg)
 {
-#ifdef CONFIG_FB_AUTO_CABC
-	struct msmfb_cabc_config cabc_cfg;
-#endif
 #ifdef CONFIG_FB_DISPLAY_INVERSION
 	unsigned int lcd_display_inversion = 0;
 #endif
@@ -2411,29 +2361,6 @@ static int mdss_fb_ioctl(struct fb_info *info, unsigned int cmd,
 		if (ret)
 			return ret;
 		break;
-
-#ifdef CONFIG_FB_AUTO_CABC
-	case MSMFB_AUTO_CABC:
-		ret = copy_from_user(&cabc_cfg, argp, sizeof(cabc_cfg));
-		if (ret) {
-			pr_err("%s: MSMFB_AUTO_CABC ioctl failed \n",
-			       __func__);
-			return ret;
-		}
-
-		/* if lcd is not resumed, save the cabc_mode value,
-		   so it will be set when lcd resume*/
-		if (!mfd->panel_power_on) {
-			last_cabc_mode = cabc_cfg;
-			last_cabc_setting =true;
-			pr_info("%s: MSMFB_AUTO_CABC save last setting\n",
-				__func__);
-		} else {
-			ret = mdss_fb_config_cabc(mfd, cabc_cfg);
-			last_cabc_setting =false;
-		}
-		break;
-#endif
 
 #ifdef CONFIG_FB_DISPLAY_INVERSION
 	case MSMFB_DISPLAY_INVERSION:
