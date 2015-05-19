@@ -473,20 +473,7 @@ static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 		mdss_dsi_panel_bklt_pwm(ctrl_pdata, bl_level);
 		break;
 	case BL_DCS_CMD:
-		/* make sure the first pwm signal is longer than 2us when panel
-		   wakes up from sleep */
-		if (bl_level > 18 || !ctrl_pdata->first_wake_up
-				|| ctrl_pdata->temporary_pwm_cmds.cmd_cnt == 0
-				|| ctrl_pdata->normal_pwm_cmds.cmd_cnt == 0) {
-			mdss_dsi_panel_bklt_dcs(ctrl_pdata, bl_level);
-		} else {
-			mdss_dsi_panel_cmds_send(ctrl_pdata,
-				&ctrl_pdata->temporary_pwm_cmds);
-			mdss_dsi_panel_bklt_dcs(ctrl_pdata, bl_level);
-			mdss_dsi_panel_cmds_send(ctrl_pdata,
-				&ctrl_pdata->normal_pwm_cmds);
-		}
-		ctrl_pdata->first_wake_up = 0;
+		mdss_dsi_panel_bklt_dcs(ctrl_pdata, bl_level);
 		break;
 	default:
 		pr_err("%s: Unknown bl_ctrl configuration\n",
@@ -524,10 +511,6 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 
 	if (ctrl->on_cmds.cmd_cnt)
 		mdss_dsi_panel_cmds_send(ctrl, &ctrl->on_cmds);
-
-#ifdef CONFIG_HUAWEI_LCD
-	ctrl->first_wake_up = 1;
-#endif
 
 	pr_debug("%s:-\n", __func__);
 	return 0;
@@ -1260,12 +1243,6 @@ static int mdss_panel_parse_dt(struct device_node *np,
 		"qcom,panel-inverse-off-cmds", "qcom,inverse-on-cmds-dsi-state");
 #endif
 #ifdef CONFIG_HUAWEI_LCD
-	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->temporary_pwm_cmds,
-		"qcom,panel-SetTemporary-pwm-cmds", "qcom,temporary-pwm-command-dsi-state");
-	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->normal_pwm_cmds,
-		"qcom,panel-SetNormal-pwm-cmds", "qcom,normal-pwm-command-dsi-state");
-#endif
-#ifdef CONFIG_HUAWEI_LCD
 	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->dot_inversion_cmds,
 		"qcom,panel-dot-inversion-mode-cmds", "qcom,dot-inversion-cmds-dsi-state");
 	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->column_inversion_cmds,
@@ -1341,9 +1318,6 @@ int mdss_dsi_panel_init(struct device_node *node,
 #endif
 #ifdef CONFIG_FB_DISPLAY_INVERSION
 	ctrl_pdata->panel_data.lcd_set_display_inversion = mdss_dsi_lcd_set_display_inversion;
-#endif
-#ifdef CONFIG_HUAWEI_LCD
-	ctrl_pdata->first_wake_up = 0;
 #endif
 	if (cmd_cfg_cont_splash)
 		cont_splash_enabled = of_property_read_bool(node,

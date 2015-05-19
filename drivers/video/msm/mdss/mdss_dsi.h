@@ -285,11 +285,6 @@ struct mdss_dsi_ctrl_pdata {
 	struct dsi_panel_cmds dsi_panel_inverse_on_cmds;
 	struct dsi_panel_cmds dsi_panel_inverse_off_cmds;
 #endif
-#ifdef CONFIG_HUAWEI_LCD
-	u32 first_wake_up;
-	struct dsi_panel_cmds temporary_pwm_cmds;
-	struct dsi_panel_cmds normal_pwm_cmds;
-#endif
 	struct dcs_cmd_list cmdlist;
 	struct completion dma_comp;
 	struct completion mdp_comp;
