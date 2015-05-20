@@ -20,9 +20,6 @@
 #include <linux/pm_runtime.h>
 #include <linux/reboot.h>
 
-#ifdef CONFIG_HW_MMC_TEST
-#include <linux/export.h>
-#endif
 
 #include "core.h"
 #include "bus.h"
@@ -299,11 +296,7 @@ static void mmc_select_card_type(struct mmc_card *card)
 /*
  * Decode extended CSD.
  */
-#ifdef CONFIG_HW_MMC_TEST
-int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
-#else
 static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
-#endif
 {
 	int err = 0, idx;
 	unsigned int part_size;
@@ -608,9 +601,6 @@ static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
 out:
 	return err;
 }
-#ifdef CONFIG_HW_MMC_TEST
-EXPORT_SYMBOL_GPL(mmc_read_ext_csd);
-#endif
 
 static inline void mmc_free_ext_csd(u8 *ext_csd)
 {

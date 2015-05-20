@@ -19,9 +19,6 @@
 #include <linux/mmc/core.h>
 #include <linux/mmc/pm.h>
 
-#ifdef CONFIG_HW_MMC_TEST
-#define CARD_ADDR_MAGIC 0xA5A55A5A
-#endif
 
 struct mmc_ios {
 	unsigned int	clock;			/* clock rate */
@@ -411,9 +408,6 @@ struct mmc_host {
 	bool perf_enable;
 #endif
 
-#ifdef CONFIG_HW_MMC_TEST
-    int test_status;            /* save mmc_test status */
-#endif
 
 	struct mmc_ios saved_ios;
 	struct {
