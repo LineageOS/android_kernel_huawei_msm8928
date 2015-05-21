@@ -1809,11 +1809,9 @@ void device_shutdown(void)
 	 * devices offline, even as the system is shutting down.
 	 */
 	while (!list_empty(&devices_kset->list)) {
-
 		dev = list_entry(devices_kset->list.prev, struct device,
 				kobj.entry);
 		get_device(dev);
-
 		/*
 		 * Make sure the device is off the kset list, in the
 		 * event that dev->*->shutdown() doesn't remove it.
@@ -1835,7 +1833,6 @@ void device_shutdown(void)
 		put_device(dev);
 
 		spin_lock(&devices_kset->list_lock);
-
 	}
 	spin_unlock(&devices_kset->list_lock);
 	async_synchronize_full();
