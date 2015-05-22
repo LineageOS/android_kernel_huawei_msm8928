@@ -71,38 +71,6 @@ static struct msm_gpiomux_config msm_eth_configs[] = {
 	},
 };
 #endif
-#ifdef CONFIG_HUAWEI_KERNEL
-static struct gpiomux_setting nfc_wake_int_cfg = {
-	.func = GPIOMUX_FUNC_GPIO,
-	.drv = GPIOMUX_DRV_2MA,
-	.pull = GPIOMUX_PULL_DOWN,
-	.dir = GPIOMUX_OUT_LOW,
-};
-static struct gpiomux_setting nfc_interrupt_int_cfg = {
-	.func = GPIOMUX_FUNC_GPIO,	
-	.drv = GPIOMUX_DRV_2MA,
-	.pull = GPIOMUX_PULL_DOWN,
-	.dir = GPIOMUX_IN,
-};
-
-
-static struct msm_gpiomux_config msm_nfc_gpio_configs[] __initdata = {	
-	{     /*NFC_WAKE         MSM8226(GPIO_20)*/
-		.gpio      = 20,
-		.settings = {
-			[GPIOMUX_SUSPENDED] = &nfc_wake_int_cfg,
-			[GPIOMUX_ACTIVE] = &nfc_wake_int_cfg,
-		},
-	},
-	{    /*NFC_INT            MSM8226(GPIO_21)*/
-		.gpio      = 21,
-		.settings = {
-			[GPIOMUX_SUSPENDED] = &nfc_interrupt_int_cfg,
-			[GPIOMUX_ACTIVE] = &nfc_interrupt_int_cfg,
-		},
-	},	
-};
-#endif
 
 #ifdef CONFIG_HUAWEI_KERNEL
 /*config the nc gpio to input and pull down*/
@@ -1176,10 +1144,6 @@ void __init msm8226_init_gpiomux(void)
 		msm_hsic_configs[1].gpio = 120; /* DATA */
 	}
 	msm_gpiomux_install(msm_hsic_configs, ARRAY_SIZE(msm_hsic_configs));
-#endif
-
-#ifdef CONFIG_HUAWEI_KERNEL
-	msm_gpiomux_install(msm_nfc_gpio_configs, ARRAY_SIZE(msm_nfc_gpio_configs));
 #endif
 
 #ifdef CONFIG_HUAWEI_KERNEL
