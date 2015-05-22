@@ -98,7 +98,6 @@ enum {
 	MSM_PM_DEBUG_HOTPLUG = BIT(8),
 #ifdef CONFIG_HUAWEI_KERNEL
 	MSM_PM_DEBUG_GPIO = BIT(16),
-	MSM_PM_DEBUG_REGULATOR=BIT(17),
 #endif
 };
 
@@ -1027,16 +1026,6 @@ void msm_pm_cpu_enter_lowpower(unsigned int cpu)
 		msm_pm_swfi();
 }
 
-#ifdef CONFIG_HUAWEI_KERNEL
-static int msm_pm_regulator_print(void)
-{
-	if (MSM_PM_DEBUG_REGULATOR & msm_pm_debug_mask){
-		regulator_debug_print_enabled();
-    }
-    return 0;
-}
-#endif
-
 static void msm_pm_ack_retention_disable(void *data)
 {
 	/*
@@ -1178,7 +1167,6 @@ static int msm_suspend_prepare(void)
 {
 	suspend_time = msm_pm_timer_enter_suspend(&suspend_period);
 	msm_mpm_suspend_prepare();
-    msm_pm_regulator_print();
 	return 0;
 }
 
