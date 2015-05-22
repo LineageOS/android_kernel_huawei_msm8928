@@ -18,8 +18,7 @@
 #include <linux/types.h>
 
 /* Enable/disable SYSRQ support by default (0==no, 1==yes). */
-/* disable sysrq support by default */
-#define SYSRQ_DEFAULT_ENABLE	0
+#define SYSRQ_DEFAULT_ENABLE	1
 
 /* Possible values of bitmask for enabling sysrq functions */
 /* 0x0001 is reserved for enable everything */
