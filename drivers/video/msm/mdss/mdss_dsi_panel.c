@@ -27,10 +27,6 @@
 #include <linux/hw_lcd_common.h>
 #include <misc/app_info.h>
 
-#ifdef CONFIG_FB_DISPLAY_INVERSION
-#define INVERSION_OFF 0
-#define INVERSION_ON 1
-#endif
 DEFINE_LED_TRIGGER(bl_led_trigger);
 
 void mdss_dsi_panel_pwm_cfg(struct mdss_dsi_ctrl_pdata *ctrl)
@@ -370,44 +366,6 @@ static int mdss_dsi_panel_partial_update(struct mdss_panel_data *pdata)
 	return rc;
 }
 
-#ifdef CONFIG_FB_DISPLAY_INVERSION
-static int mdss_dsi_lcd_set_display_inversion(struct mdss_panel_data *pdata,
-					      unsigned int inversion_mode)
-{
-	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
-	if (pdata == NULL) {
-		pr_err("%s: Invalid input data\n", __func__);
-		return -EINVAL;
-	}
-	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
-				panel_data);
-
-	switch(inversion_mode)
-	{
-		/* in each inversion mode, we send the corresponding commands
-		   and reset inversion state */
-		case INVERSION_OFF:
-			if (ctrl_pdata->dsi_panel_inverse_off_cmds.cmd_cnt)
-				mdss_dsi_panel_cmds_send(ctrl_pdata,
-					&ctrl_pdata->dsi_panel_inverse_off_cmds);
-			ctrl_pdata->inversion_state = INVERSION_OFF;
-			break;
-		case INVERSION_ON:
-			if (ctrl_pdata->dsi_panel_inverse_on_cmds.cmd_cnt)
-				mdss_dsi_panel_cmds_send(ctrl_pdata,
-					&ctrl_pdata->dsi_panel_inverse_on_cmds);
-			ctrl_pdata->inversion_state = INVERSION_ON;
-			break;
-		default:
-			pr_err("%s: invalid inversion mode: %d\n", __func__,
-			       inversion_mode);
-			break;
-	}
-	pr_info("%s: inversion mode=%d\n", __func__, inversion_mode);
-	return 0;
-}
-#endif
-
 static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 							u32 bl_level)
 {
@@ -463,17 +421,6 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 
 	pr_debug("%s: ctrl=%p ndx=%d\n", __func__, ctrl, ctrl->ndx);
 
-/* if inversion mode has been set, we open inversion function after reset */
-#ifdef CONFIG_FB_DISPLAY_INVERSION
-	if (INVERSION_ON == ctrl->inversion_state
-			&& ctrl->dsi_panel_inverse_on_cmds.cmd_cnt) {
-		mdss_dsi_panel_cmds_send(ctrl,
-			&ctrl->dsi_panel_inverse_on_cmds);
-		pr_debug("%s: display inversion open, inversion_state=%d\n",
-			 __func__, ctrl->inversion_state);
-	}
-#endif
-
 	if (ctrl->on_cmds.cmd_cnt)
 		mdss_dsi_panel_cmds_send(ctrl, &ctrl->on_cmds);
 
@@ -506,40 +453,6 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 }
 
 #ifdef CONFIG_HUAWEI_LCD
-static int mdss_dsi_panel_inversion_ctrl(struct mdss_panel_data *pdata,
-					 u32 imode)
-{
-	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
-	int ret = 0;
-
-	if (pdata == NULL) {
-		pr_err("%s: Invalid input data\n", __func__);
-		return -EINVAL;
-	}
-	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
-				panel_data);
-	
-	switch(imode)
-	{
-		case COLUMN_INVERSION:
-			if (ctrl_pdata->column_inversion_cmds.cmd_cnt)
-				mdss_dsi_panel_cmds_send(ctrl_pdata,
-					&ctrl_pdata->column_inversion_cmds);
-			break;
-		case DOT_INVERSION:
-			if (ctrl_pdata->dot_inversion_cmds.cmd_cnt)
-				mdss_dsi_panel_cmds_send(ctrl_pdata,
-					&ctrl_pdata->dot_inversion_cmds);
-			break;
-		default:
-			ret = -EINVAL;
-			pr_err("%s: invalid inversion mode: %d\n", __func__, imode);
-			break;
-	}
-	pr_info("%s: dot inversion enable=%d\n", __func__, imode);
-	return ret;
-}
-
 static int mdss_dsi_check_panel_status(struct mdss_panel_data *pdata)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
@@ -1195,18 +1108,6 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->off_cmds,
 		"qcom,mdss-dsi-off-command", "qcom,mdss-dsi-off-command-state");
 
-#ifdef CONFIG_FB_DISPLAY_INVERSION
-	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->dsi_panel_inverse_on_cmds,
-		"qcom,panel-inverse-on-cmds", "qcom,inverse-on-cmds-dsi-state");
-	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->dsi_panel_inverse_off_cmds,
-		"qcom,panel-inverse-off-cmds", "qcom,inverse-on-cmds-dsi-state");
-#endif
-#ifdef CONFIG_HUAWEI_LCD
-	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->dot_inversion_cmds,
-		"qcom,panel-dot-inversion-mode-cmds", "qcom,dot-inversion-cmds-dsi-state");
-	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->column_inversion_cmds,
-		"qcom,panel-column-inversion-mode-cmds", "qcom,column-inversion-cmds-dsi-state");
-#endif
 #ifdef CONFIG_HUAWEI_LCD
 	data = of_get_property(np, "qcom,mdss-dsi-panel-esd-cmd", &len);
 	/*10 is the max len of the esd check cmd */
@@ -1272,9 +1173,6 @@ int mdss_dsi_panel_init(struct device_node *node,
 		return rc;
 	}
 
-#ifdef CONFIG_FB_DISPLAY_INVERSION
-	ctrl_pdata->panel_data.lcd_set_display_inversion = mdss_dsi_lcd_set_display_inversion;
-#endif
 	if (cmd_cfg_cont_splash)
 		cont_splash_enabled = of_property_read_bool(node,
 				"qcom,cont-splash-enabled");
@@ -1308,7 +1206,6 @@ int mdss_dsi_panel_init(struct device_node *node,
 	ctrl_pdata->panel_data.set_backlight = mdss_dsi_panel_bl_ctrl;
 	
 #ifdef CONFIG_HUAWEI_LCD
-	ctrl_pdata->panel_data.set_inversion_mode = mdss_dsi_panel_inversion_ctrl;
 	ctrl_pdata->panel_data.check_panel_status = mdss_dsi_check_panel_status;
 #endif
 #if defined(CONFIG_HUAWEI_KERNEL) && defined(CONFIG_DEBUG_FS)

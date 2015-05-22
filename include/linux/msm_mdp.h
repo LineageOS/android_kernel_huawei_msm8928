@@ -84,8 +84,7 @@
 #define FB_TYPE_3D_PANEL 0x10101010
 #define MDP_IMGTYPE2_START 0x10000
 #define MSMFB_DRIVER_VERSION	0xF9E8D701
-/* we do not use CONFIG_FB_DISPLAY_INVERSION ,bacause framework would compile failed */
-#define MSMFB_DISPLAY_INVERSION	_IOWR(MSMFB_IOCTL_MAGIC, 253, unsigned  int)
+
 //remove dynamic gamma
 /* in order to be called by framework, delete cabc config macro */
 #define MSMFB_AUTO_CABC           _IOWR(MSMFB_IOCTL_MAGIC, 255, struct msmfb_cabc_config)
@@ -1064,13 +1063,7 @@ struct msmfb_cabc_config {
 	uint32_t mov_det_on;
 };
 #endif
-//remove dynamic gamma
-#ifdef CONFIG_HUAWEI_LCD
-enum inversion_mode {
-	COLUMN_INVERSION,
-	DOT_INVERSION,
-};
-#endif
+
 struct mdp_mixer_info {
 	int pndx;
 	int pnum;

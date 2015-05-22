@@ -314,9 +314,6 @@ struct mdss_panel_info {
 	struct ion_handle *splash_ihdl;
 	u32 panel_power_on;
 
-#ifdef CONFIG_HUAWEI_LCD
-	u32 inversion_mode;
-#endif
 	uint32_t panel_dead;
 	struct mdss_mdp_pp_tear_check te;
 
@@ -347,11 +344,7 @@ struct mdss_panel_data {
 
 	struct mdss_panel_data *next;
 
-#ifdef CONFIG_FB_DISPLAY_INVERSION
-	int (*lcd_set_display_inversion)(struct mdss_panel_data *pdata,unsigned int inversion_mode);
-#endif
 #ifdef CONFIG_HUAWEI_LCD
-	int (*set_inversion_mode)(struct mdss_panel_data *pdata,u32 imode);
 	int (*check_panel_status)(struct mdss_panel_data *pdata);
 #endif
 };

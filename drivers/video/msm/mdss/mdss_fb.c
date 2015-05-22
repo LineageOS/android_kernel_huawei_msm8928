@@ -317,51 +317,6 @@ static ssize_t mdss_mdp_show_blank_event(struct device *dev,
 	return ret;
 }
 #ifdef CONFIG_HUAWEI_LCD
-static ssize_t mdss_show_inversion_mode(struct device *dev,
-					struct device_attribute *attr,
-					char *buf)
-{
-	struct fb_info *fbi = dev_get_drvdata(dev);
-	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)fbi->par;
-	int ret;
-	pr_debug("%s: fb%d inversion mode=%d\n", __func__, mfd->index,
-		 mfd->panel_info->inversion_mode);
-	ret = scnprintf(buf, PAGE_SIZE, "%d\n",
-			mfd->panel_info->inversion_mode);
-	return ret;
-}
-
-static ssize_t mdss_store_inversion_mode(struct device *dev,
-					 struct device_attribute *attr,
-					 const char *buf, size_t count)
-{
-	struct fb_info *fbi = dev_get_drvdata(dev);
-	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)fbi->par;
-	struct mdss_panel_data *pdata = NULL;
-	int ret;
-	char ** last = NULL;
-	u32 temp = 0;
-	
-	temp = simple_strtoul(buf, last, 0);
-	pdata = dev_get_platdata(&mfd->pdev->dev);
-
-	if (pdata && pdata->set_inversion_mode && mfd->panel_power_on) {
-		if (temp != mfd->panel_info->inversion_mode) {
-			ret = pdata->set_inversion_mode(pdata,temp);
-			if (ret)
-				return ret;
-		
-			mfd->panel_info->inversion_mode = temp;
-		}
-	} else {
-		pr_err("%s: This panel maybe sleep, or can not support set inversion mode\n",
-		       __func__);
-		return -EINVAL;
-	}
-
-	return count;
-}
-
 static ssize_t mdss_show_panel_status(struct device *dev,
 				      struct device_attribute *attr,
 				      char *buf)
@@ -389,7 +344,6 @@ static DEVICE_ATTR(msm_fb_type, S_IRUGO, mdss_fb_get_type, NULL);
 static DEVICE_ATTR(msm_fb_split, S_IRUGO, mdss_fb_get_split, NULL);
 static DEVICE_ATTR(show_blank_event, S_IRUGO, mdss_mdp_show_blank_event, NULL);
 #ifdef CONFIG_HUAWEI_LCD
-static DEVICE_ATTR(inversion_mode, S_IRUGO|S_IWUSR|S_IWGRP, mdss_show_inversion_mode, mdss_store_inversion_mode);
 static DEVICE_ATTR(panel_status, S_IRUGO, mdss_show_panel_status, NULL);
 #endif
 static struct attribute *mdss_fb_attrs[] = {
@@ -397,7 +351,6 @@ static struct attribute *mdss_fb_attrs[] = {
 	&dev_attr_msm_fb_split.attr,
 	&dev_attr_show_blank_event.attr,
 #ifdef CONFIG_HUAWEI_LCD
-	&dev_attr_inversion_mode.attr,
 	&dev_attr_panel_status.attr,
 #endif
 	NULL,
@@ -884,9 +837,6 @@ static int mdss_fb_blank_sub(int blank_mode, struct fb_info *info,
 			if (ret == 0) {
 				mfd->panel_power_on = true;
 				mfd->panel_info->panel_dead = false;
-#ifdef CONFIG_HUAWEI_LCD
-				mfd->panel_info->inversion_mode = COLUMN_INVERSION;
-#endif
 			}
 			mutex_lock(&mfd->update.lock);
 			mfd->update.type = NOTIFY_TYPE_UPDATE;
@@ -2100,38 +2050,6 @@ static int mdss_fb_set_lut(struct fb_info *info, void __user *p)
 	return 0;
 }
 
-#ifdef CONFIG_FB_DISPLAY_INVERSION
-/***************************************************************
-Function: msm_fb_set_display_inversion
-Description: ioctrl interface function of display inversion
-Parameters:
-	struct msm_fb_data_type *mfd: mfd pointer
-	unsigned int inversion mode: dispaly inversion mode
-Return:
-	0: success
-	-EINVAL: error number
-***************************************************************/
-/* add power on protect to solve phone crash when do DT-CI testing */
-static int msm_fb_set_display_inversion(struct msm_fb_data_type *mfd,
-					unsigned int inversion_mode)
-{
-	int ret = 0;
-
-	struct mdss_panel_data *pdata = NULL;
-	pdata = dev_get_platdata(&mfd->pdev->dev);
-	
-	if (pdata && pdata->lcd_set_display_inversion && mfd->panel_power_on) {
-		ret = pdata->lcd_set_display_inversion(pdata,inversion_mode);
-	} else {
-		pr_err("%s: This panel maybe sleep, or can not support display inversion function\n",
-		       __func__);
-		ret = -EINVAL;
-	}
-
-	return ret;
-}
-#endif
-
 /**
  * mdss_fb_sync_get_fence() - get fence from timeline
  * @timeline:	Timeline to create the fence on
@@ -2320,9 +2238,6 @@ static int mdss_fb_display_commit(struct fb_info *info,
 static int mdss_fb_ioctl(struct fb_info *info, unsigned int cmd,
 			 unsigned long arg)
 {
-#ifdef CONFIG_FB_DISPLAY_INVERSION
-	unsigned int lcd_display_inversion = 0;
-#endif
 	struct msm_fb_data_type *mfd;
 	void __user *argp = (void __user *)arg;
 	struct mdp_page_protection fb_page_protection;
@@ -2361,25 +2276,6 @@ static int mdss_fb_ioctl(struct fb_info *info, unsigned int cmd,
 		if (ret)
 			return ret;
 		break;
-
-#ifdef CONFIG_FB_DISPLAY_INVERSION
-	case MSMFB_DISPLAY_INVERSION:
-		ret = copy_from_user(&lcd_display_inversion, argp,
-				     sizeof(lcd_display_inversion));
-		if (ret) {
-			pr_err("%s: MSMFB_DISPLAY_INVERSION copy from user failed\n",
-			       __func__);
-			return ret;
-		}
-
-		ret = msm_fb_set_display_inversion(mfd, lcd_display_inversion);
-		if (ret) {
-			pr_err("%s: Set display inversion is failed and ERROR=%d\n",
-			       __func__, ret);
-			return ret;
-		}
-		break;
-#endif
 
 	case MSMFB_BUFFER_SYNC:
 		ret = copy_from_user(&buf_sync, argp, sizeof(buf_sync));

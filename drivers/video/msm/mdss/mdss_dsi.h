@@ -227,6 +227,7 @@ enum {
 #define DSI_EV_PLL_UNLOCKED		0x0001
 #define DSI_EV_MDP_FIFO_UNDERFLOW	0x0002
 #define DSI_EV_MDP_BUSY_RELEASE		0x80000000
+
 struct mdss_dsi_ctrl_pdata {
 	int ndx;	/* panel_num */
 	int (*on) (struct mdss_panel_data *pdata);
@@ -276,11 +277,6 @@ struct mdss_dsi_ctrl_pdata {
 	struct dsi_panel_cmds on_cmds;
 	struct dsi_panel_cmds off_cmds;
 
-#ifdef CONFIG_FB_DISPLAY_INVERSION
-	u32 inversion_state;
-	struct dsi_panel_cmds dsi_panel_inverse_on_cmds;
-	struct dsi_panel_cmds dsi_panel_inverse_off_cmds;
-#endif
 	struct dcs_cmd_list cmdlist;
 	struct completion dma_comp;
 	struct completion mdp_comp;
@@ -303,8 +299,6 @@ struct mdss_dsi_ctrl_pdata {
 	u32 panel_esd_cmd_value[10];
 	u32 panel_esd_cmd_len;
 	int bl_en_gpio;
-	struct dsi_panel_cmds dot_inversion_cmds;
-	struct dsi_panel_cmds column_inversion_cmds;
 #endif
 };
 
