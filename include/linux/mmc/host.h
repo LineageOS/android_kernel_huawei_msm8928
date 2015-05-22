@@ -19,7 +19,6 @@
 #include <linux/mmc/core.h>
 #include <linux/mmc/pm.h>
 
-
 struct mmc_ios {
 	unsigned int	clock;			/* clock rate */
 	unsigned int	old_rate;       /* saved clock rate */
@@ -407,8 +406,6 @@ struct mmc_host {
 	} perf;
 	bool perf_enable;
 #endif
-
-
 	struct mmc_ios saved_ios;
 	struct {
 		unsigned long	busy_time_us;
