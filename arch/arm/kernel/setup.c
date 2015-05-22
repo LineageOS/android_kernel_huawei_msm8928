@@ -748,28 +748,6 @@ static int __init parse_tag_cmdline(const struct tag *tag)
 
 __tagtable(ATAG_CMDLINE, parse_tag_cmdline);
 
-#ifdef CONFIG_HUAWEI_KERNEL
-#define RUNMODE_FLAG_FACTORY 1
-#define RUNMODE_FLAG_NORMAL 0
-
-static unsigned int runmode_factory = RUNMODE_FLAG_NORMAL;
-
-int __init parse_tag_runmode_flag (const struct tag* tags )
-{
-    runmode_factory = (int)tags->u.revision.rev;
-    printk("Factory : parse_tag_runmode_flag() = %d\n", runmode_factory);
-    return 0;
-}
-__tagtable(ATAG_RUNMODE_FLAG, parse_tag_runmode_flag);
-/* the function interface to check factory/normal mode in kernel */
-bool is_runmode_factory(void)
-{
-    if (RUNMODE_FLAG_FACTORY == runmode_factory)
-        return true;
-    else
-        return false;
-}
-#endif
 /*
  * Scan the tag table for this tag, and call its parse function.
  * The tag table is built by the linker from all the __tagtable
