@@ -16,7 +16,6 @@
 
 #include <linux/platform_device.h>
 #include <linux/types.h>
-#include <linux/msm_mdp.h>
 
 /* panel id type */
 struct panel_id {
@@ -343,10 +342,6 @@ struct mdss_panel_data {
 	int (*event_handler) (struct mdss_panel_data *pdata, int e, void *arg);
 
 	struct mdss_panel_data *next;
-
-#ifdef CONFIG_HUAWEI_LCD
-	int (*check_panel_status)(struct mdss_panel_data *pdata);
-#endif
 };
 
 /**

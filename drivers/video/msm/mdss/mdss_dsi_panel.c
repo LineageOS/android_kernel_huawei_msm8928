@@ -453,37 +453,6 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 }
 
 #ifdef CONFIG_HUAWEI_LCD
-static int mdss_dsi_check_panel_status(struct mdss_panel_data *pdata)
-{
-	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
-	int ret = 0;
-	int count = 5;
-	char data = 0;
-	char expect_value = 0x9C;
-	int read_length = 1;
-
-	if (pdata == NULL) {
-		pr_err("%s: Invalid input data\n", __func__);
-		return -EINVAL;
-	}
-	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
-				panel_data);
-
-	do {
-		mdss_dsi_panel_cmd_read(ctrl_pdata, 0x0A, 0x00, NULL, &data,
-			read_length);
-		pr_info("%s: 0x0A = 0x%x\n", __func__, data);
-		count--;
-	} while (expect_value != data && count > 0);
-
-	if (!count)
-		ret = -EINVAL;
-
-	return ret;
-}
-#endif
-
-#ifdef CONFIG_HUAWEI_LCD
 /* if Panel IC works well, return 1, else return -1 */
 #define REPEAT_COUNT 5
 int panel_check_live_status(struct mdss_dsi_ctrl_pdata *ctrl)
@@ -1204,10 +1173,7 @@ int mdss_dsi_panel_init(struct device_node *node,
 	ctrl_pdata->on = mdss_dsi_panel_on;
 	ctrl_pdata->off = mdss_dsi_panel_off;
 	ctrl_pdata->panel_data.set_backlight = mdss_dsi_panel_bl_ctrl;
-	
-#ifdef CONFIG_HUAWEI_LCD
-	ctrl_pdata->panel_data.check_panel_status = mdss_dsi_check_panel_status;
-#endif
+
 #if defined(CONFIG_HUAWEI_KERNEL) && defined(CONFIG_DEBUG_FS)
 	lcd_dbg_set_dsi_ctrl_pdata(ctrl_pdata);
 #endif
