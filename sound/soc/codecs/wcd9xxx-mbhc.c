@@ -143,8 +143,6 @@ MODULE_PARM_DESC(impedance_detect_en, "enable/disable impedance detect");
 
 static bool detect_use_vddio_switch;
 
-static bool is_factory_mode = false;
-
 struct wcd9xxx_mbhc_detect {
 	u16 dce;
 	u16 sta;
@@ -2252,27 +2250,6 @@ static void wcd9xxx_mbhc_decide_swch_plug(struct wcd9xxx_mbhc *mbhc)
 		wcd9xxx_turn_onoff_override(mbhc, false);
 	}
 
-	if(is_factory_mode)
-	{
-		pr_debug("huawei_audio %s: in factory mode, with plug_type %d\n",
-			__func__, plug_type);
-		if(PLUG_TYPE_HEADPHONE == plug_type)
-		{
-			plug_type = PLUG_TYPE_HEADSET;
-			pr_debug("huawei_audio %s: changed to plug_type %d\n",
-				__func__, plug_type);
-		}
-		else
-		{
-			pr_debug("huawei_audio %s: no change\n", __func__);
-		}
-	}
-	else
-	{
-		pr_debug("huawei_audio %s: NOT in factory mode, with plug_type %d\n",
-			__func__, plug_type);
-	}
-
 	if (wcd9xxx_swch_level_remove(mbhc)) {
 		pr_debug("%s: Switch level is low when determining plug\n",
 			 __func__);
@@ -2950,27 +2927,6 @@ static void wcd9xxx_correct_swch_plug(struct work_struct *work)
 		else
 			plug_type = wcd9xxx_codec_get_plug_type(mbhc, true);
 		WCD9XXX_BCL_UNLOCK(mbhc->resmgr);
-
-		if(is_factory_mode)
-		{
-			pr_debug("huawei_audio %s: in factory mode, with plug_type %d\n",
-				__func__, plug_type);
-			if(PLUG_TYPE_HEADPHONE == plug_type)
-			{
-				plug_type = PLUG_TYPE_HEADSET;
-				pr_debug("huawei_audio %s: changed to plug_type %d\n",
-					__func__, plug_type);
-			}
-			else
-			{
-				pr_debug("huawei_audio %s: no change\n", __func__);
-			}
-		}
-		else
-		{
-			pr_debug("huawei_audio %s: NOT in factory mode, with plug_type %d\n",
-				__func__, plug_type);
-		}
 
 		pr_debug("%s: attempt(%d) current_plug(%d) new_plug(%d)\n",
 			 __func__, retry, mbhc->current_plug, plug_type);
@@ -4795,9 +4751,6 @@ int wcd9xxx_mbhc_get_impedance(struct wcd9xxx_mbhc *mbhc, uint32_t *zl,
 		return -EINVAL;
 }
 
-#define CMDLINE_FAC_RUNMODE "androidboot.huawei_swtype=factory"
-extern char *saved_command_line;
-
 /*
  * wcd9xxx_mbhc_init : initialize MBHC internal structures.
  *
@@ -4815,24 +4768,6 @@ int wcd9xxx_mbhc_init(struct wcd9xxx_mbhc *mbhc, struct wcd9xxx_resmgr *resmgr,
 	void *core_res;
 
 	pr_debug("%s: enter\n", __func__);
-
-	if(NULL == saved_command_line)
-	{
-		pr_debug("huawei_audio %s: no command line\n", __func__);
-	}
-	else
-	{
-		if(strstr(saved_command_line, CMDLINE_FAC_RUNMODE) != NULL)
-		{
-			is_factory_mode = true;
-			pr_debug("huawei_audio %s: in factory mode\n", __func__);
-		}
-		else
-		{
-			is_factory_mode = false;
-			pr_debug("huawei_audio %s: NOT in factory mode\n", __func__);
-		}
-	}
 
 	memset(&mbhc->mbhc_bias_regs, 0, sizeof(struct mbhc_micbias_regs));
 	memset(&mbhc->mbhc_data, 0, sizeof(struct mbhc_internal_cal_data));
