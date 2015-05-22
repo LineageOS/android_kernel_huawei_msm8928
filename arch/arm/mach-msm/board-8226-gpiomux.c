@@ -134,6 +134,7 @@ static struct gpiomux_setting synaptics_reset_sus_cfg = {
 	.pull = GPIOMUX_PULL_DOWN,
 };
 #endif
+
 static struct gpiomux_setting gpio_keys_active = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
@@ -199,6 +200,7 @@ static struct gpiomux_setting gpio_i2c_config = {
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
+
 #ifndef CONFIG_HUAWEI_KERNEL
 static struct gpiomux_setting gpio_uart_active_cfg = {
 	.func = GPIOMUX_FUNC_2,
@@ -212,6 +214,7 @@ static struct gpiomux_setting gpio_uart_suspend_cfg = {
 	.pull = GPIOMUX_PULL_DOWN,
 };
 #endif
+
 static struct msm_gpiomux_config msm_keypad_configs[] __initdata = {
 	{
 		.gpio = 106,
@@ -394,6 +397,7 @@ static struct msm_gpiomux_config msm_synaptics_configs[] __initdata = {
 		},
 	},
 };
+
 #ifndef CONFIG_HUAWEI_KERNEL
 static struct msm_gpiomux_config msm_blsp1_uart6_configs[] __initdata = {
 	{
@@ -426,6 +430,7 @@ static struct msm_gpiomux_config msm_blsp1_uart6_configs[] __initdata = {
 	},
 };
 #endif
+
 static struct gpiomux_setting gpio_nc_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
@@ -767,8 +772,8 @@ static struct gpiomux_setting cam_settings[] = {
 		.dir =  GPIOMUX_OUT_LOW,
 	},
 #endif
-
 };
+
 
 /* corret the code mess caused by baseline update(commit 2ff4228c) */
 static struct msm_gpiomux_config msm_sensor_configs[] __initdata = {
@@ -826,7 +831,7 @@ static struct msm_gpiomux_config msm_sensor_configs[] __initdata = {
 			[GPIOMUX_ACTIVE]    = &cam_settings[3],
 			[GPIOMUX_SUSPENDED] = &cam_settings[4],
 		},
-	},	
+	},
 	{
 		.gpio = 36, /* CAM1_STANDBY_N */
 		.settings = {
@@ -836,7 +841,6 @@ static struct msm_gpiomux_config msm_sensor_configs[] __initdata = {
 	},
 #ifdef CONFIG_HUAWEI_KERNEL
 	{
-
 		.gpio = 37, /* CAM1_RST_N */
 		.settings = {
 			[GPIOMUX_ACTIVE]    = &cam_settings[3],
@@ -852,6 +856,7 @@ static struct msm_gpiomux_config msm_sensor_configs[] __initdata = {
 		},
 	},
 #endif
+
 };
 
 static struct msm_gpiomux_config msm_sensor_configs_skuf_plus[] __initdata = {
@@ -870,6 +875,7 @@ static struct msm_gpiomux_config msm_sensor_configs_skuf_plus[] __initdata = {
 		},
 	},
 };
+
 
 static struct gpiomux_setting auxpcm_act_cfg = {
 	.func = GPIOMUX_FUNC_1,
@@ -913,6 +919,7 @@ static struct msm_gpiomux_config msm_auxpcm_configs[] __initdata = {
 		},
 	},
 };
+
 #ifndef CONFIG_HUAWEI_KERNEL
 static struct gpiomux_setting usb_otg_sw_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
@@ -929,6 +936,7 @@ static struct msm_gpiomux_config usb_otg_sw_configs[] __initdata = {
 	},
 };
 #endif
+
 #ifdef CONFIG_MMC_MSM_SDC3_SUPPORT
 static struct gpiomux_setting sdc3_clk_actv_cfg = {
 	.func = GPIOMUX_FUNC_2,
@@ -1030,7 +1038,7 @@ static int msm_cfg_nc_gpio(void)
 		pr_err("%s: Failed to find qcom,sleep_gpio node\n", __func__);
 		return -ENODEV;
 	}
-	
+
 	rc = of_property_read_u32(of_gpio_node, "ngpio", &ngpio);
 	if (rc) {
 		pr_err("%s: Failed to find ngpio property in msm-gpio ngpio node %d\n"
@@ -1044,7 +1052,7 @@ static int msm_cfg_nc_gpio(void)
 		return -ENOMEM;
 	}
 	memset(record,0,sizeof(int) * ngpio);
-	of_property_read_u32_array(of_gpio_node,"gpio",record,ngpio); 
+	of_property_read_u32_array(of_gpio_node,"gpio",record,ngpio);
 
 	msm_nc_gpio_configs = kmalloc(sizeof(struct msm_gpiomux_config) * ngpio , GFP_KERNEL);
 	if (!msm_nc_gpio_configs)
@@ -1122,15 +1130,16 @@ void __init msm8226_init_gpiomux(void)
 
 	msm_gpiomux_install(msm_auxpcm_configs,
 			ARRAY_SIZE(msm_auxpcm_configs));
+
 #ifndef CONFIG_HUAWEI_KERNEL
 	msm_gpiomux_install(msm_blsp1_uart6_configs,
 			ARRAY_SIZE(msm_blsp1_uart6_configs));
-#endif
-#ifndef CONFIG_HUAWEI_KERNEL
+
 	if (of_board_is_cdp() || of_board_is_mtp() || of_board_is_xpm())
 		msm_gpiomux_install(usb_otg_sw_configs,
 					ARRAY_SIZE(usb_otg_sw_configs));
 #endif
+
 	msm_gpiomux_sdc3_install();
 
 	/*
@@ -1147,7 +1156,7 @@ void __init msm8226_init_gpiomux(void)
 #endif
 
 #ifdef CONFIG_HUAWEI_KERNEL
-    /*use dynamic configuration gpio function instead of old one */
+	/*use dynamic configuration gpio function instead of old one */
 	msm_cfg_nc_gpio();
 #endif
 }
