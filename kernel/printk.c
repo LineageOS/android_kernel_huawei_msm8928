@@ -1354,9 +1354,7 @@ void console_unlock(void)
 {
 	unsigned long flags;
 	unsigned _con_start, _log_end;
-	/* merge kernel commit 7ff9554 */
-	unsigned wake_klogd = 0;
-	bool retry = 0;
+	unsigned wake_klogd = 0, retry = 0;
 
 	if (console_suspended) {
 		up(&console_sem);
@@ -1397,8 +1395,8 @@ again:
 	 * flush, no worries.
 	 */
 	raw_spin_lock(&logbuf_lock);
-	/* merge kernel commit 7ff9554 */
-	retry = con_start != log_end;
+	if (con_start != log_end)
+		retry = 1;
 	raw_spin_unlock_irqrestore(&logbuf_lock, flags);
 
 	if (retry && console_trylock())
