@@ -49,4 +49,3 @@ obj-$(CONFIG_FB_MSM_MDSS_DSI_CTRL_STATUS) += mdss_dsi_status.o
 endif
 
 obj-$(CONFIG_HUAWEI_LCD) += hw_lcd_common.o
-obj-$(CONFIG_HUAWEI_LCD_BIAS_TEST) += hw_lcd_bias_test.o

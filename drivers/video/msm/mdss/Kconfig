@@ -42,10 +42,3 @@ config HUAWEI_LCD
 	default n
 	---help---
 	  use huawei feature
-
-config HUAWEI_LCD_BIAS_TEST
-	depends on HUAWEI_LCD
-	bool "LCD BIAS test"
-	default n
-	---help---
-	Choose y to enable the huawei lcd bias voltage test feature
