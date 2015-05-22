@@ -2205,22 +2205,6 @@ static void cv_voltage_check(struct qpnp_bms_chip *chip, int vbat_uv)
 }
 
 #ifdef CONFIG_HUAWEI_KERNEL
-/* parse cmdline to judge  factory mode or not */
-static bool factory_flag = false;
-static int __init early_parse_factory_flag(char * p)
-{
-	if(p)
-	{
-		if(!strcmp(p,"factory"))
-		{
-			factory_flag = true;
-		}
-	}
-	return 0;
-}
-early_param("androidboot.huawei_swtype",early_parse_factory_flag);
-
-
 #define HW_PROTECT_VOLTAGE_UV 3250000
 #define HW_MAX_BAD_VOLTAGE_COUNT 10
 #define AVERAGE_VBAT_UV_SAMPLE_COUNT	5
@@ -2577,12 +2561,6 @@ out:
 	else if( bad_voltage_count != 0)
 	{
 		bad_voltage_count = 0 ;
-	}
-	
-	if(true == factory_flag&&  0 == soc)
-	{
-		pr_info("do not report zero in factory mode \n");
-		soc = 1;
 	}
 #endif
 	pr_debug("ibat_ua = %d, vbat_uv = %d, ocv_est_uv = %d, pc_est = %d, soc_est = %d, n = %d, delta_ocv_uv = %d, last_ocv_uv = %d, pc_new = %d, soc_new = %d, rbatt = %d, slope = %d\n",
