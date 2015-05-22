@@ -85,9 +85,6 @@
 #define MDP_IMGTYPE2_START 0x10000
 #define MSMFB_DRIVER_VERSION	0xF9E8D701
 
-//remove dynamic gamma
-/* in order to be called by framework, delete cabc config macro */
-#define MSMFB_AUTO_CABC           _IOWR(MSMFB_IOCTL_MAGIC, 255, struct msmfb_cabc_config)
 enum {
 	NOTIFY_UPDATE_START,
 	NOTIFY_UPDATE_STOP,
@@ -1049,20 +1046,7 @@ struct mdp_overlay_list {
 struct mdp_page_protection {
 	uint32_t page_protection;
 };
-#ifdef CONFIG_FB_AUTO_CABC
-enum cabc_mode {
-	CABC_MODE_OFF,
-	CABC_MODE_UI,
-	CABC_MODE_STILL,
-	CABC_MODE_MOVING,
-};
 
-struct msmfb_cabc_config {
-	uint32_t mode;
-	uint32_t dimming_on;
-	uint32_t mov_det_on;
-};
-#endif
 
 struct mdp_mixer_info {
 	int pndx;
