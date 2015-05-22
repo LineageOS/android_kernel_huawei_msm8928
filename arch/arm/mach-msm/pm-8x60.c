@@ -61,10 +61,6 @@
 #include "pm-boot.h"
 #include <mach/event_timer.h>
 #include <linux/cpu_pm.h>
-#ifdef CONFIG_HUAWEI_KERNEL
-#include <mach/gpiomux.h>
-#include <linux/regulator/consumer.h>
-#endif
 
 #define SCM_L2_RETENTION	(0x2)
 #define SCM_CMD_TERMINATE_PC	(0x2)
@@ -96,9 +92,6 @@ enum {
 	MSM_PM_DEBUG_IDLE = BIT(6),
 	MSM_PM_DEBUG_IDLE_LIMITS = BIT(7),
 	MSM_PM_DEBUG_HOTPLUG = BIT(8),
-#ifdef CONFIG_HUAWEI_KERNEL
-	MSM_PM_DEBUG_GPIO = BIT(16),
-#endif
 };
 
 enum {
@@ -1103,11 +1096,6 @@ static int msm_pm_enter(suspend_state_t state)
 
 		clock_debug_print_enabled();
 
-#ifdef CONFIG_HUAWEI_KERNEL
-		if (MSM_PM_DEBUG_GPIO & msm_pm_debug_mask){
-			msm_gpio_print_enabled();
-        }
-#endif
 		if (msm_pm_sleep_time_override > 0) {
 			int64_t ns = NSEC_PER_SEC *
 				(int64_t) msm_pm_sleep_time_override;
