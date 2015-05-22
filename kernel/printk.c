@@ -154,7 +154,7 @@ static int log_buf_len = __LOG_BUF_LEN;
 static unsigned logged_chars; /* Number of chars produced since last read+clear operation */
 static int saved_console_loglevel = -1;
 
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_APANIC
 void* huawei_get_log_buf_addr(void)
 {
 	return log_buf;
