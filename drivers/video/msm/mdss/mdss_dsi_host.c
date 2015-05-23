@@ -492,7 +492,7 @@ void mdss_dsi_controller_cfg(int enable,
 	 *when command engine is blocked.*/
 			     sleep_us, timeout_us)) {
 		pr_info("%s: DSI status=%x failed\n", __func__, status);
-		pr_info("%s: Doing sw reset\n", __func__);	
+		pr_info("%s: Doing sw reset\n", __func__);
 		mdss_dsi_sw_reset(pdata);
 	}
 	/* Check for x_HS_FIFO_EMPTY */
@@ -866,12 +866,13 @@ int mdss_dsi_cmds_rx(struct mdss_dsi_ctrl_pdata *ctrl,
 		data = dsi_ctrl | 0x04; /* CMD_MODE_EN */
 		MIPI_OUTP((ctrl->ctrl_base) + 0x0004, data);
 	}
+
 /*fix qcom bug*/
 #ifdef CONFIG_HUAWEI_KERNEL
 	if (rlen <= 2) {
-#else		
+#else
 	if (rlen == 0) {
-#endif	
+#endif
 		short_response = 1;
 		rx_byte = 4;
 	} else {

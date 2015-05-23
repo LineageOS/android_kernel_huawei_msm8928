@@ -38,7 +38,6 @@ struct dsi_status_data {
 	struct msm_fb_data_type *mfd;
 	uint32_t check_interval;
 };
-
 struct dsi_status_data *pstatus_data;
 static uint32_t interval = STATUS_CHECK_INTERVAL;
 
@@ -109,6 +108,7 @@ static void check_dsi_ctrl_status(struct work_struct *work)
 	mdp5_data = mfd_to_mdp5_data(pdsi_status->mfd);
 	ctl = mfd_to_ctl(pdsi_status->mfd);
 #endif
+
 	if (ctl->shared_lock)
 		mutex_lock(ctl->shared_lock);
 
@@ -179,7 +179,7 @@ void mdss_dsi_status_check_ctl(struct msm_fb_data_type *mfd, int sheduled)
 	if (!mfd) {
 		pr_err("%s: mfd not available\n", __func__);
 		return ;
-	}	
+	}
 	if (!pstatus_data) {
 		pr_err("%s: pstatus_data not available\n", __func__);
 		return ;
@@ -189,7 +189,7 @@ void mdss_dsi_status_check_ctl(struct msm_fb_data_type *mfd, int sheduled)
 	if (sheduled) {
 		schedule_delayed_work(&pstatus_data->check_status,
 			msecs_to_jiffies(pstatus_data->check_interval));
-	} else {	
+	} else {
 		cancel_delayed_work_sync(&pstatus_data->check_status);
 	}
 }

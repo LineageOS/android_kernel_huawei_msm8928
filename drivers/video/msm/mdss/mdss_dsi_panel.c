@@ -185,7 +185,7 @@ static void mdss_dsi_panel_bklt_dcs(struct mdss_dsi_ctrl_pdata *ctrl, int level)
 static void mdss_dsi_panel_bias_en(struct mdss_panel_data *pdata, int enable)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
-	
+
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
 		return;
@@ -193,21 +193,21 @@ static void mdss_dsi_panel_bias_en(struct mdss_panel_data *pdata, int enable)
 
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				  panel_data);
-	
+
 	if (!gpio_is_valid(ctrl_pdata->disp_en_gpio))
 		pr_debug("%s: disp_en_gpio not configured\n", __func__);
 
 	if (!gpio_is_valid(ctrl_pdata->disp_en_gpio_vsn))
 		pr_debug("%s: disp_en_gpio_vsn not configured\n", __func__);
-	
+
 	if (!gpio_is_valid(ctrl_pdata->bl_en_gpio))
 		pr_debug("%s: bl_en_gpio not configured\n", __func__);
-	
+
 	if (!gpio_is_valid(ctrl_pdata->rst_gpio)) {
 		pr_debug("%s: rst_gpio not configured\n", __func__);
 		return;
 	}
-	
+
 	if (enable) {
 		if (gpio_is_valid(ctrl_pdata->rst_gpio))
 			gpio_set_value((ctrl_pdata->rst_gpio), 1);
@@ -1062,7 +1062,7 @@ static int mdss_panel_parse_dt(struct device_node *np,
 				ctrl_pdata->panel_esd_cmd_value[i] = data[i];
 			pr_info("%s: Panel esd check enabled", __func__);
 		}
-	}	
+	}
 #endif
 	return 0;
 

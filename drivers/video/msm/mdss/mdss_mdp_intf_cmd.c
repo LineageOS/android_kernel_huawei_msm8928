@@ -244,7 +244,7 @@ static void mdss_mdp_cmd_readptr_done(void *arg)
 		complete(&ctx->stop_comp);
 /* delete clk off opreation to avoid esd check freeze */
 #ifndef CONFIG_HUAWEI_LCD
-	schedule_work(&ctx->clk_work);
+		schedule_work(&ctx->clk_work);
 #endif
 	}
 
@@ -361,7 +361,7 @@ static int mdss_mdp_cmd_add_vsync_handler(struct mdss_mdp_ctl *ctl,
 	if (!handle->enabled) {
 		handle->enabled = true;
 		list_add(&handle->list, &ctx->vsync_handlers);
-		
+
 		enable_rdptr = !handle->cmd_post_flush;
 		if (enable_rdptr)
 			ctx->vsync_enabled++;
@@ -380,6 +380,7 @@ static int mdss_mdp_cmd_remove_vsync_handler(struct mdss_mdp_ctl *ctl,
 
 	struct mdss_mdp_cmd_ctx *ctx;
 	unsigned long flags;
+
 	/*add qcom patch to solve the cmd esd issue
 	 *refactor command mode vsync control logic
 	 *Current logic is prone to corner case when mdss_mdp_remove_vsync_handler
