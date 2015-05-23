@@ -24,7 +24,6 @@
 
 #include "mdss_dsi.h"
 
-#include <linux/hw_lcd_common.h>
 #include <misc/app_info.h>
 
 DEFINE_LED_TRIGGER(bl_led_trigger);
@@ -213,16 +212,16 @@ static void mdss_dsi_panel_bias_en(struct mdss_panel_data *pdata, int enable)
 		if (gpio_is_valid(ctrl_pdata->rst_gpio))
 			gpio_set_value((ctrl_pdata->rst_gpio), 1);
 
-		LCD_MDELAY(1);
+		mdelay(1);
 
 		if (gpio_is_valid(ctrl_pdata->disp_en_gpio))
 			gpio_set_value((ctrl_pdata->disp_en_gpio), 1);
 
-		LCD_MDELAY(5);
+		mdelay(5);
 		if (gpio_is_valid(ctrl_pdata->disp_en_gpio_vsn))
 			gpio_set_value((ctrl_pdata->disp_en_gpio_vsn), 1);
 
-		LCD_MDELAY(5);
+		mdelay(5);
 
 		if (gpio_is_valid(ctrl_pdata->bl_en_gpio))
 			gpio_set_value((ctrl_pdata->bl_en_gpio), 1);
@@ -234,7 +233,7 @@ static void mdss_dsi_panel_bias_en(struct mdss_panel_data *pdata, int enable)
 		if (gpio_is_valid(ctrl_pdata->disp_en_gpio_vsn))
 			gpio_set_value((ctrl_pdata->disp_en_gpio_vsn), 0);
 
-		LCD_MDELAY(5);
+		mdelay(5);
 
 		if (gpio_is_valid(ctrl_pdata->disp_en_gpio))
 			gpio_set_value((ctrl_pdata->disp_en_gpio), 0);
@@ -277,7 +276,7 @@ void mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 #else
 		/* reset lcd when power on */
 		mdss_dsi_panel_bias_en(pdata, 1);
-		LCD_MDELAY(20);
+		msleep(20);
 #endif
 
 		for (i = 0; i < pdata->panel_info.rst_seq_len; ++i) {
@@ -305,7 +304,7 @@ void mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 		if (gpio_is_valid(ctrl_pdata->disp_en_gpio))
 			gpio_set_value((ctrl_pdata->disp_en_gpio), 0);
 #else
-		LCD_MDELAY(10);
+		mdelay(10);
 		mdss_dsi_panel_bias_en(pdata, 0);
 #endif
 	}
@@ -1173,10 +1172,6 @@ int mdss_dsi_panel_init(struct device_node *node,
 	ctrl_pdata->on = mdss_dsi_panel_on;
 	ctrl_pdata->off = mdss_dsi_panel_off;
 	ctrl_pdata->panel_data.set_backlight = mdss_dsi_panel_bl_ctrl;
-
-#if defined(CONFIG_HUAWEI_KERNEL) && defined(CONFIG_DEBUG_FS)
-	lcd_dbg_set_dsi_ctrl_pdata(ctrl_pdata);
-#endif
 
 	return 0;
 }
