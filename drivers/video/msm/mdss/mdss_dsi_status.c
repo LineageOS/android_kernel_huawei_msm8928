@@ -32,14 +32,12 @@
 
 #define STATUS_CHECK_INTERVAL 5000
 
-#ifndef CONFIG_HUAWEI_LCD
 struct dsi_status_data {
 	struct notifier_block fb_notifier;
 	struct delayed_work check_status;
 	struct msm_fb_data_type *mfd;
 	uint32_t check_interval;
 };
-#endif
 
 struct dsi_status_data *pstatus_data;
 static uint32_t interval = STATUS_CHECK_INTERVAL;

@@ -425,19 +425,14 @@ int mdss_mdp_cmd_reconfigure_splash_done(struct mdss_mdp_ctl *ctl, bool handoff)
 
 	return ret;
 }
-#ifdef CONFIG_HUAWEI_LCD
-extern struct dsi_status_data *pstatus_data;
-#endif
+
 static int mdss_mdp_cmd_wait4pingpong(struct mdss_mdp_ctl *ctl, void *arg)
 {
 	struct mdss_mdp_cmd_ctx *ctx;
 	unsigned long flags;
 	int need_wait = 0;
 	int rc = 0;
-#ifdef CONFIG_HUAWEI_LCD
-	char *envp[2] = {"PANEL_ALIVE=0", NULL};
-	struct mdss_panel_data *pdata = NULL;
-#endif
+
 	ctx = (struct mdss_mdp_cmd_ctx *) ctl->priv_data;
 	if (!ctx) {
 		pr_err("invalid ctx\n");
@@ -461,20 +456,6 @@ static int mdss_mdp_cmd_wait4pingpong(struct mdss_mdp_ctl *ctl, void *arg)
 						rc, ctl->num);
 			rc = -EPERM;
 			mdss_mdp_ctl_notify(ctl, MDP_NOTIFY_FRAME_TIMEOUT);
-#ifdef CONFIG_HUAWEI_LCD
-			if (pstatus_data && pstatus_data->mfd)
-				pdata = dev_get_platdata(&pstatus_data->mfd->pdev->dev);
-
-			/* send panel alive=0 uevent when a timeout occurs */
-			if (pdata) {
-				pdata->panel_info.panel_dead = true;
-				kobject_uevent_env(
-					&pstatus_data->mfd->fbi->dev->kobj,
-					KOBJ_CHANGE, envp);
-				pr_err("%s: Panel has gone bad, sending uevent - %s\n",
-				       __func__, envp[0]);
-			}
-#endif
 		} else {
 			rc = 0;
 		}
