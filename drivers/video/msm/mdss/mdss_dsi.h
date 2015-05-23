@@ -20,7 +20,6 @@
 #include "mdss_panel.h"
 #include "mdss_io_util.h"
 #include "mdss_dsi_cmd.h"
-#include <linux/msm_mdp.h>
 
 #define MMSS_SERDES_BASE_PHY 0x04f01000 /* mmss (De)Serializer CFG */
 
@@ -355,8 +354,4 @@ int mdss_dsi_bta_status_check(struct mdss_dsi_ctrl_pdata *ctrl);
 int mdss_dsi_panel_init(struct device_node *node,
 		struct mdss_dsi_ctrl_pdata *ctrl_pdata,
 		bool cmd_cfg_cont_splash);
-
-#ifdef CONFIG_HUAWEI_LCD
-int panel_check_live_status(struct mdss_dsi_ctrl_pdata *ctrl);
-#endif
 #endif /* MDSS_DSI_H */

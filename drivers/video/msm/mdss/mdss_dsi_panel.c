@@ -451,42 +451,6 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 	return 0;
 }
 
-#ifdef CONFIG_HUAWEI_LCD
-/* if Panel IC works well, return 1, else return -1 */
-#define REPEAT_COUNT 5
-int panel_check_live_status(struct mdss_dsi_ctrl_pdata *ctrl)
-{
-	int count = 0;
-	int j = 0;
-	int ret = 1; /* success 1, otherwise 0 or -1 */
-	char data = 0;
-
-	for (j = 0;j < ctrl->panel_esd_cmd_len;j++) {
-		count = 0;
-		do {
-			mdss_dsi_panel_cmd_read(ctrl, ctrl->panel_esd_cmd[j],
-				0x00, NULL, &data, 1);
-			count++;
-
-			/* when we read the 0x0d register, 0x20 means enter
-			   color inversion mode, not esd issue*/
-			if (ctrl->panel_esd_cmd[j] == 0x0d && data == 0x20)
-				break;
-		} while(count < REPEAT_COUNT && data != ctrl->panel_esd_cmd_value[j]);
-		
-		if (count == REPEAT_COUNT) {			
-			pr_info("%s: panel ic error, reg 0x%02X should be 0x%02x, but read data is 0x%02x\n",
-			        __func__, ctrl->panel_esd_cmd[j],
-			        ctrl->panel_esd_cmd_value[j], data);
-			ret = -1;
-			break;
-		}
-	}
-
-	return ret;
-}
-#endif
-
 static void mdss_dsi_parse_lane_swap(struct device_node *np, char *dlane_swap)
 {
 	const char *data;
