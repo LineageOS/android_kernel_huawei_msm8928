@@ -26,7 +26,6 @@
 #include "mdss.h"
 #include "mdss_dsi.h"
 #include "mdss_panel.h"
-#include "mdss_mdp.h"
 
 #define VSYNC_PERIOD 17
 
@@ -484,6 +483,7 @@ void mdss_dsi_controller_cfg(int enable,
 			   ((status & 0x02) == 0),
 			       sleep_us, timeout_us))
 		pr_info("%s: DSI status=%x failed\n", __func__, status);
+
 	/* Check for x_HS_FIFO_EMPTY */
 	if (readl_poll_timeout(((ctrl_pdata->ctrl_base) + 0x000c),
 			   status,

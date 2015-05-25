@@ -53,11 +53,6 @@
 
 #include "mdss_fb.h"
 
-#ifdef CONFIG_HUAWEI_KERNEL
-#include "mdss_mdp.h"
-#include "mdss_dsi.h"
-#endif
-
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
 #define MDSS_FB_NUM 3
 #else
@@ -707,8 +702,6 @@ void mdss_fb_set_backlight(struct msm_fb_data_type *mfd, u32 bkl_lvl)
 	int (*update_ad_input)(struct msm_fb_data_type *mfd);
 	u32 temp = bkl_lvl;
 
-	pr_debug("%s: bl_updated = %d, bkl_lvl = %d\n", __func__,
-		 mfd->bl_updated, bkl_lvl);
 	if (((!mfd->panel_power_on && mfd->dcm_state != DCM_ENTER)
 		|| !mfd->bl_updated) && !IS_CALIB_MODE_BL(mfd)) {
 		mfd->unset_bl_level = bkl_lvl;

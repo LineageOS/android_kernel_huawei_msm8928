@@ -21,10 +21,11 @@
 #include <linux/leds.h>
 #include <linux/pwm.h>
 #include <linux/err.h>
+#include <misc/app_info.h>
 
 #include "mdss_dsi.h"
 
-#include <misc/app_info.h>
+#define DT_CMD_HDR 6
 
 DEFINE_LED_TRIGGER(bl_led_trigger);
 
@@ -1054,9 +1055,6 @@ int mdss_dsi_panel_init(struct device_node *node,
 	static const char *panel_name;
 	bool cont_splash_enabled;
 	bool partial_update_enabled;
-#ifdef CONFIG_HUAWEI_LCD
-	static const char *info_node = "lcd type";
-#endif
 
 	if (!node) {
 		pr_err("%s: no panel node\n", __func__);
@@ -1072,7 +1070,7 @@ int mdss_dsi_panel_init(struct device_node *node,
 		pr_info("%s: Panel Name = %s\n", __func__, panel_name);
 
 #ifdef CONFIG_HUAWEI_LCD
-	rc = app_info_set(info_node, panel_name);
+	rc = app_info_set("lcd type", panel_name);
 #endif
 
 	rc = mdss_panel_parse_dt(node, ctrl_pdata);

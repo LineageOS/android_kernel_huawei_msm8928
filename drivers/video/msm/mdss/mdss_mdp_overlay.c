@@ -34,9 +34,6 @@
 #include "mdss_fb.h"
 #include "mdss_mdp.h"
 #include "mdss_mdp_rotator.h"
-#ifdef CONFIG_HUAWEI_KERNEL
-#include "mdss_dsi.h"
-#endif
 
 #include "splash.h"
 
