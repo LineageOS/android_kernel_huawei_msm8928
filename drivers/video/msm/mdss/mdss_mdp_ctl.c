@@ -1909,19 +1909,9 @@ int mdss_mdp_display_commit(struct mdss_mdp_ctl *ctl, void *arg)
 
 	mdss_mdp_ctl_notify(ctl, MDP_NOTIFY_FRAME_READY);
 
-/* dont continue if pingpong timeout */
-#ifndef CONFIG_HUAWEI_LCD
 	if (ctl->wait_pingpong)
 		ctl->wait_pingpong(ctl, NULL);
-#else
-	if (ctl->wait_pingpong) {
-		ret = ctl->wait_pingpong(ctl, NULL);
-		if (ret) {
-			pr_err("%s: error wait_pingpong\n", __func__);
-			goto done;
-		}
-	}
-#endif
+
 	/* postprocessing setup, including dspp */
 	mdss_mdp_pp_setup_locked(ctl);
 	mdss_mdp_ctl_write(ctl, MDSS_MDP_REG_CTL_FLUSH, ctl->flush_bits);

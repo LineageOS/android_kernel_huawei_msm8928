@@ -106,9 +106,6 @@ void mdss_dsi_ctrl_init(struct mdss_dsi_ctrl_pdata *ctrl)
 	spin_lock_init(&ctrl->mdp_lock);
 	mutex_init(&ctrl->mutex);
 	mutex_init(&ctrl->cmd_mutex);
-#ifdef CONFIG_HUAWEI_KERNEL
-	mutex_init(&ctrl->put_mutex);
-#endif
 	mdss_dsi_buf_alloc(&ctrl->tx_buf, SZ_4K);
 	mdss_dsi_buf_alloc(&ctrl->rx_buf, SZ_4K);
 	ctrl->cmdlist_commit = mdss_dsi_cmdlist_commit;
@@ -485,16 +482,8 @@ void mdss_dsi_controller_cfg(int enable,
 	if (readl_poll_timeout(((ctrl_pdata->ctrl_base) + 0x0008),
 			   status,
 			   ((status & 0x02) == 0),
-	/* add qcom patch to solve cmd lcd esd issue
-	 *Currently, Command engine will be blocked when sending
-	 *display off command in ESD test. Root cause is
-	 *panel BTA will affect DSI status. Reset dsi driver
-	 *when command engine is blocked.*/
-			     sleep_us, timeout_us)) {
+			       sleep_us, timeout_us))
 		pr_info("%s: DSI status=%x failed\n", __func__, status);
-		pr_info("%s: Doing sw reset\n", __func__);
-		mdss_dsi_sw_reset(pdata);
-	}
 	/* Check for x_HS_FIFO_EMPTY */
 	if (readl_poll_timeout(((ctrl_pdata->ctrl_base) + 0x000c),
 			   status,
@@ -623,9 +612,6 @@ int mdss_dsi_bta_status_check(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 
 	pr_debug("%s: Checking BTA status\n", __func__);
 
-#ifdef CONFIG_HUAWEI_KERNEL
-	mutex_lock(&ctrl_pdata->cmd_mutex);
-#endif
 	mdss_dsi_clk_ctrl(ctrl_pdata, 1);
 	spin_lock_irqsave(&ctrl_pdata->mdp_lock, flag);
 	INIT_COMPLETION(ctrl_pdata->bta_comp);
@@ -642,9 +628,6 @@ int mdss_dsi_bta_status_check(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 	}
 
 	mdss_dsi_clk_ctrl(ctrl_pdata, 0);
-#ifdef CONFIG_HUAWEI_KERNEL
-	mutex_unlock(&ctrl_pdata->cmd_mutex);
-#endif
 	pr_debug("%s: BTA done with ret: %d\n", __func__, ret);
 
 	return ret;

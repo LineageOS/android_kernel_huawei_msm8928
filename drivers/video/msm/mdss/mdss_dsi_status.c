@@ -79,46 +79,12 @@ static void check_dsi_ctrl_status(struct work_struct *work)
 		return;
 	}
 
-#ifdef CONFIG_HUAWEI_LCD
-	mdp5_data = mfd_to_mdp5_data(pdsi_status->mfd);
-	if (!mdp5_data) {
-		pr_err("%s: mdp5_data not available\n", __func__);
-		return;
-	}
-	ctl = mfd_to_ctl(pdsi_status->mfd);
-	if (!ctl) {
-		pr_err("%s: mdss_mdp_ctl not available\n", __func__);
-		return;
-	}
-	if (pdsi_status->mfd->shutdown_pending) {
-		pr_err("%s: DSI turning off, avoiding BTA status check\n",__func__);
-		return;
-	}
-	if (!pdsi_status->mfd->panel_power_on) {
-		pr_err("%s:mipi dsi and panel have suspended!\n", __func__);
-		return;
-	}
-	/* if esd check is not enabled for panel in dtsi, we do not check bta */
-	if (!ctrl_pdata->esd_check_enable) {
-		pr_info("%s: ctrl_pdata->esd_check_enable=%d, not checking mipi bta!\n",
-			__func__, (int)ctrl_pdata->esd_check_enable);
-		return;
-	}
-#else
 	mdp5_data = mfd_to_mdp5_data(pdsi_status->mfd);
 	ctl = mfd_to_ctl(pdsi_status->mfd);
-#endif
 
 	if (ctl->shared_lock)
 		mutex_lock(ctl->shared_lock);
-
-/* the command lcd needs the ov_lock to lock "ctl->wait_pingpong()" */
-#ifdef CONFIG_HUAWEI_LCD
-	if (pdata->panel_info.type == MIPI_CMD_PANEL)
-		mutex_lock(&mdp5_data->ov_lock);
-#else
 	mutex_lock(&mdp5_data->ov_lock);
-#endif
 
 	/*
 	 * For the command mode panels, we return pan display
@@ -135,23 +101,14 @@ static void check_dsi_ctrl_status(struct work_struct *work)
 
 	pr_debug("%s: DSI ctrl wait for ping pong done\n", __func__);
 
-/* ov_lock and share_lock just lock wait_pingpong, not check_status */
-#ifdef CONFIG_HUAWEI_LCD
-	if (pdata->panel_info.type == MIPI_CMD_PANEL)
-		mutex_unlock(&mdp5_data->ov_lock);
-	if (ctl->shared_lock)
-		mutex_unlock(ctl->shared_lock);
-#endif
-
-#ifndef CONFIG_HUAWEI_LCD
 	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
-#endif
 	ret = ctrl_pdata->check_status(ctrl_pdata);
-#ifndef CONFIG_HUAWEI_LCD
 	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
 
 	mutex_unlock(&mdp5_data->ov_lock);
-#endif
+
+	if (ctl->shared_lock)
+		mutex_unlock(ctl->shared_lock);
 
 	if ((pdsi_status->mfd->panel_power_on)) {
 		if (ret > 0) {
@@ -169,31 +126,6 @@ static void check_dsi_ctrl_status(struct work_struct *work)
 	}
 }
 
-/*
- * scheduled based on mipi timing start
- * canceled based on mipi timing stop
- */
-#ifdef CONFIG_HUAWEI_LCD
-void mdss_dsi_status_check_ctl(struct msm_fb_data_type *mfd, int sheduled)
-{
-	if (!mfd) {
-		pr_err("%s: mfd not available\n", __func__);
-		return ;
-	}
-	if (!pstatus_data) {
-		pr_err("%s: pstatus_data not available\n", __func__);
-		return ;
-	}
-	pr_debug("%s: scheduled=%d\n", __func__, sheduled);
-	pstatus_data->mfd = mfd;
-	if (sheduled) {
-		schedule_delayed_work(&pstatus_data->check_status,
-			msecs_to_jiffies(pstatus_data->check_interval));
-	} else {
-		cancel_delayed_work_sync(&pstatus_data->check_status);
-	}
-}
-#else
 /*
  * fb_event_callback() - Call back function for the fb_register_client()
  *			 notifying events
@@ -227,7 +159,6 @@ static int fb_event_callback(struct notifier_block *self,
 	}
 	return 0;
 }
-#endif
 
 int __init mdss_dsi_status_init(void)
 {
@@ -239,7 +170,6 @@ int __init mdss_dsi_status_init(void)
 		return -ENOMEM;
 	}
 
-#ifndef CONFIG_HUAWEI_LCD
 	pstatus_data->fb_notifier.notifier_call = fb_event_callback;
 
 	rc = fb_register_client(&pstatus_data->fb_notifier);
@@ -249,7 +179,6 @@ int __init mdss_dsi_status_init(void)
 		kfree(pstatus_data);
 		return -EPERM;
 	}
-#endif
 
 	pstatus_data->check_interval = interval;
 	pr_info("%s: DSI status check interval:%d\n", __func__,	interval);
@@ -263,9 +192,7 @@ int __init mdss_dsi_status_init(void)
 
 void __exit mdss_dsi_status_exit(void)
 {
-#ifndef CONFIG_HUAWEI_LCD
 	fb_unregister_client(&pstatus_data->fb_notifier);
-#endif
 	cancel_delayed_work_sync(&pstatus_data->check_status);
 	kfree(pstatus_data);
 	pr_debug("%s: DSI ctrl status work queue removed\n", __func__);

@@ -1040,30 +1040,6 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->off_cmds,
 		"qcom,mdss-dsi-off-command", "qcom,mdss-dsi-off-command-state");
 
-#ifdef CONFIG_HUAWEI_LCD
-	data = of_get_property(np, "qcom,mdss-dsi-panel-esd-cmd", &len);
-	/*10 is the max len of the esd check cmd */
-	if (!data || !len || len > 10) {
-		ctrl_pdata->esd_check_enable = false;
-		pr_info("%s: Panel esd check not enabled", __func__);
-	} else {
-		ctrl_pdata->panel_esd_cmd_len = len;
-		for (i = 0; i < len; i++)
-			ctrl_pdata->panel_esd_cmd[i] = data[i];
-		data = of_get_property(np, "qcom,mdss-dsi-panel-esd-cmd-value",
-				       &len);
-		if (!data || len != ctrl_pdata->panel_esd_cmd_len) {
-			ctrl_pdata->esd_check_enable = false;
-			pr_info("%s: Panel esd check value not correct",
-				__func__);
-		} else {
-			ctrl_pdata->esd_check_enable = true;
-			for (i = 0; i < len; i++)
-				ctrl_pdata->panel_esd_cmd_value[i] = data[i];
-			pr_info("%s: Panel esd check enabled", __func__);
-		}
-	}
-#endif
 	return 0;
 
 error:

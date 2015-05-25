@@ -242,10 +242,7 @@ static void mdss_mdp_cmd_readptr_done(void *arg)
 		mdss_mdp_irq_disable_nosync
 			(MDSS_MDP_IRQ_PING_PONG_RD_PTR, ctx->pp_num);
 		complete(&ctx->stop_comp);
-/* delete clk off opreation to avoid esd check freeze */
-#ifndef CONFIG_HUAWEI_LCD
 		schedule_work(&ctx->clk_work);
-#endif
 	}
 
 	spin_unlock(&ctx->clk_lock);
@@ -501,10 +498,6 @@ int mdss_mdp_cmd_kickoff(struct mdss_mdp_ctl *ctl, void *arg)
 
 		rc = mdss_mdp_ctl_intf_event(ctl, MDSS_EVENT_PANEL_ON, NULL);
 		WARN(rc, "intf %d panel on error (%d)\n", ctl->intf_num, rc);
-/*schedule the esd delay work*/
-#ifdef CONFIG_HUAWEI_LCD
-		mdss_dsi_status_check_ctl(ctl->mfd, true);
-#endif
 	}
 
 	mdss_mdp_cmd_set_partial_roi(ctl);
@@ -543,10 +536,6 @@ int mdss_mdp_cmd_stop(struct mdss_mdp_ctl *ctl)
 		return -ENODEV;
 	}
 
-/*cancel the esd delay work*/
-#ifdef CONFIG_HUAWEI_LCD
-	mdss_dsi_status_check_ctl(ctl->mfd, false);
-#endif
 	list_for_each_entry_safe(handle, tmp, &ctx->vsync_handlers, list)
 		mdss_mdp_cmd_remove_vsync_handler(ctl, handle);
 
@@ -571,8 +560,6 @@ int mdss_mdp_cmd_stop(struct mdss_mdp_ctl *ctl)
 					mdss_mdp_irq_disable
 						(MDSS_MDP_IRQ_PING_PONG_RD_PTR,
 								ctx->pp_num);
-					/*add the qcom patch to solve the cmd lcd esd issue*/
-					schedule_work(&ctx->clk_work);
 					ctx->rdptr_enabled = 0;
 				}
 			}
