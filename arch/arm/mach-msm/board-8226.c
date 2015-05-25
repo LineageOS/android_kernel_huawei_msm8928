@@ -176,28 +176,6 @@ void __init msm8226_add_drivers(void)
 	msm_thermal_device_init();
 }
 
-void __init msm8226_init(void)
-{
-	struct of_dev_auxdata *adata = msm8226_auxdata_lookup;
-
-	if (socinfo_init() < 0)
-		pr_err("%s: socinfo_init() failed\n", __func__);
-
-	msm8226_init_gpiomux();
-	board_dt_populate(adata);
-	msm8226_add_drivers();
-#ifdef CONFIG_HUAWEI_MMC
-    hw_extern_sdcard_add_device();
-#endif
-
-	platform_device_register(&hw_ram_console);
-
-#ifdef AUTORESTART
-	auto_restart_wq = create_singlethread_workqueue("auto_restart_wq");
-	queue_delayed_work(auto_restart_wq, &auto_restart_work, msecs_to_jiffies(AUTORESTART));
-#endif
-}
-
 #ifdef CONFIG_HUAWEI_MMC
 static struct resource hw_extern_sdcard_resources[] = {
     {
@@ -237,7 +215,7 @@ static struct platform_device hw_extern_sdcardMounted_device = {
  * Add the device nodes 'hw_extern_sdcard' and 'hw_extern_sdcardMounted' in /dev.
  * It is used by MMI sdcard test.
  */
-int __init hw_extern_sdcard_add_device(void)
+static int __init hw_extern_sdcard_add_device(void)
 {
     platform_device_register(&hw_extern_sdcard_device);
     platform_device_register(&hw_extern_sdcardMounted_device);
@@ -248,6 +226,28 @@ int __init hw_extern_sdcard_add_device(void)
 static void __init msm8226_early_ram_console(void)
 {
 	persistent_ram_early_init(&hw_persistent_ram);
+}
+
+void __init msm8226_init(void)
+{
+	struct of_dev_auxdata *adata = msm8226_auxdata_lookup;
+
+	if (socinfo_init() < 0)
+		pr_err("%s: socinfo_init() failed\n", __func__);
+
+	msm8226_init_gpiomux();
+	board_dt_populate(adata);
+	msm8226_add_drivers();
+#ifdef CONFIG_HUAWEI_MMC
+	hw_extern_sdcard_add_device();
+#endif
+
+	platform_device_register(&hw_ram_console);
+
+#ifdef AUTORESTART
+	auto_restart_wq = create_singlethread_workqueue("auto_restart_wq");
+	queue_delayed_work(auto_restart_wq, &auto_restart_work, msecs_to_jiffies(AUTORESTART));
+#endif
 }
 
 static const char *msm8226_dt_match[] __initconst = {
