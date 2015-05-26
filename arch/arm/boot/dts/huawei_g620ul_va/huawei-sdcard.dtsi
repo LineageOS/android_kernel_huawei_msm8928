@@ -1,6 +1,0 @@
-&soc {
-        huawei,huawei-gpio-info {
-                compatible = "huawei-gpio-info";
-                huawei,voltage-active-high;
-        };
-     };

@@ -100,7 +100,12 @@ endif
 # MSM8226
    zreladdr-$(CONFIG_ARCH_MSM8226)	:= 0x00008000
 # reduce DTB size delete MSM dtb
-ifneq ($(CONFIG_HUAWEI_KERNEL),y)
+ifeq ($(CONFIG_HUAWEI_KERNEL),y)
+	dtb-$(CONFIG_ARCH_MSM8226)	+= msm8226-mainboard.dtb
+	dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-mainboard-va.dtb
+	dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-mate2-va.dtb
+	dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-mate2-vb.dtb
+else
 	dtb-$(CONFIG_ARCH_MSM8226)	+= msm8226-sim.dtb
 	dtb-$(CONFIG_ARCH_MSM8226)	+= msm8226-fluid.dtb
 	dtb-$(CONFIG_ARCH_MSM8226)	+= msm8226-v1-cdp.dtb
@@ -132,34 +137,6 @@ ifneq ($(CONFIG_HUAWEI_KERNEL),y)
 	dtb-$(CONFIG_ARCH_MSM8226)	+= apq8026-v2-1080p-mtp.dtb
 endif
 
-	dtb-$(CONFIG_ARCH_MSM8226)	+= msm8226-g750-va.dtb
-	dtb-$(CONFIG_ARCH_MSM8226)	+= msm8226-mainboard.dtb
-	dtb-$(CONFIG_ARCH_MSM8226)	+= msm8226-g750c-vb.dtb
-        dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-mainboard-va.dtb
-        dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-g6_l11-va.dtb
-        dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-mate2-va.dtb
-        dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-g6_l11-vb.dtb
-        dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-g6_l22-va.dtb
-        dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-g6_l33-va.dtb
-        dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-g620tl-va.dtb
-        dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-g620cl-va.dtb
-        dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-g620ul-va.dtb
-        dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-g535_l11-va.dtb
-
-        dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-g660tl-va.dtb
-        dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-g660cl-va.dtb
-        dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-g660ul-va.dtb
-
-        dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-g620tl-vb.dtb
-        dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-g620cl-vb.dtb
-        dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-g620ul-vb.dtb
-
-        dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-g660-l075-va.dtb
-        dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-mate2-vb.dtb
-        dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-g730-l072-va.dtb
-        dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-g730-l073-va.dtb
-        dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-g730-l075-va.dtb
-        dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-g660-l075-vb.dtb
 # FSM9XXX
    zreladdr-$(CONFIG_ARCH_FSM9XXX)	:= 0x10008000
 params_phys-$(CONFIG_ARCH_FSM9XXX)	:= 0x10000100

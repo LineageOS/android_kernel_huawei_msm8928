@@ -1,6 +1,0 @@
- / {
-        huawei_bt_info {
-                  compatible = "huawei,hw_bt_info";
-                  status = "ok";
-        };
-};
