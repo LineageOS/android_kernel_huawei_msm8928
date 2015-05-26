@@ -162,21 +162,6 @@ config HW_OV5648
 		preview set to 1296*972 at 30 fps,
 		snapshot set to 2592*1944 at 15 fps,
 		This sensor driver does not support auto focus.
-config HW_MT9D015
-	bool "Huawei mt9d015 2M"
-	depends on HUAWEI_KERNEL_CAMERA
-	---help---
-		Aptina 2 MP Bayer Sensor, only use 1 mipi lane,
-		preview and snapshot set to 1600*1200 at 30 fps,
-		This sensor driver does not support auto focus.
-		
-config HW_OV2680
-	bool "Huawei OV2680 2M"
-	depends on HUAWEI_KERNEL_CAMERA
-	---help---
-		Aptina 2 MP Bayer Sensor, only use 1 mipi lane,
-		preview and snapshot set to 1600*1200 at 30 fps,
-		This sensor driver does not support auto focus.
 config HI256
         bool "Hynix hi256 (YUV 2MP)"
         depends on MSMB_CAMERA
@@ -295,36 +280,6 @@ config HW_IMX135
 	depends on  HUAWEI_KERNEL_CAMERA
 	---help---
 	  Sony 13 MP Bayer BSI Sensor.
-config HW_IMX134
-	bool "HUAWEI IMX134(SONY BSI 8M SENSOR)"
-	depends on  HUAWEI_KERNEL_CAMERA
-	---help---
-	  Sony 8 MP Bayer BSI Sensor.
-
-config HW_OV9724
-	bool "Huawei OV9724 (BAYER 1M)"
-	depends on HUAWEI_KERNEL_CAMERA
-	---help---
-		OmniVision 1 MP Bayer Sensor, supports 1 mipi lanes
-config HW_MT9V113
-	bool "Huawei MT9V113 .3M"
-	depends on HUAWEI_KERNEL_CAMERA
-	---help---
-		OmniVision 0.3 MP Yuv Sensor, only use 1 mipi lane,
-		This sensor driver does not support auto focus.
-config HW_BF3905_BYD
-	bool "Huawei BF3905_BYD .3M"
-	depends on HUAWEI_KERNEL_CAMERA
-	---help---
-		OmniVision 0.3 MP Yuv Sensor, only use 1 mipi lane,
-		This sensor driver does not support auto focus.
-
-
-config HW_S5K9A1
-	bool "Huawei S5K9A1 (BAYER 1M)"
-	depends on HUAWEI_KERNEL_CAMERA
-	---help---
-		Samsung 1 MP Bayer Sensor, supports 1 mipi lanes
 
 config HW_S5K4E1_BACK
 	bool "Huawei hw_s5k4e1_back .5M"
@@ -343,19 +298,3 @@ config HW_LM3642
 	depends on HUAWEI_KERNEL_CAMERA
 	---help---
 		LM3642 flash IC driver
-config HW_IMX219
-	bool "Sony IMX219_LITEON (BAYER 8MP)"
-	depends on HUAWEI_KERNEL_CAMERA
-	---help---
-		Sony 8 MP Bayer Sensor with auto focus.uses
-		2 mipi lanes, preview config = 1632*1224 30 fps,
-		snapshot config = 3264 * 2448 at 15 fps.	
-config HW_OV8858
-	bool "Sensor OV8858_FOXCONN (BAYER 8M)"
-	depends on HUAWEI_KERNEL_CAMERA
-	---help---
-		OmniVision 8 MP Bayer Sensor with auto focus.uses
-		2 mipi lanes, preview config = 1632*1224 30 fps,
-		snapshot config = 3264 * 2448 at 15 fps.
-
-
