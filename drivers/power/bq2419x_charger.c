@@ -32,9 +32,6 @@
 #include <linux/irq.h>
 #include <linux/notifier.h>
 #include <linux/mutex.h>
-#ifdef CONFIG_HUAWEI_HW_DEV_DCT
-#include <linux/hw_dev_dec.h>
-#endif
 
 struct bq2419x_device_info *bq_device;
 
@@ -2528,10 +2525,6 @@ static int __devinit bq2419x_charger_probe(struct i2c_client *client,
     
     schedule_work(&di->usb_work);
 
-#ifdef CONFIG_HUAWEI_HW_DEV_DCT
-    /* detect current device successful, set the flag as present */
-    set_hw_dev_flag(DEV_I2C_CHARGER);
-#endif
     dev_err(di->dev, "bq2419x probe ok!\n");
     bq_device = di;
     return 0;

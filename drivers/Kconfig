@@ -152,5 +152,4 @@ source "drivers/coresight/Kconfig"
 
 source "drivers/bif/Kconfig"
 source "drivers/hw_fac_info/Kconfig"
-source "drivers/devdetect/Kconfig"
 endmenu

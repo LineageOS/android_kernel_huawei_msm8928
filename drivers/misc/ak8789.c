@@ -46,10 +46,6 @@
 #include <linux/regulator/consumer.h>
 #include <linux/of_gpio.h>
 
-#ifdef CONFIG_HUAWEI_HW_DEV_DCT
-#include <linux/hw_dev_dec.h>
-#endif
-
 /*prevent shake time is AKM8789_TIMER_DEBOUNCE*/
 /*AKM8789_WAKEUP_TIME is for wake_lock_timeout()*/
 /*change the debounce time from 20ms to 50ms to prevent unnecessary problems because the wrong hall event reprot*/

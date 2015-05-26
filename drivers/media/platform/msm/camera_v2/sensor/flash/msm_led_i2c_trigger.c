@@ -24,10 +24,6 @@
 #define FLASH_NAME "camera-led-flash"
 #define FLASH_FLAG_REGISTER 0x0B
 
-/* support I2C test */
-#ifdef CONFIG_HUAWEI_HW_DEV_DCT
-#include <linux/hw_dev_dec.h>
-#endif
 #define FLASH_CHIP_ID_MASK 0x07
 #define FLASH_CHIP_ID 0x0
 
@@ -642,9 +638,6 @@ int msm_flash_i2c_probe(struct i2c_client *client,
 		const struct i2c_device_id *id)
 {
 	int rc = 0;
-#ifdef CONFIG_HUAWEI_HW_DEV_DCT
-      uint16_t tmp_data = 0;
-#endif
 	struct msm_led_flash_ctrl_t *fctrl = NULL;
 #ifdef CONFIG_DEBUG_FS
 	struct dentry *dentry;
@@ -691,34 +684,6 @@ int msm_flash_i2c_probe(struct i2c_client *client,
 	if (!fctrl->flash_i2c_client->i2c_func_tbl)
 		fctrl->flash_i2c_client->i2c_func_tbl =
 			&msm_sensor_qup_func_tbl;
-
-#ifdef CONFIG_HUAWEI_HW_DEV_DCT
-    /* read chip id */
-    //clear the err and unlock IC, this function must be called before read and write register
-    msm_flash_clear_err_and_unlock(fctrl);
-
-    rc = fctrl->flash_i2c_client->i2c_func_tbl->i2c_read(
-                fctrl->flash_i2c_client,0x00,&tmp_data, MSM_CAMERA_I2C_BYTE_DATA);
-    if(rc < 0)
-    {
-        pr_err("%s: FLASHCHIP READ I2C error!\n", __func__);
-        goto probe_failure;
-    }
-
-    if ( FLASH_CHIP_ID == (tmp_data & FLASH_CHIP_ID_MASK) )
-    {
-        pr_err("%s : Read chip id ok!Chip ID is %d.\n", __func__, tmp_data);
-        /* detect current device successful, set the flag as present */
-        set_hw_dev_flag(DEV_I2C_FLASH);
-        pr_err("%s : LM3642 probe succeed!\n", __func__);
-    }
-    else
-    {
-        pr_err("%s : read chip id error!Chip ID is %d.\n", __func__, tmp_data);
-        rc = -ENODEV;
-        goto probe_failure;
-    }
-#endif
 
 	rc = msm_led_i2c_flash_create_v4lsubdev(fctrl);
 #ifdef CONFIG_DEBUG_FS

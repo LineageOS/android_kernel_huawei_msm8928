@@ -58,9 +58,6 @@
 
 #include <linux/cyttsp4_core.h>
 #include "cyttsp4_regs.h"
-#ifdef CONFIG_HUAWEI_HW_DEV_DCT
-#include <linux/hw_dev_dec.h>
-#endif
 #include "cyttsp4_device_access.h"
 #include <linux/hw_tp_common.h>
 #define HUAWEI_SET_FINGER_MODE_BY_DEFAULT
@@ -4561,10 +4558,6 @@ static int cyttsp4_core_probe(struct cyttsp4_core *core)
 		tp_log_err( "%s: there is no cypress device!!! rc=%d\n", __func__, rc);
 		goto error_request_irq;
 	}
-
-#ifdef CONFIG_HUAWEI_HW_DEV_DCT
-	set_hw_dev_flag(DEV_I2C_TOUCH_PANEL);
-#endif
 
 #ifdef CYTTSP4_DETECT_HW
 	/* Call platform detect function */

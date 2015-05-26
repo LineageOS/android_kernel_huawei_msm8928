@@ -38,9 +38,6 @@
 #include <linux/mutex.h>
 #include <linux/power/bq2419x_charger.h>
 #include <linux/power/bq27510_battery.h>
-#ifdef CONFIG_HUAWEI_HW_DEV_DCT
-#include <linux/hw_dev_dec.h>
-#endif
 
 extern void do_power_supply_update(void);
 extern int get_battery_present_status(void);
@@ -2265,10 +2262,6 @@ static int bq27510_battery_probe(struct i2c_client *client,
     if (ret != 0)
         pr_err("%s ipps_register_client err=%x\n",
             __func__, ret);
-#endif
-#ifdef CONFIG_HUAWEI_HW_DEV_DCT
-    /* detect current device successful, set the flag as present */
-    set_hw_dev_flag(DEV_I2C_BATTERY);
 #endif
     //start to calculate capacity 5 sencond later,for battery exist only can only dectected by pmic
     schedule_delayed_work(&di->battery_monitor_work,msecs_to_jiffies(START_CAPACITY_CACL));

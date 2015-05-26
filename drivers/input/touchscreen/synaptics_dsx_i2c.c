@@ -34,9 +34,6 @@
 #include <linux/of_gpio.h>
 
 #ifdef CONFIG_HUAWEI_KERNEL
-#ifdef CONFIG_HUAWEI_HW_DEV_DCT
-#include <linux/hw_dev_dec.h>
-#endif
 #if !defined(CONFIG_HAS_EARLYSUSPEND) && defined(CONFIG_FB)
 #include <linux/notifier.h>
 #include <linux/fb.h>
@@ -3777,11 +3774,6 @@ flash_prog_mode:
 			sizeof(f01_query));
 	if (retval < 0)
 		return retval;
-
-#ifdef CONFIG_HUAWEI_HW_DEV_DCT
-	/* detect current device successful, set the flag as present */
-	set_hw_dev_flag(DEV_I2C_TOUCH_PANEL);
-#endif
 
 	/* RMI Version 4.0 currently supported */
 	rmi->version_major = 4;

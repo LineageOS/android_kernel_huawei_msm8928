@@ -19,9 +19,6 @@
 #include <mach/rpm-regulator.h>
 #include <mach/rpm-regulator-smd.h>
 #include <linux/regulator/consumer.h>
-#ifdef CONFIG_HUAWEI_HW_DEV_DCT
-#include <linux/hw_dev_dec.h>
-#endif
 
 #undef CDBG
 #ifdef CONFIG_MSMB_CAMERA_DEBUG
@@ -2048,24 +2045,6 @@ int32_t msm_sensor_platform_probe(struct platform_device *pdev, void *data)
 	msm_sd_register(&s_ctrl->msm_sd);
 	CDBG("%s:%d\n", __func__, __LINE__);
 	
-#ifdef CONFIG_HUAWEI_HW_DEV_DCT
-	/* detect current device successful, set the flag as present */
-	switch(s_ctrl->sensordata->sensor_init_params->position)
-	{
-		case BACK_CAMERA_B:
-			set_hw_dev_flag(DEV_I2C_CAMERA_MAIN);
-			printk("%s: %s set_hw_dev_flag success!! \n",__func__,s_ctrl->sensordata->sensor_name);
-			break;
-		case FRONT_CAMERA_B:
-			set_hw_dev_flag(DEV_I2C_CAMERA_SLAVE);
-			printk("%s: %s set_hw_dev_flag success!! \n",__func__,s_ctrl->sensordata->sensor_name);
-			break;
-		default:
-			printk("%s: %s set_hw_dev_flag fail!! \n",__func__,s_ctrl->sensordata->sensor_name);
-			break;
-	}
-#endif
-
 	s_ctrl->func_tbl->sensor_power_down(s_ctrl);
 	CDBG("%s:%d\n", __func__, __LINE__);
 	return rc;
