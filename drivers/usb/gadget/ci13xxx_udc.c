@@ -82,8 +82,6 @@
 #ifdef CONFIG_HUAWEI_KERNEL
 #define NON_STANDARD_CHARGER_TIMER_FREQ		(round_jiffies_relative(msecs_to_jiffies(3000)))
 #define NON_STANDARD_REENMU_TIMER_FREQ		(round_jiffies_relative(msecs_to_jiffies(1000)))
-#define ENUM_SUCCESS 1
-#define ENUM_FAIL    0
 #define NON_STANDARD_CHARGER_CURRENT                   500
 static uint g_enum_flag = 0;
 static int repeat_count = 0;
