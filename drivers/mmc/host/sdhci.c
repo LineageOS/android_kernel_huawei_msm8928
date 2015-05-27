@@ -42,7 +42,7 @@
 #endif
 
 #ifdef CONFIG_HUAWEI_MMC
-extern int mmc_debug_mask;
+static int mmc_debug_mask;
 module_param_named(debug_mask, mmc_debug_mask, int,
 				   S_IRUGO | S_IWUSR | S_IWGRP);
 
