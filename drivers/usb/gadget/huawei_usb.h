@@ -2,21 +2,6 @@
 #ifndef __HUAWEI_USB_H__
 #define __HUAWEI_USB_H__
 
-/***** VENDOR and COUNTRY *****/
-#define COUNTRY_US         "us"
-#define COUNTRY_JAPAN      "jp"
-#define VENDOR_TMOBILE     "t-mobile"
-#define VENDOR_EMOBILE     "emobile"
-#define VENDOR_TRACFONE    "tracfone"
-#define VENDOR_CC          "consumercellular"
-#define VENDOR_SOFTBANK    "softbank"
-
-
-#define USB_DEFAULT_SN     "0123456789AB"
-#define USB_SERIAL_LEN     32
-#define VENDOR_NAME_LEN    32
-#define COUNTRY_NAME_LEN   32
-
 /* support 3 luns at most, 1 lun for cdrom and 2 luns for udisk */
 #define USB_MAX_LUNS       3
 
@@ -46,15 +31,3 @@ typedef struct _usbsdms_read_toc_cmd_type
    u8  allocation_length_lsb;
    u8  control;
 } usbsdms_read_toc_cmd_type;
-
-typedef struct
-{   
-   unsigned char usb_serial[USB_SERIAL_LEN];
-   unsigned char vender_name[VENDOR_NAME_LEN];
-   unsigned char country_name[COUNTRY_NAME_LEN];
-} usb_param;
-
-#endif  /* __HUAWEI_USB_H__ */
-
-extern usb_param usb_parameter;
-

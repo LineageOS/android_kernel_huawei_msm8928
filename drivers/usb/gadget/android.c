@@ -35,10 +35,6 @@
 
 #include "gadget_chips.h"
 
-#ifdef CONFIG_HUAWEI_USB
-#include "huawei_usb.h"
-#endif
-
 /*
  * Kbuild is not very cooperative with respect to linking separately
  * compiled library objects into one module.  So for now we won't use
@@ -109,21 +105,6 @@ static const char longname[] = "Gadget Android";
 #define PRODUCT_ID		0x0001
 
 #define ANDROID_DEVICE_NODE_NAME_LENGTH 11
-
-#ifdef CONFIG_HUAWEI_USB
-/* string id of sequence number in string descriptor */
-static int serial_str_id = -1;
-
-/* to store the usb parameter in cmdline */
-usb_param usb_parameter = {
-    .usb_serial = {0},
-    .vender_name = {0},
-    .country_name = {0}
-};
-
-#define STRING_TO_DECIMAL_INT    10
-#endif
-
 
 struct android_usb_function {
 	char *name;
@@ -2454,23 +2435,6 @@ static ssize_t enable_store(struct device *pdev, struct device_attribute *attr,
 
 	sscanf(buff, "%d", &enabled);
 
-#ifdef CONFIG_HUAWEI_USB
-    /* cleanup usb serial number for normal and factory mode */
-    if(!strcmp(serial_string, "cleanup"))
-    {
-        /* if in normal ro factory mode, set the serial number to 0 */
-        cdev->desc.iSerialNumber = 0;
-        serial_string[0] = '\0';
-	    printk("cleanup usb serial number for noraml and factory mode!\n");
-    }
-    else /* google mode must have usb serial number */
-    {
-        /* recovery the serial number from serial_str_id */
-        cdev->desc.iSerialNumber = serial_str_id;
-	    strlcpy(serial_string, usb_parameter.usb_serial, USB_SERIAL_LEN);
-    }
-#endif  /* CONFIG_HUAWEI_USB */
-
 	if (enabled && !dev->enabled) {
 		/*
 		 * Update values in composite driver's copy of
@@ -2714,21 +2678,13 @@ static int android_bind(struct usb_composite_dev *cdev)
 	strlcpy(manufacturer_string, "Android",
 		sizeof(manufacturer_string) - 1);
 	strlcpy(product_string, "Android", sizeof(product_string) - 1);
-#ifdef CONFIG_HUAWEI_USB
-    strlcpy(serial_string, usb_parameter.usb_serial, USB_SERIAL_LEN);
-#else
 	strlcpy(serial_string, "0123456789ABCDEF", sizeof(serial_string) - 1);
-#endif  /* CONFIG_HUAWEI_USB */
 
 	id = usb_string_id(cdev);
 	if (id < 0)
 		return id;
 	strings_dev[STRING_SERIAL_IDX].id = id;
 	device_desc.iSerialNumber = id;
-    /* backup the serial str id */
-#ifdef CONFIG_HUAWEI_USB
-    serial_str_id = id;
-#endif  /* CONFIG_HUAWEI_USB */
 
 	if (gadget_is_otg(cdev->gadget))
 		list_for_each_entry(conf, &dev->configs, list_item)
@@ -3189,60 +3145,9 @@ static struct platform_driver android_platform_driver = {
 	.id_table = android_id_table,
 };
 
-#ifdef CONFIG_HUAWEI_USB
-static int __init vender_country_para_setup(char * p)
-{
-    char vender_country_para[64] = {0};
-    char *country_name = NULL;
-    
-    if('\0' == *p || '/' == *p || !strchr(p, '/')) 
-    {
-        printk("%s: no valid vender info in cmdline \n", __func__);        
-        return 0;
-    }
-    
-    strlcpy(vender_country_para, p, sizeof(vender_country_para));
-
-    country_name= strchr(vender_country_para, '/');                
-    *country_name++ = 0;
-    
-    strlcpy(usb_parameter.vender_name, vender_country_para, VENDOR_NAME_LEN);          
-    strlcpy(usb_parameter.country_name, country_name, COUNTRY_NAME_LEN);
-    
-    return 0;
-}
-early_param("androidboot.localproppath", vender_country_para_setup);
-
-static int __init usb_serial_setup(char * p)
-{
-    if('\0' != *p) 
-    {
-        strlcpy(usb_parameter.usb_serial, p, USB_SERIAL_LEN);
-    }
-    
-    return 0;
-}
-early_param("usb.serial", usb_serial_setup);
-#endif
-
 static int __init init(void)
 {
 	int ret;
-	
-#ifdef CONFIG_HUAWEI_USB
-    if(('\0' == usb_parameter.vender_name[0]) || ('\0' == usb_parameter.country_name[0]))
-    {   
-        printk("%s: usb use default vender info \n", __func__);
-        strlcpy(usb_parameter.vender_name, "hw", VENDOR_NAME_LEN);          
-        strlcpy(usb_parameter.country_name, "default", COUNTRY_NAME_LEN);
-    }
-
-    if('\0' == usb_parameter.usb_serial[0])
-    {  
-        printk("%s: usb use default serial \n", __func__);
-        strlcpy(usb_parameter.usb_serial, USB_DEFAULT_SN, USB_SERIAL_LEN);
-    }
-#endif
 
 	/* Override composite driver functions */
 	composite_driver.setup = android_setup;
