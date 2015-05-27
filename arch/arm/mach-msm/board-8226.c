@@ -176,53 +176,6 @@ void __init msm8226_add_drivers(void)
 	msm_thermal_device_init();
 }
 
-#ifdef CONFIG_HUAWEI_MMC
-static struct resource hw_extern_sdcard_resources[] = {
-    {
-        .flags  = IORESOURCE_MEM,
-    },
-};
-
-/*
- * Define the 'hw_extern_sdcard' device node for MMI sdcard test to
- * judge if the sd card inserted.
- */
-static struct platform_device hw_extern_sdcard_device = {
-    .name           = "hw_extern_sdcard",
-    .id             = -1,
-    .num_resources  = ARRAY_SIZE(hw_extern_sdcard_resources),
-    .resource       = hw_extern_sdcard_resources,
-};
-
-static struct resource hw_extern_sdcardMounted_resources[] = {
-    {
-        .flags  = IORESOURCE_MEM,
-    },
-};
-
-/*
- * Define the 'hw_extern_sdcardMounted' device node for MMI sdcard test to
- * judge if the sd card mounted.
- */
-static struct platform_device hw_extern_sdcardMounted_device = {
-    .name           = "hw_extern_sdcardMounted",
-    .id             = -1,
-    .num_resources  = ARRAY_SIZE(hw_extern_sdcardMounted_resources),
-    .resource       = hw_extern_sdcardMounted_resources,
-};
-
-/*
- * Add the device nodes 'hw_extern_sdcard' and 'hw_extern_sdcardMounted' in /dev.
- * It is used by MMI sdcard test.
- */
-static int __init hw_extern_sdcard_add_device(void)
-{
-    platform_device_register(&hw_extern_sdcard_device);
-    platform_device_register(&hw_extern_sdcardMounted_device);
-    return 0;
-}
-#endif
-
 static void __init msm8226_early_ram_console(void)
 {
 	persistent_ram_early_init(&hw_persistent_ram);
@@ -238,9 +191,6 @@ void __init msm8226_init(void)
 	msm8226_init_gpiomux();
 	board_dt_populate(adata);
 	msm8226_add_drivers();
-#ifdef CONFIG_HUAWEI_MMC
-	hw_extern_sdcard_add_device();
-#endif
 
 	platform_device_register(&hw_ram_console);
 
