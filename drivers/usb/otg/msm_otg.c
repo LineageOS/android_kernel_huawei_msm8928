@@ -118,7 +118,7 @@ static inline bool aca_enabled(void)
 #endif
 }
 
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_USB
 extern int ci13xxx_udc_register_vbus_sn(void (*callback)(int));
 extern void ci13xxx_udc_unregister_vbus_sn(void (*callback)(int));
 extern int ci13xxx_udc_get_enum_count(void);
@@ -2631,7 +2631,7 @@ static void msm_otg_sm_work(struct work_struct *w)
 					}
 					/* fall through */
 				case USB_PROPRIETARY_CHARGER:
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_USB
 					if(ci13xxx_udc_get_enum_count())
 						ci13xxx_udc_set_enum_count(0);
 #endif
@@ -3721,7 +3721,7 @@ static int otg_power_get_property_usb(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_PRESENT:
 	case POWER_SUPPLY_PROP_ONLINE:
 		val->intval = motg->online;
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_USB
 		if(is_otg_host_mode() == 0)
 			val->intval = is_usb_chg_exist();
 #endif
@@ -4699,7 +4699,7 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 			psy = &motg->usb_psy;
 	}
 
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_USB
 	ci13xxx_udc_register_vbus_sn(&msm_otg_set_vbus_state);
 #endif
 	if (legacy_power_supply && pdata->otg_control == OTG_PMIC_CONTROL)
@@ -4785,7 +4785,7 @@ static int __devexit msm_otg_remove(struct platform_device *pdev)
 		msm_otg_setup_devices(pdev, motg->pdata->mode, false);
 	if (motg->pdata->otg_control == OTG_PMIC_CONTROL)
 		pm8921_charger_unregister_vbus_sn(0);
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_USB
 	ci13xxx_udc_unregister_vbus_sn(0);
 #endif
 	msm_otg_mhl_register_callback(motg, NULL);

@@ -79,18 +79,14 @@
 #define EP_PRIME_CHECK_DELAY	(jiffies + msecs_to_jiffies(1000))
 #define MAX_PRIME_CHECK_RETRY	3 /*Wait for 3sec for EP prime failure */
 
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_USB
+#define MAX_LOG_COUNT 10
 #define NON_STANDARD_CHARGER_TIMER_FREQ		(round_jiffies_relative(msecs_to_jiffies(3000)))
 #define NON_STANDARD_REENMU_TIMER_FREQ		(round_jiffies_relative(msecs_to_jiffies(1000)))
 #define NON_STANDARD_CHARGER_CURRENT                   500
 static uint g_enum_flag = 0;
 static int repeat_count = 0;
 static void (*notify_otg_state_func_ptr)(int);
-#endif
-
-#ifdef CONFIG_HUAWEI_KERNEL
-
-#define MAX_LOG_COUNT 10
 #endif
 
 /* ctrl register bank access */
@@ -875,7 +871,7 @@ static int hw_usb_reset(void)
 	return 0;
 }
 
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_USB
 void ci13xxx_udc_set_enum_flag(void)
 {
     g_enum_flag = 1;
@@ -3500,7 +3496,7 @@ static int ci13xxx_vbus_session(struct usb_gadget *_gadget, int is_active)
 			hw_device_reset(udc);
 			if (udc->softconnect)
 				hw_device_state(udc->ep0out.qh.dma);
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_USB
 			ci13xxx_udc_clr_enum_flag();
 			schedule_delayed_work(&udc->enmu_delay_work,NON_STANDARD_CHARGER_TIMER_FREQ);
 #endif
@@ -3837,7 +3833,7 @@ static irqreturn_t udc_irq(void)
 		if (USBi_UEI & intr)
 			isr_statistics.uei++;
 		if (USBi_UI  & intr) {
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_USB
 			ci13xxx_udc_set_enum_flag();
 #endif
 			isr_statistics.ui++;
@@ -3976,7 +3972,7 @@ static int udc_probe(struct ci13xxx_udc_driver *driver, struct device *dev,
 
 	pm_runtime_no_callbacks(&udc->gadget.dev);
 	pm_runtime_enable(&udc->gadget.dev);
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_USB
 	INIT_DELAYED_WORK(&udc->enmu_delay_work,
 							enum_delay_work_func);
 	INIT_DELAYED_WORK(&udc->re_enum_delay_work,
