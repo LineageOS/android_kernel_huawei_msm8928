@@ -18,6 +18,15 @@ struct info_node
     struct list_head entry;
 };
 
+typedef struct
+{
+    unsigned int lpddrID;                  /* DDR ID */
+    unsigned int update_flag[2];           /* sd auto update flag */
+    unsigned char sb_seme_data[16];
+    /* add the huawei_debug to match the aboot & sbl */
+    unsigned int reserved;                  /* reserved for filling */
+} smem_exten_huawei_paramater;
+
 static LIST_HEAD(app_info_list);
 static DEFINE_SPINLOCK(app_info_list_lock);
 
