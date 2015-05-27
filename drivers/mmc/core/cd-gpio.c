@@ -31,16 +31,12 @@ static int mmc_cd_get_status(struct mmc_host *host)
 	if (!cd || !gpio_is_valid(cd->gpio))
 		goto out;
 
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_MMC
 	ret = gpio_get_value_cansleep(cd->gpio);
 	if(host->caps2 & MMC_CAP2_CD_ACTIVE_HIGH)
-	{
 		ret = gpio_get_value_cansleep(cd->gpio);
-	}
 	else
-	{
 		ret = !gpio_get_value_cansleep(cd->gpio);
-	}
 #else
 	ret = !gpio_get_value_cansleep(cd->gpio) ^
 		!!(host->caps2 & MMC_CAP2_CD_ACTIVE_HIGH);
@@ -49,7 +45,7 @@ out:
 	return ret;
 }
 
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_MMC
 static unsigned long msmsdcc_irqtime = 0;
 #endif
 static irqreturn_t mmc_cd_gpio_irqt(int irq, void *dev_id)
@@ -58,7 +54,7 @@ static irqreturn_t mmc_cd_gpio_irqt(int irq, void *dev_id)
 	struct mmc_cd_gpio *cd = host->hotplug.handler_priv;
 	int status;
 
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_MMC
 	unsigned long duration;
 #endif
 	status = mmc_cd_get_status(host);
@@ -72,26 +68,20 @@ static irqreturn_t mmc_cd_gpio_irqt(int irq, void *dev_id)
 				"HIGH" : "LOW");
 		cd->status = status;
 
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_MMC
 		duration = jiffies - msmsdcc_irqtime;
 		/* current msmsdcc is present, add to handle dithering */
-		if (status)
-		{
+		if (status) {
 			/* the distance of two interrupts can not less than 7 second */
 			if (duration < (7 * HZ))
-			{
 				duration = (7 * HZ) - duration;
-			}
 			else
-			{
 				/* 100 millisecond */
 				duration = msecs_to_jiffies(100);
-			}
 		}
 		else
-		{
 			duration = msecs_to_jiffies(2000);
-		}
+
 		mmc_detect_change(host, duration);
 		msmsdcc_irqtime = jiffies;
 #else

@@ -45,7 +45,7 @@
 #include "sd_ops.h"
 #include "sdio_ops.h"
 
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_MMC
 #include <linux/debugfs.h>
 #endif
 
@@ -118,7 +118,7 @@ MODULE_PARM_DESC(
 		spin_unlock(&stats.lock);				\
 	} while (0);
 
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_MMC
 
 static struct dentry *dentry_mmclog;
 u64 rwlog_enable_flag = 0;   /* 0 : Disable , 1: Enable */
@@ -340,7 +340,7 @@ mmc_start_request(struct mmc_host *host, struct mmc_request *mrq)
 			 mrq->stop->arg, mrq->stop->flags);
 	}
 
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_MMC
     if(1 == rwlog_enable_flag)
     {
         if(mrq->cmd->opcode == MMC_WRITE_MULTIPLE_BLOCK
@@ -3812,7 +3812,7 @@ static int __init mmc_init(void)
 	if (ret)
 		goto unregister_host_class;
 
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_MMC
     dentry_mmclog = debugfs_create_dir("hw_mmclog", NULL);
     if(dentry_mmclog )
     {
@@ -3824,7 +3824,7 @@ static int __init mmc_init(void)
             dentry_mmclog, NULL, &debug_mask_fops);
     }
 #endif
-  
+
 	return 0;
 
 unregister_host_class:

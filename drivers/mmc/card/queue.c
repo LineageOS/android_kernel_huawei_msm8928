@@ -30,10 +30,11 @@
  */
 #define DEFAULT_NUM_REQS_TO_START_PACK 17
 
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_MMC
 extern struct scatterlist* sdhci_get_cur_sg(void);
 extern struct scatterlist* sdhci_get_prev_sg(void);
 #endif
+
 /*
  * Prepare a MMC request. This just filters out odd stuff.
  */
@@ -361,24 +362,24 @@ int mmc_init_queue(struct mmc_queue *mq, struct mmc_card *card,
 retry:
 		blk_queue_max_segments(mq->queue, host->max_segs);
 
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_MMC
 		/*if sdcard, use cache prealloced in host malloc*/
-		if(MMC_TYPE_SD  == card->type){
+		if(MMC_TYPE_SD  == card->type) {
 			mqrq_cur->sg = sdhci_get_cur_sg();
-			if(NULL == mqrq_cur->sg){
+			if(NULL == mqrq_cur->sg) {
 				printk(KERN_ERR "%s:get cur_sg cache failed\n", __FUNCTION__);
 				goto cleanup_queue;
 			}
 
 			mqrq_prev->sg = sdhci_get_prev_sg();
-			if(NULL == mqrq_prev->sg){
+			if(NULL == mqrq_prev->sg) {
 				printk("%s:get prev_sg cache failed\n", __FUNCTION__);
 				goto cleanup_queue;
 			}
 
 			pr_info("sdcard use cache sucess\n");
 		}
-		else{
+		else {
 			mqrq_cur->sg = mmc_alloc_sg(host->max_segs, &ret);
 			if (ret == -ENOMEM)
 				goto cur_sg_alloc_failed;
@@ -390,9 +391,7 @@ retry:
 				goto prev_sg_alloc_failed;
 			else if (ret)
 				goto cleanup_queue;
-
 		}
-
 #else
 		mqrq_cur->sg = mmc_alloc_sg(host->max_segs, &ret);
 		if (ret == -ENOMEM)
@@ -441,10 +440,9 @@ success:
 	mqrq_prev->bounce_sg = NULL;
 
  cleanup_queue:
-#ifdef CONFIG_HUAWEI_KERNEL
-	if(MMC_TYPE_SD  != card->type){
+#ifdef CONFIG_HUAWEI_MMC
+	if(MMC_TYPE_SD  != card->type)
 		kfree(mqrq_cur->sg);
-	}
 #else
 	kfree(mqrq_cur->sg);
 #endif
@@ -452,10 +450,9 @@ success:
 	kfree(mqrq_cur->bounce_buf);
 	mqrq_cur->bounce_buf = NULL;
 
-#ifdef CONFIG_HUAWEI_KERNEL
-	if(MMC_TYPE_SD  != card->type){
+#ifdef CONFIG_HUAWEI_MMC
+	if(MMC_TYPE_SD  != card->type)
 		kfree(mqrq_prev->sg);
-    }
 #else
 	kfree(mqrq_prev->sg);
 #endif
@@ -473,7 +470,7 @@ void mmc_cleanup_queue(struct mmc_queue *mq)
 	unsigned long flags;
 	struct mmc_queue_req *mqrq_cur = mq->mqrq_cur;
 	struct mmc_queue_req *mqrq_prev = mq->mqrq_prev;
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_MMC
 	struct mmc_card *card = mq->card;
 #endif
 
@@ -493,11 +490,10 @@ void mmc_cleanup_queue(struct mmc_queue *mq)
 	mqrq_cur->bounce_sg = NULL;
 
 
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_MMC
 	/*do not free sdcard cache*/
-	if(MMC_TYPE_SD  != card->type){
+	if(MMC_TYPE_SD  != card->type)
 		kfree(mqrq_cur->sg);
-	}
 #else
 	kfree(mqrq_cur->sg);
 #endif
@@ -509,11 +505,10 @@ void mmc_cleanup_queue(struct mmc_queue *mq)
 	kfree(mqrq_prev->bounce_sg);
 	mqrq_prev->bounce_sg = NULL;
 
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_MMC
 	/*do not free sdcard cache*/
-	if(MMC_TYPE_SD  != card->type){
+	if(MMC_TYPE_SD  != card->type)
 		kfree(mqrq_prev->sg);
-	}
 #else
 	kfree(mqrq_prev->sg);
 #endif

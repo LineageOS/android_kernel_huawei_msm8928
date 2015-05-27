@@ -41,9 +41,9 @@
 #define SDHCI_USE_LEDS_CLASS
 #endif
 
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_MMC
 extern int mmc_debug_mask;
-module_param_named(debug_mask, mmc_debug_mask, int, 
+module_param_named(debug_mask, mmc_debug_mask, int,
 				   S_IRUGO | S_IWUSR | S_IWGRP);
 
 #define HUAWEI_DBG(fmt, args...) \
@@ -51,10 +51,10 @@ module_param_named(debug_mask, mmc_debug_mask, int,
 	    if (mmc_debug_mask) \
 		    printk(fmt, args); \
 	} while (0)
-#endif /* CONFIG_HUAWEI_KERNEL */
+#endif /* CONFIG_HUAWEI_MMC */
 
 #define MAX_TUNING_LOOP 40
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_MMC
 static struct kmem_cache *mmc_area_cachep __read_mostly;
 static struct scatterlist	*cur_sg = NULL;
 static struct scatterlist	*prev_sg = NULL;
@@ -1550,7 +1550,8 @@ static void sdhci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	else
 		present = sdhci_readl(host, SDHCI_PRESENT_STATE) &
 				SDHCI_CARD_PRESENT;
-#ifdef CONFIG_HUAWEI_KERNEL 
+
+#ifdef CONFIG_HUAWEI_MMC
     HUAWEI_DBG("HUAWEI %s: starting CMD%u arg %08x flags %08x\n",
 		 mmc_hostname(host->mmc), mrq->cmd->opcode,
 		 mrq->cmd->arg, mrq->cmd->flags);
@@ -1582,12 +1583,13 @@ static void sdhci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 		else
 			sdhci_send_command(host, mrq->cmd);
 	}
-#ifdef CONFIG_HUAWEI_KERNEL
+
+#ifdef CONFIG_HUAWEI_MMC
     HUAWEI_DBG("HUAWEI %s: req end (CMD%u): %08x %08x %08x %08x\n",
 			mmc_hostname(host->mmc), mrq->cmd->opcode,
 			mrq->cmd->resp[0], mrq->cmd->resp[1],
 			mrq->cmd->resp[2], mrq->cmd->resp[3]);
-#endif 
+#endif
 	mmiowb();
 	spin_unlock_irqrestore(&host->lock, flags);
 }
@@ -1804,8 +1806,9 @@ static void sdhci_do_set_ios(struct sdhci_host *host, struct mmc_ios *ios)
 static void sdhci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 {
 	struct sdhci_host *host = mmc_priv(mmc);
-#ifdef CONFIG_HUAWEI_KERNEL 
-    HUAWEI_DBG("%s: clock %uHz busmode %u powermode %u cs %u Vdd %u "
+
+#ifdef CONFIG_HUAWEI_MMC
+	HUAWEI_DBG("%s: clock %uHz busmode %u powermode %u cs %u Vdd %u "
 		"width %u timing %u\n",
 		 mmc_hostname(mmc), ios->clock, ios->bus_mode,
 		 ios->power_mode, ios->chip_select, ios->vdd,
@@ -3077,19 +3080,20 @@ struct sdhci_host *sdhci_alloc_host(struct device *dev,
 
 EXPORT_SYMBOL_GPL(sdhci_alloc_host);
 
-#ifdef CONFIG_HUAWEI_KERNEL
-struct scatterlist* sdhci_get_cur_sg(void){
-
+#ifdef CONFIG_HUAWEI_MMC
+struct scatterlist* sdhci_get_cur_sg(void)
+{
 	return cur_sg;
 }
 EXPORT_SYMBOL(sdhci_get_cur_sg);
 
-struct scatterlist* sdhci_get_prev_sg(void){
-
+struct scatterlist* sdhci_get_prev_sg(void)
+{
 	return prev_sg;
 }
 EXPORT_SYMBOL(sdhci_get_prev_sg);
 #endif
+
 int sdhci_add_host(struct sdhci_host *host)
 {
 	struct mmc_host *mmc;
@@ -3097,7 +3101,7 @@ int sdhci_add_host(struct sdhci_host *host)
 	u32 max_current_caps;
 	unsigned int ocr_avail;
 	int ret;
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_MMC
 	u32 max_segs_size = 0;
 #endif
 
@@ -3564,7 +3568,7 @@ int sdhci_add_host(struct sdhci_host *host)
 
 	mmc_add_host(mmc);
 
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_MMC
 	/*add slab cache for mmc1(sdcard)*/
 	if(!strcmp(mmc_hostname(mmc), "mmc1")){
 		max_segs_size = mmc->max_segs*sizeof(struct scatterlist);

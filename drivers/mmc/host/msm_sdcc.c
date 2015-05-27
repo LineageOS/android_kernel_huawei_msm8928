@@ -4464,13 +4464,14 @@ msmsdcc_slot_status(struct msmsdcc_host *host)
 #ifdef CONFIG_HUAWEI_MMC
 static unsigned long msmsdcc_irqtime = 0;
 #endif
+
 static void
 msmsdcc_check_status(unsigned long data)
 {
 	struct msmsdcc_host *host = (struct msmsdcc_host *)data;
 	unsigned int status;
 #ifdef CONFIG_HUAWEI_MMC
-    unsigned long duration;
+	unsigned long duration;
 #endif
 
 	if (host->plat->status || gpio_is_valid(host->plat->status_gpio)) {
@@ -4500,27 +4501,21 @@ msmsdcc_check_status(unsigned long data)
 					mmc_hostname(host->mmc),
 					host->oldstat, status);
 #ifdef CONFIG_HUAWEI_MMC
-            duration = jiffies - msmsdcc_irqtime;
-            /* current msmsdcc is present, add to handle dithering */
-            if (status)
-            {
-                /* the distance of two interrupts can not less than 7 second */
-                if (duration < (7 * HZ))
-                {
-                    duration = (7 * HZ) - duration;
-                }
-                else
-                {
-                    /* 100 millisecond */
-                    duration = 10;
-                }
-            }
-            else
-            {
-                duration = 0;
-            }
-            mmc_detect_change(host->mmc, duration);
-            msmsdcc_irqtime = jiffies;
+			duration = jiffies - msmsdcc_irqtime;
+			/* current msmsdcc is present, add to handle dithering */
+			if (status) {
+				/* the distance of two interrupts can not less than 7 second */
+				if (duration < (7 * HZ))
+					duration = (7 * HZ) - duration;
+				else
+					/* 100 millisecond */
+					duration = 10;
+			}
+			else
+				duration = 0;
+
+			mmc_detect_change(host->mmc, duration);
+			msmsdcc_irqtime = jiffies;
 #else
 			mmc_detect_change(host->mmc, 0);
 #endif

@@ -41,9 +41,12 @@
 #include <linux/mmc/host.h>
 #include <linux/mmc/mmc.h>
 #include <linux/mmc/sd.h>
+#ifdef CONFIG_HUAWEI_MMC
+#include <linux/mmc/swrm.h>
+#endif
 
 #include <asm/uaccess.h>
-#include <linux/mmc/swrm.h>
+
 #include "queue.h"
 
 MODULE_ALIAS("mmc:block");
@@ -150,7 +153,7 @@ static inline int mmc_blk_part_switch(struct mmc_card *card,
 				      struct mmc_blk_data *md);
 static int get_card_status(struct mmc_card *card, u32 *status, int retries);
 
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_MMC
 extern int mmc_suspend(struct mmc_host *host);
 extern int mmc_can_poweroff_notify(const struct mmc_card *card);
 #endif
@@ -660,10 +663,13 @@ static int mmc_blk_ioctl_cmd(struct block_device *bdev,
 
 	mrq.cmd = &cmd;
 
-    if (cmd.opcode == MMC_SWRM_OP) { 
-        err = mmc_blk_dispatch_swrm(card, idata); 
-        goto cmd_done; 
-    }
+#ifdef CONFIG_HUAWEI_MMC
+	if (cmd.opcode == MMC_SWRM_OP) {
+		err = mmc_blk_dispatch_swrm(card, idata);
+		goto cmd_done;
+	}
+#endif
+
 	mmc_rpm_hold(card->host, &card->dev);
 	mmc_claim_host(card->host);
 
@@ -1455,14 +1461,12 @@ static int mmc_blk_err_check(struct mmc_card *card,
 	struct request *req = mq_mrq->req;
 	int ecc_err = 0;
 
+#ifdef CONFIG_HUAWEI_MMC
 	int gen_err = 0;
+	int need_retry = 0;
 
-#ifdef CONFIG_HUAWEI_KERNEL
-    int need_retry = 0;
 	if(EMMC_SANDISK_MANFID == card->cid.manfid)
-	{
 		pr_debug("[HW]:EMMC_SANDISK_MANFID:Retry Function.");
-	}
 #endif
 
 	/*
@@ -1511,15 +1515,16 @@ static int mmc_blk_err_check(struct mmc_card *card,
 
 		timeout = jiffies + msecs_to_jiffies(MMC_BLK_TIMEOUT_MS);
 
-        if(EMMC_TOSHIBA_MANFID == card->cid.manfid)
-        {
-            pr_debug("[HW]:EMMC_TOSHIBA_MANFID:Retry Function.");
-            /* Check stop command(CMD12)response */
-            if (brq->mrq.stop && (brq->mrq.stop->resp[0]&R1_ERROR)) {
-                pr_err("[HW]:EMMC_TOSHIBA_MANFID:R1_ERROR in CMD12 response, need retry.\n");
-                return MMC_BLK_RETRY;
-            }
-        }
+#ifdef CONFIG_HUAWEI_MMC
+		if(EMMC_TOSHIBA_MANFID == card->cid.manfid) {
+			pr_debug("[HW]:EMMC_TOSHIBA_MANFID:Retry Function.");
+			/* Check stop command(CMD12)response */
+			if (brq->mrq.stop && (brq->mrq.stop->resp[0]&R1_ERROR)) {
+				pr_err("[HW]:EMMC_TOSHIBA_MANFID:R1_ERROR in CMD12 response, need retry.\n");
+				return MMC_BLK_RETRY;
+			}
+		}
+#endif
 
 		do {
 			int err = get_card_status(card, &status, 5);
@@ -1540,21 +1545,15 @@ static int mmc_blk_err_check(struct mmc_card *card,
 				return MMC_BLK_CMD_ERR;
 			}
 
-            if(EMMC_TOSHIBA_MANFID == card->cid.manfid)
-            {
-                if(status & R1_ERROR) {
-                    gen_err = 1;
-                }
-            }
+#ifdef CONFIG_HUAWEI_MMC
+			if(EMMC_TOSHIBA_MANFID == card->cid.manfid)
+				if(status & R1_ERROR)
+					gen_err = 1;
 
-#ifdef CONFIG_HUAWEI_KERNEL
-            if(EMMC_SANDISK_MANFID == card->cid.manfid)
-            {
-			    /* Bit 19 and Bit 20 set means VDET error, need retry this command */
-                if(status & (R1_ERROR|R1_CC_ERROR)) {
-                    need_retry = 1;
-                }
-            }
+			if(EMMC_SANDISK_MANFID == card->cid.manfid)
+				/* Bit 19 and Bit 20 set means VDET error, need retry this command */
+				if(status & (R1_ERROR|R1_CC_ERROR))
+					need_retry = 1;
 #endif
 
 			/*
@@ -1565,27 +1564,21 @@ static int mmc_blk_err_check(struct mmc_card *card,
 		} while (!(status & R1_READY_FOR_DATA) ||
 			 (R1_CURRENT_STATE(status) == R1_STATE_PRG));
 
-        if(EMMC_TOSHIBA_MANFID == card->cid.manfid)
-        {
-            /* if error occur,retry operation executes */
-            if(gen_err){
-                pr_err("[HW]:EMMC_TOSHIBA_MANFID:R1_ERROR in CMD13 response, need retry.\n");
-                return MMC_BLK_RETRY;
-            }
-        }
+#ifdef CONFIG_HUAWEI_MMC
+		if(EMMC_TOSHIBA_MANFID == card->cid.manfid)
+			/* if error occur,retry operation executes */
+			if(gen_err) {
+				pr_err("[HW]:EMMC_TOSHIBA_MANFID:R1_ERROR in CMD13 response, need retry.\n");
+				return MMC_BLK_RETRY;
+			}
 
-#ifdef CONFIG_HUAWEI_KERNEL
-        if(EMMC_SANDISK_MANFID == card->cid.manfid)
-        {
-            /* if error occur,retry operation executes */
-            if(need_retry){
-                pr_err("[HW]:EMMC_SANDISK_MANFID:R1_ERROR and R1_CC_ERROR in CMD13 response, need retry.\n");
-                return MMC_BLK_RETRY;
-            }
-        }
+		if(EMMC_SANDISK_MANFID == card->cid.manfid)
+			/* if error occur,retry operation executes */
+			if(need_retry) {
+				pr_err("[HW]:EMMC_SANDISK_MANFID:R1_ERROR and R1_CC_ERROR in CMD13 response, need retry.\n");
+				return MMC_BLK_RETRY;
+			}
 #endif
-
-		
 	}
 
 	if (brq->data.error) {
@@ -2713,21 +2706,18 @@ static int mmc_blk_issue_rq(struct mmc_queue *mq, struct request *req)
 		if (card->host->areq)
 			mmc_blk_issue_rw_rq(mq, NULL);
 		/*remove the secdiscard of sandisk and toshiba to reduse time of erase*/
-#ifdef CONFIG_HUAWEI_KERNEL
-        if(EMMC_SANDISK_MANFID == card->cid.manfid || EMMC_TOSHIBA_MANFID == card->cid.manfid)
-        {
-            ret = mmc_blk_issue_discard_rq(mq, req); 
-        }
-        else
-        {
-            if (req->cmd_flags & REQ_SECURE &&
-			!(card->quirks & MMC_QUIRK_SEC_ERASE_TRIM_BROKEN))
-	            ret = mmc_blk_issue_secdiscard_rq(mq, req);
-            else
-	            ret = mmc_blk_issue_discard_rq(mq, req);
-        }
+#ifdef CONFIG_HUAWEI_MMC
+		if(EMMC_SANDISK_MANFID == card->cid.manfid || EMMC_TOSHIBA_MANFID == card->cid.manfid)
+			ret = mmc_blk_issue_discard_rq(mq, req);
+		else {
+			if (req->cmd_flags & REQ_SECURE &&
+					!(card->quirks & MMC_QUIRK_SEC_ERASE_TRIM_BROKEN))
+				ret = mmc_blk_issue_secdiscard_rq(mq, req);
+			else
+				ret = mmc_blk_issue_discard_rq(mq, req);
+		}
 #else
-        if (req->cmd_flags & REQ_SECURE &&
+		if (req->cmd_flags & REQ_SECURE &&
 			!(card->quirks & MMC_QUIRK_SEC_ERASE_TRIM_BROKEN))
 			ret = mmc_blk_issue_secdiscard_rq(mq, req);
 		else
@@ -3243,32 +3233,33 @@ static void mmc_blk_shutdown(struct mmc_card *card)
 		}
 	}
 
-#ifdef CONFIG_HUAWEI_KERNEL
-    if(card->ext_csd.bkops_en){
-        mmc_rpm_hold(card->host, &card->dev);
-        mmc_claim_host(card->host);
-        mmc_stop_bkops(card);
+#ifdef CONFIG_HUAWEI_MMC
+	if(card->ext_csd.bkops_en){
+		mmc_rpm_hold(card->host, &card->dev);
+		mmc_claim_host(card->host);
+		mmc_stop_bkops(card);
 		mmc_release_host(card->host);
-        mmc_rpm_release(card->host, &card->dev);
-    }
+		mmc_rpm_release(card->host, &card->dev);
+	}
 
 
 	/* send power off notification or cmd7->cmd5 */
 	if (mmc_card_mmc(card)) {
 		mmc_rpm_hold(card->host, &card->dev);
-        if(card->issue_long_pon && mmc_can_poweroff_notify(card)){
-            mmc_send_long_pon(card);
-        }else{
-            mmc_suspend(card->host);
-        }
+		if(card->issue_long_pon && mmc_can_poweroff_notify(card)){
+			mmc_send_long_pon(card);
+		}else{
+			mmc_suspend(card->host);
+		}
 		mmc_rpm_release(card->host, &card->dev);
 	}
 #else
-    if (mmc_card_mmc(card)) {
-        mmc_rpm_hold(card->host, &card->dev);
-        mmc_send_long_pon(card);
-        mmc_rpm_release(card->host, &card->dev);
-    }
+	/* send power off notification */
+	if (mmc_card_mmc(card)) {
+		mmc_rpm_hold(card->host, &card->dev);
+		mmc_send_long_pon(card);
+		mmc_rpm_release(card->host, &card->dev);
+	}
 #endif
 	return;
 
