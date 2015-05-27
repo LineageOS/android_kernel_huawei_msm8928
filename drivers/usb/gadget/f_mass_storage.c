@@ -3284,6 +3284,7 @@ fsg_add(struct usb_composite_dev *cdev, struct usb_configuration *c,
 	return fsg_bind_config(cdev, c, common);
 }
 
+
 /************************* Module parameters *************************/
 
 struct fsg_module_parameters {

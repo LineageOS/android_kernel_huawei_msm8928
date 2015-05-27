@@ -303,11 +303,11 @@ static void android_pm_qos_update_latency(struct android_dev *dev, int vote)
 	if (!pdata || vote == last_vote
 		|| !pdata->swfi_latency)
 		return;
-    
-	/* fix the warning "pm_qos_update_request() called for unknown object" */   
+
+	/* fix the warning "pm_qos_update_request() called for unknown object" */
 #ifdef CONFIG_HUAWEI_USB
 	if (!pdata->swfi_latency)
-		return;		
+		return;
 #endif
 
 	swfi_latency = pdata->swfi_latency + 1;
@@ -481,7 +481,7 @@ static void adb_android_function_enable(struct android_usb_function *f)
 	/* Disable the gadget until adbd is ready */
 	if (!data->opened)
 		android_disable(dev);
-#endif		
+#endif
 }
 
 static void adb_android_function_disable(struct android_usb_function *f)
@@ -2366,11 +2366,6 @@ functions_store(struct device *pdev, struct device_attribute *attr,
 	strlcpy(buf, buff, sizeof(buf));
 	b = strim(buf);
 
-    /* print informatin for debug */    
-#ifdef CONFIG_HUAWEI_USB
-	printk("%s: %s\n", __func__, buf);
-#endif	
-
 	while (b) {
 		conf_str = strsep(&b, ":");
 		if (conf_str) {
@@ -2434,7 +2429,6 @@ static ssize_t enable_store(struct device *pdev, struct device_attribute *attr,
 	mutex_lock(&dev->mutex);
 
 	sscanf(buff, "%d", &enabled);
-
 	if (enabled && !dev->enabled) {
 		/*
 		 * Update values in composite driver's copy of

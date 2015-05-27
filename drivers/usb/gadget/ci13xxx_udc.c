@@ -3191,7 +3191,7 @@ static int ep_queue(struct usb_ep *ep, struct usb_request *req,
 	struct ci13xxx_req *mReq = container_of(req, struct ci13xxx_req, req);
 	int retval = 0;
 #ifdef CONFIG_HUAWEI_USB
-    static int log_count = 0;   
+    static int log_count = 0;
 #endif
 	unsigned long flags;
 	struct ci13xxx *udc = _udc;
@@ -3233,10 +3233,10 @@ static int ep_queue(struct usb_ep *ep, struct usb_request *req,
 	if (!list_empty(&mReq->queue)) {
 		retval = -EBUSY;
 #ifdef CONFIG_HUAWEI_USB
-        if(log_count <= MAX_LOG_COUNT){
-            err("request already in queue");
-            log_count++;
-        }
+		if(log_count <= MAX_LOG_COUNT){
+			err("request already in queue");
+			log_count++;
+		}
 #else
 		err("request already in queue");
 #endif
@@ -3984,7 +3984,8 @@ static int udc_probe(struct ci13xxx_udc_driver *driver, struct device *dev,
 	INIT_DELAYED_WORK(&udc->re_enum_delay_work,
 					re_enum_delay_work_func);
 	wake_lock_init(&udc->non_standard_wake_lock, WAKE_LOCK_SUSPEND, "non_standard_charger");
-#endif 
+#endif
+
 	if (register_trace_usb_daytona_invalid_access(dump_usb_info, NULL))
 		pr_err("Registering trace failed\n");
 
