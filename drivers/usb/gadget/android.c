@@ -114,11 +114,6 @@ static const char longname[] = "Gadget Android";
 /* string id of sequence number in string descriptor */
 static int serial_str_id = -1;
 
-/* 0: no usb port switch request has been sent
- * 1: one usb port switch request has already been sent at least
- */
-static int switch_request = 0;
-
 /* to store the usb parameter in cmdline */
 usb_param usb_parameter = {
     .usb_serial = {0},
@@ -309,50 +304,6 @@ static const struct usb_descriptor_header *otg_desc[] = {
 	(struct usb_descriptor_header *) &otg_descriptor,
 	NULL,
 };
-
-#ifdef CONFIG_HUAWEI_USB
-/*
- * usb_port_switch_request: submit usb switch request by sending uevent 
- * @usb_pid_index: usb pid index to switch
- * Return value: void
- * Side effect : none
- */
-void usb_port_switch_request(int usb_pid_index)
-{
-	struct android_dev *dev;
-	char event_buf[32];
-	char *envp[2] = {event_buf, NULL};
-	int ret;
-
-	if (list_empty(&android_dev_list))
-	{
-        printk("%s: no android_dev probed \n", __func__);
-	    return;
-	}
-
-    /* use the last android_dev that was probed.
-     * in fact, just one android_dev is probed so far.
-     */
-	dev = list_entry(android_dev_list.prev, struct android_dev, list_item);
-
-    snprintf(event_buf, sizeof(event_buf),"USB_PORT_SWITCH=%d", usb_pid_index);
-
-	printk("%s: send uevent (%s)\n", __func__, event_buf);
-	ret= kobject_uevent_env(&dev->dev->kobj, KOBJ_CHANGE, envp);
-	if (ret < 0)
-    {
-        printk("%s: uevent sending failed with ret = %d\n", __func__, ret);
-    }
-
-    /* framework may lost the requeset uevent when start with usb connection in normal mode
-     * use switch_request as a flag to record a request has been sent already.
-     */
-    switch_request = 1;
-    
-	return;
-}
-EXPORT_SYMBOL(usb_port_switch_request);
-#endif  /* CONFIG_HUAWEI_USB */
 
 enum android_device_state {
 	USB_DISCONNECTED,
@@ -1851,9 +1802,7 @@ struct mass_storage_function_config {
 static int mass_storage_function_init(struct android_usb_function *f,
 					struct usb_composite_dev *cdev)
 {
-#ifndef CONFIG_HUAWEI_USB
 	struct android_dev *dev = cdev_to_android_dev(cdev);
-#endif
 	struct mass_storage_function_config *config;
 	struct fsg_common *common;
 	int err;
@@ -1865,7 +1814,6 @@ static int mass_storage_function_init(struct android_usb_function *f,
 	if (!config)
 		return -ENOMEM;
 
-#ifndef CONFIG_HUAWEI_USB
 	config->fsg.nluns = 1;
 	name[0] = "lun";
 	if (dev->pdata && dev->pdata->cdrom) {
@@ -1884,17 +1832,6 @@ static int mass_storage_function_init(struct android_usb_function *f,
 	}
 
 	config->fsg.luns[0].removable = 1;
-#else
-    /* support multi luns and ro of ench lun is set to 0 to allow
-     * opening "filename" in R/W mode. If the file is read-only,
-     * the ro will be set to 1 automatically.
-     */
-    config->fsg.nluns = USB_MAX_LUNS;
-	for (i = 0; i < USB_MAX_LUNS; i++) {
-        config->fsg.luns[i].removable = 1;
-        config->fsg.luns[i].nofua = 1;     
-	}   
-#endif
 
 	common = fsg_common_init(NULL, cdev, &config->fsg);
 	if (IS_ERR(common)) {
@@ -1902,7 +1839,6 @@ static int mass_storage_function_init(struct android_usb_function *f,
 		return PTR_ERR(common);
 	}
 
-#ifndef CONFIG_HUAWEI_USB
 	for (i = 0; i < config->fsg.nluns; i++) {
 		err = sysfs_create_link(&f->dev->kobj,
 					&common->luns[i].dev.kobj,
@@ -1910,20 +1846,6 @@ static int mass_storage_function_init(struct android_usb_function *f,
 		if (err)
 			goto error;
 	}
-
-#else
-    /* create a symlink for each lun */
-	for (i = 0; i < USB_MAX_LUNS; i++)
-    {
-        err = sysfs_create_link(&f->dev->kobj,
-                    &common->luns[i].dev.kobj,
-                    dev_name(&common->luns[i].dev));
-        if (err)
-        {
-			goto error;
-        }
-    }
-#endif
 
 	config->common = common;
 	f->config = config;
@@ -1970,124 +1892,12 @@ static ssize_t mass_storage_inquiry_store(struct device *dev,
 	return size;
 }
 
-#ifdef CONFIG_HUAWEI_USB
-/*
- * nluns_show: to get the total number of luns
- * @dev: usb mass storage device
- * @attr: the atrribute of device
- * @buf: the buffer to place the result into
- * Return value: the number of characters
- * Side effect : none
- */
-static ssize_t nluns_show(struct device *pdev, struct device_attribute *attr,
-			   char *buf)
-{
-	return snprintf(buf, PAGE_SIZE, "%d\n", nluns);
-}
-
-/*
- * nluns_store: to set the total number of luns
- * @dev: usb mass storage device
- * @attr: the atrribute of device
- * @buf: the buffer to get input value
- * @size: the size of buffer
- * Return value: @size success, -1 fail
- * Side effect : none
- */
-static ssize_t nluns_store(struct device *pdev, struct device_attribute *attr,
-			    const char *buff, size_t size)
-{
-    /* use kstrtoint to replace sscanf */
-    int value = 0;
-    
-    if(kstrtoint(buff, STRING_TO_DECIMAL_INT, &value) <0)
-    {
-         pr_err("%s: Failed to set nluns\n", __func__);
-         return -1;
-    }
-    
-	if(value <= USB_MAX_LUNS)
-	{
-        pr_info("%s: nluns = %d\n", __func__, value);
-        nluns = value;
-        return size;
-    }
-    
-    pr_err("%s: failed because nluns is greater than the supported number \n", __func__);
-	return -1;	
-}
-
-/*
- * cdrom_index_store: to get cdrom_index
- * @dev: usb mass storage device
- * @attr: the atrribute of device
- * @buf: the buffer to place the result into, "none" represents there is no cdrom and number represents the lun index
- * Return value: the number of characters
- * Side effect : none
- */
-static ssize_t cdrom_index_show(struct device *pdev, struct device_attribute *attr,
-			   char *buf)
-{
-    if(cdrom_index >= USB_MAX_LUNS)
-    {
-        return snprintf(buf, PAGE_SIZE, "%s\n", "none");
-    }
-    
-	return snprintf(buf, PAGE_SIZE, "%d\n", cdrom_index);
-}
-
-/* use kstrtoint to replace sscanf */
-/*
- * cdrom_index_store: to set cdrom_index
- * @dev: usb mass storage device
- * @attr: the atrribute of device
- * @buf: the buf to get input value, "none" represents there is no cdrom and number represents the lun index
- * @size: the size of buf
- * Return value: @size success, -1 fail
- * Side effect : none
- */
-static ssize_t cdrom_index_store(struct device *pdev, struct device_attribute *attr,
-			    const char *buff, size_t size)
-{
-    char buf[32];
-    int value = 0;
-    
-    strlcpy(buf, buff, sizeof(buf));
-
-    if(!strcmp(buf, "none"))
-    {
-        pr_info("%s: no cdrom \n", __func__);
-        cdrom_index = USB_MAX_LUNS;
-        return size;
-    }
-    
-    /* use kstrtoint to replace sscanf */
-    if(kstrtoint(buf, STRING_TO_DECIMAL_INT, &value) <0)
-    {
-        pr_err("%s: Failed to set cdrom_index\n", __func__);
-        return -1;
-    }
-
-    cdrom_index = value;
-    pr_info("%s: cdrom_index = %d\n", __func__, cdrom_index);
-    return size;
-
-}
-
-static DEVICE_ATTR(nluns, S_IRUGO | S_IWUSR, nluns_show, nluns_store);
-static DEVICE_ATTR(cdrom_index, S_IRUGO | S_IWUSR, cdrom_index_show, cdrom_index_store);
-#endif
-
 static DEVICE_ATTR(inquiry_string, S_IRUGO | S_IWUSR,
 					mass_storage_inquiry_show,
 					mass_storage_inquiry_store);
 
 static struct device_attribute *mass_storage_function_attributes[] = {
 	&dev_attr_inquiry_string,
-    #ifdef CONFIG_HUAWEI_USB
-	&dev_attr_nluns,
-	&dev_attr_cdrom_index,
-	#endif
 	NULL
 };
 
@@ -2698,10 +2508,6 @@ static ssize_t enable_store(struct device *pdev, struct device_attribute *attr,
 		}
 		dev->enabled = true;
 	} else if (!enabled && dev->enabled) {
-        /* close all stored file in each lun */
-#ifdef CONFIG_HUAWEI_USB        
-        fsg_close_all_file(((struct mass_storage_function_config *)mass_storage_function.config)->common);
-#endif
 		android_disable(dev);
 		list_for_each_entry(conf, &dev->configs, list_item)
 			list_for_each_entry(f_holder, &conf->enabled_functions,
@@ -2759,29 +2565,6 @@ static ssize_t state_show(struct device *pdev, struct device_attribute *attr,
 out:
 	return snprintf(buf, PAGE_SIZE, "%s\n", state);
 }
-
-#ifdef CONFIG_HUAWEI_USB
-static ssize_t switch_request_show(struct device *pdev, struct device_attribute *attr,
-			   char *buf)
-{
-    return snprintf(buf, PAGE_SIZE, "%d\n", switch_request);
-}
-
-/* use kstrtoint to replace sscanf */
-static ssize_t switch_request_store(struct device *pdev, struct device_attribute *attr,
-			    const char *buff, size_t size)
-{
-    int value = 0;
-    if(kstrtoint(buff, STRING_TO_DECIMAL_INT, &value) <0)
-    {
-        pr_err("%s(): Failed to set switch_request\n",__func__);
-        return -1;
-    }
-
-    switch_request = value;
-    return size;
-}
-#endif	
 
 #define DESCRIPTOR_ATTR(field, format_string)				\
 static ssize_t								\
@@ -2842,12 +2625,6 @@ static DEVICE_ATTR(pm_qos, S_IRUGO | S_IWUSR,
 static DEVICE_ATTR(state, S_IRUGO, state_show, NULL);
 static DEVICE_ATTR(remote_wakeup, S_IRUGO | S_IWUSR,
 		remote_wakeup_show, remote_wakeup_store);
-#ifdef CONFIG_HUAWEI_USB
-/* read the attribute to indentify if there is a switch request has been sent or not
- * write 0 to clear the request flag
- */
-static DEVICE_ATTR(switch_request, S_IRUGO | S_IWUSR, switch_request_show, switch_request_store);
-#endif	
 
 static struct device_attribute *android_usb_attributes[] = {
 	&dev_attr_idVendor,
@@ -2864,9 +2641,6 @@ static struct device_attribute *android_usb_attributes[] = {
 	&dev_attr_pm_qos,
 	&dev_attr_state,
 	&dev_attr_remote_wakeup,
-#ifdef CONFIG_HUAWEI_USB
-    &dev_attr_switch_request,
-#endif	
 	NULL
 };
 

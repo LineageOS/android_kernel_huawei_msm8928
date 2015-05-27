@@ -56,6 +56,5 @@ typedef struct
 
 #endif  /* __HUAWEI_USB_H__ */
 
-extern void usb_port_switch_request(int usb_pid_index);
 extern usb_param usb_parameter;
 
