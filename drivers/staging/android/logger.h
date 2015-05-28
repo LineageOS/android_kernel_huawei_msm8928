@@ -56,13 +56,6 @@ struct logger_entry {
 #define LOGGER_LOG_SYSTEM	"log_system"	/* system/framework messages */
 #define LOGGER_LOG_MAIN		"log_main"	/* everything else */
 
-#ifdef CONFIG_HUAWEI_KERNEL
-#define LOGGER_LOG_EXCEPTION    "log_exception" /* exception */
-#endif
-#ifdef CONFIG_HUAWEI_KERNEL
-#define LOGGER_LOG_POWER	"smart_power"	/* dev/smart/power */
-#endif
-
 #define LOGGER_ENTRY_MAX_PAYLOAD	4076
 
 #define __LOGGERIO	0xAE
