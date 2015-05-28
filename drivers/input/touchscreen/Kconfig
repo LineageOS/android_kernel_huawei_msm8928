@@ -11,7 +11,6 @@ menuconfig INPUT_TOUCHSCREEN
 
 if INPUT_TOUCHSCREEN
 
-
 config TOUCHSCREEN_CYPRESS_CYTTSP4
 	tristate "Cypress TrueTouch Gen4 Touchscreen Driver"
 	depends on HUAWEI_KERNEL
@@ -86,7 +85,7 @@ config TOUCHSCREEN_CYPRESS_CYTTSP4_PLATFORM_FW_UPGRADE
 	  Include Cypress TrueTouch(tm) Standard Product
 	  Generation4 device Firmware into driver.
 	  Need proper header file for this.
-	  
+
 config TOUCHSCREEN_CYPRESS_CYTTSP4_BINARY_FW_UPGRADE
 	bool "FW upgrade from binary file"
 	depends on TOUCHSCREEN_CYPRESS_CYTTSP4_LOADER
@@ -221,8 +220,6 @@ config TOUCHSCREEN_CYPRESS_CYTTSP4_DEBUG_MODULE
 	  Debug module.
 	  This module adds support for verbose printing touch
 	  information.
-	  
-
 
 config TOUCHSCREEN_88PM860X
 	tristate "Marvell 88PM860x touchscreen"

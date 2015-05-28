@@ -309,11 +309,12 @@ struct qpnp_bms_chip {
 	int 			warm_reset_shutdown_soc_valid_limit;
 	int				estimate_new_ocv_flag;
 #endif
-
 };
+
 #if defined(CONFIG_CHARGER_BQ2419x) || defined(CONFIG_BATTERY_BQ27510)
 struct qpnp_bms_chip *global_bms_chip = NULL;//used for bq27510 getting battery info
 #endif
+
 static struct of_device_id qpnp_bms_match_table[] = {
 	{ .compatible = QPNP_BMS_DEV_NAME },
 	{}
@@ -677,6 +678,7 @@ static int64_t convert_s36_to_s64(uint64_t raw36)
 	return (raw36 >> 35) == 0LL ?
 		raw36 : (SIGN_EXTEND_36_TO_64_MASK | raw36);
 }
+
 static int read_cc_raw(struct qpnp_bms_chip *chip, int64_t *reading,
 							int cc_type)
 {
@@ -704,7 +706,7 @@ static int read_cc_raw(struct qpnp_bms_chip *chip, int64_t *reading,
 					chip->base + BMS1_CC_DATA0, 5);
 		pr_err("new raw_reading is 0x%llx\n", raw_reading);
 	}
-	
+
 	if (rc) {
 		*reading = last_reading;
 		pr_err("Error reading cc: rc = %d\n", rc);
@@ -801,9 +803,11 @@ static void reset_cc(struct qpnp_bms_chip *chip, u8 flags)
 		pr_err("cc reenable failed: %d\n", rc);
 	mutex_unlock(&chip->bms_output_lock);
 }
+
 #ifdef CONFIG_HUAWEI_KERNEL
 extern int hw_get_prop_batt_status( void);
 #endif
+
 static int get_battery_status(struct qpnp_bms_chip *chip)
 {
 	union power_supply_propval ret = {0,};
@@ -825,6 +829,7 @@ static int get_battery_status(struct qpnp_bms_chip *chip)
 	pr_debug("battery power supply is not registered\n");
 	return POWER_SUPPLY_STATUS_UNKNOWN;
 }
+
 static bool is_battery_charging(struct qpnp_bms_chip *chip)
 {
 	return get_battery_status(chip) == POWER_SUPPLY_STATUS_CHARGING;
@@ -1098,7 +1103,7 @@ static int read_soc_params_raw(struct qpnp_bms_chip *chip,
 		{
 			chip->estimate_new_ocv_flag = 1;
 			pr_info("ocv_low_threshold_uv is %d ,ocv_high_threshold_uv is %d ,last_good_ocv_uv is %d \n",
-				chip->ocv_low_threshold_uv,chip->ocv_high_threshold_uv,raw->last_good_ocv_uv);	
+				chip->ocv_low_threshold_uv,chip->ocv_high_threshold_uv,raw->last_good_ocv_uv);
 		}
 #endif
 		if (raw->last_good_ocv_uv < MIN_OCV_UV
@@ -2140,9 +2145,8 @@ int get_avarage_vbat_uv(struct qpnp_bms_chip *chip,int sample_count)
 	}
 
 	vbat_uv = sum /sample_count;
-	
+
 	return vbat_uv;
-	
 }
 
 /*====================================================================================
@@ -2186,7 +2190,7 @@ int hw_protect_voltage_check(struct qpnp_bms_chip *chip,int soc,int sample_count
 		{
 			pr_info("set power_up flag true \n");
 			power_up_flag = true;
-		}		
+		}
 	}
 
 	/* get vbatt uv based on */
@@ -2197,16 +2201,12 @@ int hw_protect_voltage_check(struct qpnp_bms_chip *chip,int soc,int sample_count
 		pr_info("Attention ,get battery voltage failed return soc \n");
 		return soc ;
 	}
-	
+
 	if(vbat_uv < HW_PROTECT_VOLTAGE_UV)
-	{
 		bad_voltage_count = min((bad_voltage_count + 1),HW_MAX_BAD_VOLTAGE_COUNT );
-	}
 	else
-	{
 		bad_voltage_count = 0;
-	}
-	
+
 	if(bad_voltage_count >= HW_MAX_BAD_VOLTAGE_COUNT)
 	{
 		pr_info("Voltage is too low,change soc to zero\n ");
@@ -2220,8 +2220,8 @@ int hw_protect_voltage_check(struct qpnp_bms_chip *chip,int soc,int sample_count
 	pr_debug("soc %d , bad_voltage_count %d ,avarage vbat_uv %d \n ",soc ,bad_voltage_count ,vbat_uv);
 	return soc;
 }
-
 #endif
+
 #define NO_ADJUST_HIGH_SOC_THRESHOLD	98
 static int adjust_soc(struct qpnp_bms_chip *chip, struct soc_params *params,
 							int soc, int batt_temp)
@@ -2406,11 +2406,7 @@ out_check_cutoff_v:
 		soc = CUTOFF_BATTERY_LEVEL + 1;
 		chip->last_ocv_uv = find_ocv_for_pc(chip, batt_temp,find_pc_for_soc(chip, params, soc));
 		fake_low_level_flag = true;
-#if 0
-		find_ocv_for_soc(chip,params,batt_temp,soc,&ocv_uv);
 
-		chip->last_ocv_uv = ocv_uv;
-#endif
 		pr_err("adjust to cutoff level + 1\n");
 	}
 	else if(( hw_ocv_est_uv < chip->v_cutoff_uv + CUTOFF_VOLTAGE_DELTA_UV ) && (soc > CUTOFF_BATTERY_LEVEL))
@@ -2427,10 +2423,6 @@ out_check_cutoff_v:
 	{
 		soc = CUTOFF_BATTERY_LEVEL;
 		chip->last_ocv_uv = find_ocv_for_pc(chip, batt_temp,find_pc_for_soc(chip, params, soc));
-#if 0
-		find_ocv_for_soc(chip,params,batt_temp,soc,&ocv_uv);
-		chip->last_ocv_uv = ocv_uv;
-#endif
 		adjust_to_cutoff_batt_level_flag = true;
 		printk("adjust to cutoff level \n");
 	}
@@ -2774,18 +2766,16 @@ done_calculating:
 	}
 	mutex_unlock(&chip->last_soc_mutex);
 	wake_up_interruptible(&chip->bms_wait_queue);
+
 #ifdef CONFIG_HUAWEI_KERNEL
 	new_temp = batt_temp;
 	previous_temp = chip->batt_temp;
 	chip->batt_temp = new_temp;
 	if ((new_calculated_soc != previous_soc && chip->bms_psy_registered)
-		|| ((new_temp >= HIGH_TEMP) && (new_temp != previous_temp) && chip->bms_psy_registered))
+		|| ((new_temp >= HIGH_TEMP) && (new_temp != previous_temp) && chip->bms_psy_registered)) {
 #else
-
-	if(new_calculated_soc != previous_soc && chip->bms_psy_registered)
-
+	if (new_calculated_soc != previous_soc && chip->bms_psy_registered) {
 #endif
-	{
 		power_supply_changed(&chip->bms_psy);
 		pr_debug("power supply changed\n");
 	} else {
@@ -3973,6 +3963,7 @@ static int64_t read_battery_id(struct qpnp_bms_chip *chip)
 
 	return result.physical;
 }
+
 #if defined(CONFIG_CHARGER_BQ2419x) || defined(CONFIG_BATTERY_BQ27510)
 int64_t get_battery_id_from_bms(void)
 {
@@ -3989,7 +3980,7 @@ int64_t get_battery_id_from_bms(void)
 	return rc;
 }
 #endif
-//remove huawei battery id solution
+
 static int set_battery_data(struct qpnp_bms_chip *chip)
 {
 	int64_t battery_id;
@@ -4097,7 +4088,6 @@ assign_data:
 
 	return 0;
 }
-//remove huawei battery id solution
 
 static int bms_get_adc(struct qpnp_bms_chip *chip,
 					struct spmi_device *spmi)
@@ -4653,7 +4643,7 @@ static int __devinit qpnp_bms_probe(struct spmi_device *spmi)
 			goto error_read;
 		}
 	}
-//remove huawei battery id solution
+
 	rc = set_battery_data(chip);
 	if (rc) {
 		pr_err("Bad battery data %d\n", rc);
@@ -4747,9 +4737,11 @@ static int __devinit qpnp_bms_probe(struct spmi_device *spmi)
 		pr_err("error requesting bms irqs, rc = %d\n", rc);
 		goto unregister_dc;
 	}
+
 #if defined(CONFIG_CHARGER_BQ2419x) || defined(CONFIG_BATTERY_BQ27510)
 	global_bms_chip = chip;
 #endif
+
 	pr_info("probe success: soc =%d vbatt = %d ocv = %d r_sense_uohm = %u warm_reset = %d\n",
 			get_prop_bms_capacity(chip), vbatt, chip->last_ocv_uv,
 			chip->r_sense_uohm, warm_reset);

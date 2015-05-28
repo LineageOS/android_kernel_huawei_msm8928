@@ -502,5 +502,5 @@ config BATTERY_BQ27510
 
 config CHARGER_BQ2419x
 	tristate "Power supply class support"
-	depends on I2C	  
+	depends on I2C
 endif # POWER_SUPPLY

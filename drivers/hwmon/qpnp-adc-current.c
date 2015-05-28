@@ -1156,9 +1156,9 @@ int32_t qpnp_iadc_vadc_sync_read(struct qpnp_iadc_chip *iadc,
 		sign = 1;
 		num = -num;
 	}
-#ifdef CONFIG_HUAWEI_KERNEL	
+#ifdef CONFIG_HUAWEI_KERNEL
 	if((iadc->adc->calib.gain_raw - iadc->adc->calib.offset_raw) == 0)
-	{	
+	{
 		pr_err("Error,gain comp is zero\n");
 		goto fail_release_vadc;
 	}
@@ -1169,9 +1169,9 @@ int32_t qpnp_iadc_vadc_sync_read(struct qpnp_iadc_chip *iadc,
 	result_current = i_result->result_uv;
 	result_current *= QPNP_IADC_NANO_VOLTS_FACTOR;
 	/* Intentional fall through. Process the result w/o comp */
-#ifdef CONFIG_HUAWEI_KERNEL	
+#ifdef CONFIG_HUAWEI_KERNEL
 	if(rsense_u_ohms == 0)
-	{	
+	{
 		pr_err("Error,rsense_u_ohms is zero\n");
 		goto fail_release_vadc;
 	}

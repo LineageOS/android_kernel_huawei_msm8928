@@ -1395,15 +1395,12 @@ static int qpnp_adc_tm_read_status(struct qpnp_adc_tm_chip *chip)
 		pr_err("adc-tm-tm read status high failed with %d\n", rc);
 		goto fail;
 	}
+
 #ifdef CONFIG_HUAWEI_KERNEL
 	if(high_thr_isr)
-	{
 		adc_tm_high_enable = qpnp_adc_tm_meas_en & status_high;
-	}
 	else
-	{
-		adc_tm_low_enable = qpnp_adc_tm_meas_en & status_low;		
-	}
+		adc_tm_low_enable = qpnp_adc_tm_meas_en & status_low;
 #else
 	adc_tm_low_enable = qpnp_adc_tm_meas_en & status_low;
 	adc_tm_low_enable &= adc_tm_low_thr_set;
@@ -1559,6 +1556,7 @@ static void qpnp_adc_tm_high_thr_work(struct work_struct *work)
 	struct qpnp_adc_tm_chip *chip = container_of(work,
 			struct qpnp_adc_tm_chip, trigger_high_thr_work);
 	int rc;
+
 #ifdef CONFIG_HUAWEI_KERNEL
 	rc = qpnp_adc_tm_read_status(chip,true);
 #else
@@ -1586,6 +1584,7 @@ static void qpnp_adc_tm_low_thr_work(struct work_struct *work)
 	struct qpnp_adc_tm_chip *chip = container_of(work,
 			struct qpnp_adc_tm_chip, trigger_low_thr_work);
 	int rc;
+
 #ifdef CONFIG_HUAWEI_KERNEL
 	rc = qpnp_adc_tm_read_status(chip,false);
 #else

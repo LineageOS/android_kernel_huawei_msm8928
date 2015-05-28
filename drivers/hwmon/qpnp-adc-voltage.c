@@ -1297,7 +1297,7 @@ static int get_pa_temp(char *buf,struct kernel_param *kp )
 	}
 	pr_debug("get_pa_temp %d %lld\n",
 		results.adc_code, results.physical);
-	
+
 	return snprintf(buf,BUF_MAX_LENGTH, "%d", (int)results.physical);
 }
 
@@ -1342,7 +1342,7 @@ static int get_pa1_temp(char *buf,struct kernel_param *kp )
 	}
 	pr_debug("get_pa_temp %d %lld\n",
 		results.adc_code, results.physical);
-	
+
 	return snprintf(buf,BUF_MAX_LENGTH, "%d", (int)results.physical);
 }
 

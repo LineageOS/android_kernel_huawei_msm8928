@@ -26,6 +26,7 @@
 #ifdef CONFIG_HUAWEI_KERNEL
 #include <linux/huawei_apanic.h>
 #endif
+
 /* Common PNP defines */
 #define QPNP_PON_REVISION2(base)		(base + 0x01)
 
@@ -427,6 +428,7 @@ static irqreturn_t qpnp_kpdpwr_resin_bark_irq(int irq, void *_pon)
 {
 	return IRQ_HANDLED;
 }
+
 static irqreturn_t qpnp_cblpwr_irq(int irq, void *_pon)
 {
 #ifndef CONFIG_HUAWEI_KERNEL
@@ -440,8 +442,10 @@ static irqreturn_t qpnp_cblpwr_irq(int irq, void *_pon)
 #ifdef CONFIG_HUAWEI_KERNEL
 	hw_chg_usb_usbin_callbak();
 #endif
+
 	return IRQ_HANDLED;
 }
+
 static void bark_work_func(struct work_struct *work)
 {
 	int rc;
@@ -1066,7 +1070,6 @@ static void hw_pmic_power_info(void)
 {
 	u16 pwr_off_reason = 0; //0x80C,0x80D
 	u16 pon_warm_reset_reason = 0;  //0x80A,0x80B
-	//u16 pon_soft_reset_reason = 0;  //0x80E,0x80F	
 	struct qpnp_pon *pon = sys_reset_dev;
 	int rc;
 	int index;
@@ -1174,6 +1177,7 @@ static int __devinit qpnp_pon_probe(struct spmi_device *spmi)
 	pr_info("PMIC@SID%d Power-on reason: %s and '%s' boot\n",
 		pon->spmi->sid, index ? qpnp_pon_reason[index - 1] :
 		"Unknown", cold_boot ? "cold" : "warm");
+
 #ifdef CONFIG_HUAWEI_KERNEL
 	hw_pmic_power_info();
 #endif

@@ -990,9 +990,11 @@ qpnp_chg_iusbmax_set(struct qpnp_chg_chip *chip, int mA)
 		return qpnp_chg_write(chip, &usb_reg,
 		chip->usb_chgpth_base + CHGR_I_MAX_REG, 1);
 	}
+
 #ifdef CONFIG_HUAWEI_KERNEL
 	mA = input_current_filter(mA);
 #endif
+
 	/* Impose input current limit */
 	if (chip->maxinput_usb_ma)
 		mA = (chip->maxinput_usb_ma) <= mA ? chip->maxinput_usb_ma : mA;
@@ -2638,6 +2640,7 @@ get_prop_capacity(struct qpnp_chg_chip *chip)
 	 * from shutting down unecessarily */
 	return DEFAULT_CAPACITY;
 }
+
 #define DEFAULT_TEMP		250
 #define MAX_TOLERABLE_BATT_TEMP_DDC	680
 static int

@@ -321,8 +321,7 @@ struct batt_id_map
 	int thres_up;
 };
 
-struct batt_id_map batt_id_map[BATT_ID_TYPE] = 
-{
+struct batt_id_map batt_id_map[BATT_ID_TYPE] = {
 	{10,7,16},
 	{22,16,31},
 	{39,31,54},
@@ -367,11 +366,11 @@ int of_batterydata_read_data(struct device_node *batterydata_container_node,
 	 * Find the battery data with a battery id resistor closest to this one
 	 */
 #ifdef CONFIG_HUAWEI_KERNEL
-    for (counter = 0; counter < BATT_ID_TYPE; counter++) 
-    {
-        if(is_between(batt_id_map[counter].thres_down,batt_id_map[counter].thres_up,batt_id_kohm))
-            break;
-    }
+	for (counter = 0; counter < BATT_ID_TYPE; counter++) {
+		if(is_between(batt_id_map[counter].thres_down,batt_id_map[counter].thres_up,batt_id_kohm))
+			break;
+	}
+
 	if(counter >= BATT_ID_TYPE)
 	{
 		if(!done)

@@ -1691,7 +1691,9 @@ static void wcnss_nvbin_dnld(void)
 	wifi_device_type = get_wifi_device_type();
 	wifi_pubfile_id = (char *)get_hw_wifi_pubfile_id();
 #endif
+
 	down_read(&wcnss_pm_sem);
+
 /*wcn3660b use the diff nvbin file*/
 #ifdef CONFIG_HUAWEI_WIFI
 	snprintf(nvbin_path,sizeof(nvbin_path), "%s_%s.bin", QUALCOMM_WCN_CALDATA_FORMAT, wifi_pubfile_id);
@@ -1716,6 +1718,7 @@ static void wcnss_nvbin_dnld(void)
 #else
 	ret = request_firmware(&nv, NVBIN_FILE, dev);
 #endif
+
 	if (ret || !nv || !nv->data || !nv->size) {
 		pr_err("wcnss: %s: request_firmware failed for %s\n",
 			__func__, NVBIN_FILE);

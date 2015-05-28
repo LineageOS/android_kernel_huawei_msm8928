@@ -1,5 +1,6 @@
-/* Introduced feature for controlling led max brightness 
+/* Introduced feature for controlling led max brightness
  * and blinking brightness using dtsi*/
+
 /* Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -730,6 +731,7 @@ static int qpnp_wled_set(struct qpnp_led_data *led)
 	}
 	return 0;
 }
+
 /* add the log dynamic control */
 static int qpnp_mpp_set(struct qpnp_led_data *led)
 {
@@ -746,12 +748,14 @@ static int qpnp_mpp_set(struct qpnp_led_data *led)
 				"set to minimum supported\n");
 			led->cdev.brightness = led->mpp_cfg->min_brightness;
 		}
+
 #ifdef CONFIG_HUAWEI_KERNEL
 		if (led->cdev.brightness > led->max_brightness) {
 			LED_LOG_DBG("brightness is more than supported, set to maximum supported\n");
 			led->cdev.brightness = led->max_brightness;
 		}
 #endif
+
 		if (led->mpp_cfg->pwm_mode != MANUAL_MODE) {
 			if (!led->mpp_cfg->pwm_cfg->blinking) {
 				led->mpp_cfg->pwm_cfg->mode =
@@ -779,11 +783,12 @@ static int qpnp_mpp_set(struct qpnp_led_data *led)
 		if (led->mpp_cfg->pwm_mode != MANUAL_MODE)
 			pwm_enable(led->mpp_cfg->pwm_cfg->pwm_dev);
 		else {
-			#ifdef CONFIG_HUAWEI_KERNEL
-			/* 0--5mA;  1--10mA; 2--15mA; 3--20mA; 
+#ifdef CONFIG_HUAWEI_KERNEL
+			/* 0--5mA;  1--10mA; 2--15mA; 3--20mA;
 			 * 4--25mA; 5--30mA; 6--35mA; 7--40mA; */
 			val = (led->mpp_cfg->current_setting / LED_MPP_CURRENT_MIN) - 1;
-			#else
+#else
+
 			if (led->cdev.brightness < LED_MPP_CURRENT_MIN)
 				led->cdev.brightness = LED_MPP_CURRENT_MIN;
 
@@ -3748,3 +3753,4 @@ module_exit(qpnp_led_exit);
 MODULE_DESCRIPTION("QPNP LEDs driver");
 MODULE_LICENSE("GPL v2");
 MODULE_ALIAS("leds:leds-qpnp");
+

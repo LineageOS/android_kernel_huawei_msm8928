@@ -1291,6 +1291,7 @@ static int wcd9xxx_dt_parse_micbias_info(struct device *dev,
 	    (of_property_read_bool(dev->of_node, "huawei,cdc-micbias4-ext-cap") ?
 	     MICBIAS_EXT_BYP_CAP : MICBIAS_NO_EXT_BYP_CAP);
 #endif
+
 	micbias->bias2_is_headset_only =
 	    of_property_read_bool(dev->of_node,
 				  "qcom,cdc-micbias2-headset-only");
