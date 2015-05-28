@@ -1172,13 +1172,9 @@
 		compatible = "qcom,msm-thermal";
 		qcom,sensor-id = <0>;
 		qcom,poll-ms = <250>;
-
-		/*Changed from 60 to 75, inorder to maximize the bootup speed under high temp conditions*/
-		qcom,limit-temp = <75>;
+		qcom,limit-temp = <60>;
 		qcom,temp-hysteresis = <10>;
-		/*Changed from 2 to 1 as the lifetime of msm_thermal is limited only during boot. */
-		/* Once boot completed the thermald is used to profile cpu freqs under high temp conditions*/
-		qcom,freq-step = <1>;
+		qcom,freq-step = <2>;
 
 		qcom,freq-control-mask = <0xf>;
 		qcom,core-limit-temp = <80>;
