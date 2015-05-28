@@ -55,11 +55,7 @@
 #define EMERGENCY_DLOAD_MAGIC1    0x322A4F99
 #define EMERGENCY_DLOAD_MAGIC2    0xC67E4350
 #define EMERGENCY_DLOAD_MAGIC3    0x77777777
-//Added magic mumber for sdupdate and usbupdate
-#define SDUPDATE_FLAG_MAGIC_NUM  0x77665528
-#define USBUPDATE_FLAG_MAGIC_NUM  0x77665523
-#define SD_UPDATE_RESET_FLAG   "sdupdate"
-#define USB_UPDATE_RESET_FLAG   "usbupdate"
+
 #define SCM_IO_DISABLE_PMIC_ARBITER	1
 
 #ifdef CONFIG_MSM_RESTART_V2
@@ -408,11 +404,6 @@ static void msm_restart_prepare(const char *cmd)
 #ifdef CONFIG_HUAWEI_KERNEL
 		} else if (!strncmp(cmd, "huawei_dload", 12)) {
 			__raw_writel(0x77665503, restart_reason);
-        //Added adb reboot sdupdate/usbupdate command support
-        } else if(!strncmp(cmd, SD_UPDATE_RESET_FLAG, strlen(SD_UPDATE_RESET_FLAG))) {
-            __raw_writel(SDUPDATE_FLAG_MAGIC_NUM, restart_reason);
-        } else if(!strncmp(cmd, USB_UPDATE_RESET_FLAG, strlen(USB_UPDATE_RESET_FLAG))) {
-            __raw_writel(USBUPDATE_FLAG_MAGIC_NUM, restart_reason);
 #endif
 #ifdef CONFIG_HUAWEI_KERNEL
 		}  else if (!strncmp(cmd, "huawei_rtc", 10)) {
