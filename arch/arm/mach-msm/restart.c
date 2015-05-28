@@ -60,16 +60,6 @@
 #define use_restart_v2()	0
 #endif
 
-#ifdef CONFIG_HUAWEI_KERNEL
-#define RESTART_FLAG_ADDR    0x800
-#define RESTART_FLAG_MAGIC_NUM    0x20890206
-#define restart_flag_addr     (MSM_IMEM_BASE + RESTART_FLAG_ADDR)
-#ifdef CONFIG_HUAWEI_KERNEL
-#define QFUSE_MAGIC_NUM  0xF4C3D2C1
-#define QFUSE_MAGIC_OFFSET  0x24
-#endif
-#endif
-
 static int restart_mode;
 void *restart_reason;
 
@@ -254,93 +244,6 @@ static irqreturn_t resout_irq_handler(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-#ifdef CONFIG_HUAWEI_KERNEL
-static void qfuse_handle(const char *cmd)
-{
-    char *fuse_data_p = NULL;
-    unsigned int rdata = 0;
-
-    if(NULL == cmd)
-    {
-        return;
-    }
-    
-    //write qfuse magic
-    __raw_writel(QFUSE_MAGIC_NUM, (dload_mode_addr+QFUSE_MAGIC_OFFSET)); /*addr 0x2A03F000 */
-
-    //get r0
-    fuse_data_p = strstr(cmd, "r0=");
-    rdata = 0;
-    if(NULL != fuse_data_p)
-    {
-        fuse_data_p = fuse_data_p+3;
-        if(NULL != fuse_data_p)
-        {
-            rdata = simple_strtoul(fuse_data_p, NULL, 16);
-        }
-    }
-    //write r0
-    pr_err("qfuse_handle r0 = 0x%x\n", rdata);
-    __raw_writel(rdata, (dload_mode_addr+QFUSE_MAGIC_OFFSET+4));
-    pr_err("qfuse_handle dload_mode_addr r0 = 0x%x\n", *((unsigned int*)(dload_mode_addr+QFUSE_MAGIC_OFFSET+4)));
-
-    //get r1
-    fuse_data_p = strstr(cmd, "r1=");
-    rdata = 0;
-    if(NULL != fuse_data_p)
-    {
-        fuse_data_p = fuse_data_p+3;
-        if(NULL != fuse_data_p)
-        {
-            rdata = simple_strtoul(fuse_data_p, NULL, 16);
-        }
-    }
-    //write r1
-    pr_err("qfuse_handle r1 = 0x%x\n", rdata);
-    __raw_writel(rdata, (dload_mode_addr+QFUSE_MAGIC_OFFSET+8));
-    pr_err("qfuse_handle dload_mode_addr r1 = 0x%x\n", *((unsigned int*)(dload_mode_addr+QFUSE_MAGIC_OFFSET+8)));
-
-    //get r2
-    fuse_data_p = strstr(cmd, "r2=");
-    rdata = 0;
-    if(NULL != fuse_data_p)
-    {
-        fuse_data_p = fuse_data_p+3;
-        if(NULL != fuse_data_p)
-        {
-            rdata = simple_strtoul(fuse_data_p, NULL, 16);
-        }
-    }
-
-    //write r2
-    pr_err("qfuse_handle r2 = 0x%x\n", rdata);
-    __raw_writel(rdata, (dload_mode_addr+QFUSE_MAGIC_OFFSET+12));
-    pr_err("qfuse_handle dload_mode_addr r2 = 0x%x\n", *((unsigned int*)(dload_mode_addr+QFUSE_MAGIC_OFFSET+12)));
-
-    //get r3
-    fuse_data_p = strstr(cmd, "r3=");
-    rdata = 0;
-    if(NULL != fuse_data_p)
-    {
-        fuse_data_p = fuse_data_p+3;
-        if(NULL != fuse_data_p)
-        {
-            rdata = simple_strtoul(fuse_data_p, NULL, 16);
-        }
-    }
-    //write r3
-    pr_err("qfuse_handle r3 = 0x%x\n", rdata);
-    __raw_writel(rdata, (dload_mode_addr+QFUSE_MAGIC_OFFSET+16));
-    pr_err("qfuse_handle dload_mode_addr r3 = 0x%x\n", *((unsigned int*)(dload_mode_addr+QFUSE_MAGIC_OFFSET+16)));
-
-    pr_err("qfuse_handle dload_mode_addr magic = 0x%x\n", *((unsigned int*)(dload_mode_addr+QFUSE_MAGIC_OFFSET)));
-
-    //enter recovery mode
-    //__raw_writel(0x77665502, restart_reason); 
-
-    mb();
-}
-#endif
 static void msm_restart_prepare(const char *cmd)
 {
 #ifdef CONFIG_MSM_DLOAD_MODE
@@ -360,10 +263,8 @@ static void msm_restart_prepare(const char *cmd)
 		set_dload_mode(0);
 #endif
 
-#ifdef CONFIG_HUAWEI_KERNEL
-	__raw_writel(RESTART_FLAG_MAGIC_NUM, restart_flag_addr);
-#endif
 	pm8xxx_reset_pwr_off(1);
+
 	/* Hard reset the PMIC unless memory contents must be maintained. */
 	if (get_dload_mode() || (cmd != NULL && cmd[0] != '\0'))
 		qpnp_pon_system_pwr_off(PON_POWER_OFF_WARM_RESET);
@@ -381,22 +282,6 @@ static void msm_restart_prepare(const char *cmd)
 			__raw_writel(0x6f656d00 | code, restart_reason);
 		} else if (!strncmp(cmd, "edl", 3)) {
 			enable_emergency_dload_mode();
-#ifdef CONFIG_HUAWEI_KERNEL
-		} else if (!strncmp(cmd, "huawei_dload", 12)) {
-			__raw_writel(0x77665503, restart_reason);
-#endif
-#ifdef CONFIG_HUAWEI_KERNEL
-		}  else if (!strncmp(cmd, "huawei_rtc", 10)) {
-					   __raw_writel(0x77665524, restart_reason);
-#endif
-#ifdef CONFIG_HUAWEI_KERNEL
-		}  else if (!strncmp(cmd, "emergency_restart", 17)) {
-			printk("do nothing\n");
-#endif
-#ifdef CONFIG_HUAWEI_KERNEL
-        } else if(!strncmp(cmd, "qfuse", 5)) {
-            qfuse_handle(cmd);
-#endif
 		} else {
 			__raw_writel(0x77665501, restart_reason);
 		}
