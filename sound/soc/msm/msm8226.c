@@ -86,8 +86,8 @@ void *def_tapan_mbhc_cal(void);
 static int msm_snd_enable_codec_ext_clk(struct snd_soc_codec *codec, int enable,
 					bool dapm);
 
-/* 1. enable mbhc's cs mode to detect headset and set some value to adapt auto MMI 
- * 2. for auto MMI device detect, here set 
+/* 1. enable mbhc's cs mode to detect headset and set some value to adapt auto MMI
+ * 2. for auto MMI device detect, here set
        do_recalibration = false
        use_vddio_meas = false
    3. avoid happen noise when playing, clear var
@@ -734,20 +734,20 @@ static const struct soc_enum msm_snd_enum[] = {
 /* The function to pull up GPIO 151 to enable HAC*/
 static void hac_gpio_on(void)
 {
-    int ret = 0;
-    pr_debug("%s: Configure HAC GPIO %u",__func__, HAC_EN_GPIO);
-    ret = gpio_request(HAC_EN_GPIO,
-					  "HAC_EN_GPIO");
-    if (ret) 
-    {
-        pr_err("%s: Failed to configure hac enable "
-                "gpio %u\n", __func__, HAC_EN_GPIO);
-        return;
-    }
+	int ret = 0;
+	pr_debug("%s: Configure HAC GPIO %u",__func__, HAC_EN_GPIO);
+	ret = gpio_request(HAC_EN_GPIO,
+			"HAC_EN_GPIO");
+	if (ret)
+	{
+		pr_err("%s: Failed to configure hac enable "
+				"gpio %u\n", __func__, HAC_EN_GPIO);
+		return;
+	}
 
-    pr_debug("%s: Enable hac enable gpio %u\n",
-            __func__, HAC_EN_GPIO);
-    gpio_direction_output(HAC_EN_GPIO, GPIO_PULL_UP);
+	pr_debug("%s: Enable hac enable gpio %u\n",
+			__func__, HAC_EN_GPIO);
+	gpio_direction_output(HAC_EN_GPIO, GPIO_PULL_UP);
 }
 
 /* The function to pull down GPIO 151 to disable HAC*/
@@ -815,9 +815,10 @@ static const struct snd_kcontrol_new msm_snd_controls[] = {
 		     msm_btsco_rate_get, msm_btsco_rate_put),
 	SOC_ENUM_EXT("PROXY_RX Channels", msm_snd_enum[2],
 			msm_proxy_rx_ch_get, msm_proxy_rx_ch_put),
-    SOC_ENUM_EXT("HAC",msm8226_hac_switch_enum[0],
-            msm8226_hac_switch_get,msm8226_hac_switch_put),
+	SOC_ENUM_EXT("HAC",msm8226_hac_switch_enum[0],
+			msm8226_hac_switch_get,msm8226_hac_switch_put),
 };
+
 static int msm_afe_set_config(struct snd_soc_codec *codec)
 {
 	int rc;
@@ -2212,7 +2213,6 @@ static __devinit int msm8226_asoc_machine_probe(struct platform_device *pdev)
 			goto err_vdd_spkr;
 		}
 	}
-
 
 	msm8226_setup_hs_jack(pdev, pdata);
 

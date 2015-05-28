@@ -104,14 +104,17 @@
 #define WCD9XXX_MEAS_DELTA_MAX_MV 120
 #define WCD9XXX_MEAS_INVALD_RANGE_LOW_MV 20
 #define WCD9XXX_MEAS_INVALD_RANGE_HIGH_MV 80
+
 /* enable mbhc's cs mode to detect headset and set some value to adapt auto MMI */
 #define CSMODE_HS_DETECT_PLUG_INERVAL_MS  200
+
 /*
  * Invalid voltage range for the detection
  * of plug type with current source
  */
 #define WCD9XXX_CS_MEAS_INVALD_RANGE_LOW_MV 3110
 #define WCD9XXX_CS_MEAS_INVALD_RANGE_HIGH_MV 3265
+
 /*
  * Threshold used to detect euro headset
  * with current source
@@ -285,7 +288,7 @@ static bool can_device_support_tty(void)
         isttydev = HW_DEVICE_SUPPORT_TTY;
         return true;
     }
-    
+
     isttydev = HW_DEVICE_OTHER;
     return false;
 }
@@ -1169,7 +1172,7 @@ static s32 __wcd9xxx_codec_sta_dce_v(struct wcd9xxx_mbhc *mbhc, s8 dce,
 	}
 
 #ifdef CONFIG_HUAWEI_KERNEL
-    pr_debug("%s: dce=%d, bias_value=%d, value=%d, z=%d, mb=%d, mv=%d", 
+    pr_debug("%s: dce=%d, bias_value=%d, value=%d, z=%d, mb=%d, mv=%d",
         __func__, dce, bias_value, value, z, mb, mv);
 #endif
 
@@ -1591,27 +1594,16 @@ wcd9xxx_cs_find_plug_type(struct wcd9xxx_mbhc *mbhc,
 
 
 #ifdef CONFIG_HUAWEI_KERNEL
-	if(!can_device_support_tty())	{
-		if (!(event_state & (1UL << MBHC_EVENT_PA_HPHL))) { 
-			if (((type == PLUG_TYPE_HEADSET || 
-			      type == PLUG_TYPE_HEADPHONE) && ch != sz)) { 
-				pr_debug("%s: Invalid, not fully inserted, TYPE %d\n", 
-				__func__, type); 
-				type = PLUG_TYPE_INVALID; 
-			} 
+	if(!can_device_support_tty())
+#endif
+	if (!(event_state & (1UL << MBHC_EVENT_PA_HPHL))) {
+		if (((type == PLUG_TYPE_HEADSET ||
+		      type == PLUG_TYPE_HEADPHONE) && ch != sz)) {
+			pr_debug("%s: Invalid, not fully inserted, TYPE %d\n",
+				 __func__, type);
+			type = PLUG_TYPE_INVALID;
 		}
 	}
-#else
-	if (!(event_state & (1UL << MBHC_EVENT_PA_HPHL))) { 
-		if (((type == PLUG_TYPE_HEADSET || 
-		      type == PLUG_TYPE_HEADPHONE) && ch != sz)) { 
-			pr_debug("%s: Invalid, not fully inserted, TYPE %d\n", 
-			__func__, type); 
-			type = PLUG_TYPE_INVALID; 
-		} 
-	}
-#endif
-    
 exit:
 	pr_debug("%s: Plug type %d detected\n", __func__, type);
 	return type;
@@ -1904,9 +1896,7 @@ wcd9xxx_codec_cs_get_plug_type(struct wcd9xxx_mbhc *mbhc, bool highhph)
 			wcd9xxx_codec_hphr_gnd_switch(codec, false);
 		/* add this code to correct detecting of TTY device */
 		if( rt[i].swap_gnd && rt[i-1].mic_bias)
-		{
 			msleep(CSMODE_HS_DETECT_PLUG_INERVAL_MS);
-		}
 	}
 
 	type = wcd9xxx_cs_find_plug_type(mbhc, rt, ARRAY_SIZE(rt), highhph,
@@ -3051,28 +3041,36 @@ static void wcd9xxx_swch_irq_handler(struct wcd9xxx_mbhc *mbhc)
 	if (wcd9xxx_cancel_btn_work(mbhc))
 		pr_debug("%s: button press is canceled\n", __func__);
 
+#ifndef CONFIG_HUAWEI_KERNEL
+	/* cancel detect plug */
+	wcd9xxx_cancel_hs_detect_plug(mbhc,
+				      &mbhc->correct_plug_swch);
+#endif
+
 	insert = !wcd9xxx_swch_level_remove(mbhc);
 	pr_debug("%s: Current plug type %d, insert %d\n", __func__,
 		 mbhc->current_plug, insert);
 	if ((mbhc->current_plug == PLUG_TYPE_NONE) && insert) {
-		/* in cs mode, when insert , increase 200ms debounce*/
-		msleep(CSMODE_HS_DETECT_PLUG_INERVAL_MS); 
-		
 #ifdef CONFIG_HUAWEI_KERNEL
-		if( can_device_support_tty()) 	{ 
-			/* because support for TTY, here add a debounce time to adapt insert 
-			 * a headphone slowly.
+		/* in cs mode, when insert , increase 200ms debounce*/
+		msleep(CSMODE_HS_DETECT_PLUG_INERVAL_MS);
+
+		if( can_device_support_tty()) 	{
+			/* because support for TTY, here add a debounce time to adapt insert
+			 * a headphone slowly
 			 * for a normal inserting, time is less than 800ms, here add a 800ms
 			 */
-			msleep(HW_TTYDEV_DEBOUNCE_TIME); 
+			msleep(HW_TTYDEV_DEBOUNCE_TIME);
 		}
 #endif
 		mbhc->lpi_enabled = false;
 		wmb();
 
+#ifdef CONFIG_HUAWEI_KERNEL
 		/* cancel detect plug */
 		wcd9xxx_cancel_hs_detect_plug(mbhc,
 				      &mbhc->correct_plug_swch);
+#endif
 
 		if ((mbhc->current_plug != PLUG_TYPE_NONE) &&
 		    !(snd_soc_read(codec, WCD9XXX_A_MBHC_INSERT_DETECT) &
@@ -3088,9 +3086,11 @@ static void wcd9xxx_swch_irq_handler(struct wcd9xxx_mbhc *mbhc)
 		mbhc->lpi_enabled = false;
 		wmb();
 
- 		/* cancel detect plug */
- 		wcd9xxx_cancel_hs_detect_plug(mbhc,
- 				      &mbhc->correct_plug_swch);
+#ifdef CONFIG_HUAWEI_KERNEL
+		/* cancel detect plug */
+		wcd9xxx_cancel_hs_detect_plug(mbhc,
+				      &mbhc->correct_plug_swch);
+#endif
 
 		if (mbhc->current_plug == PLUG_TYPE_HEADPHONE) {
 			wcd9xxx_report_plug(mbhc, 0, SND_JACK_HEADPHONE);
@@ -4424,11 +4424,11 @@ static int wcd9xxx_event_notify(struct notifier_block *self, unsigned long val,
 			if (mbhc->polling_active)
 				wcd9xxx_enable_mbhc_txfe(mbhc, true);
 		}
-		/* 1.when in call mode, if headset exist and not switch micbias mode 
+		/* 1.when in call mode, if headset exist and not switch micbias mode
 		   there will occur noise in tx direction
 		   2.qcom had added some code to solve this problem when use slave mic,
 		   but not include master mic
-		   3.code below can process slave and master mic, and the code also use 
+		   3.code below can process slave and master mic, and the code also use
 		   qcom original code(in case WCD9XXX_EVENT_PRE_TX_3_ON)
 		*/
 #ifdef CONFIG_HUAWEI_KERNEL
