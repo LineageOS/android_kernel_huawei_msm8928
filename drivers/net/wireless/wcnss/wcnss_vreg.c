@@ -157,10 +157,6 @@ static int configure_iris_xo(struct device *dev, bool use_48mhz_xo, int on,
 	struct clk *clk;
 	struct clk *clk_rf = NULL;
 
-#ifdef CONFIG_HUAWEI_WIFI
-	pr_info("wcnss: %s enter,use_48mhz_xo:%d,on:%d;\n", __func__,use_48mhz_xo,on);
-#endif
-
 	if (wcnss_hardware_type() == WCNSS_PRONTO_HW) {
 		wcnss_phys_addr = MSM_PRONTO_PHYS;
 		pmu_offset = PRONTO_PMU_OFFSET;
@@ -313,10 +309,6 @@ fail:
 
 	if (clk_rf != NULL)
 		clk_put(clk_rf);
-
-#ifdef CONFIG_HUAWEI_WIFI
-	pr_info("wcnss: %s exit;\n", __func__);
-#endif
 
 	return rc;
 }
@@ -505,10 +497,6 @@ int wcnss_wlan_power(struct device *dev,
 	int rc = 0;
 	enum wcnss_hw_type hw_type = wcnss_hardware_type();
 
-#ifdef CONFIG_HUAWEI_WIFI
-	pr_info("wcnss: %s enter,on:%d;line:%d;\n", __func__,on,__LINE__);
-#endif
-
 	if (on) {
 		down(&wcnss_power_on_lock);
 		/* RIVA regulator settings */
@@ -535,10 +523,6 @@ int wcnss_wlan_power(struct device *dev,
 		wcnss_core_vregs_off(hw_type);
 	}
 
-#ifdef CONFIG_HUAWEI_WIFI
-	pr_info("wcnss: %s exit,rc:%d;line:%d;\n", __func__,rc,__LINE__);
-#endif
-
 	return rc;
 
 fail_iris_xo:
@@ -549,9 +533,6 @@ fail_iris_on:
 
 fail_wcnss_on:
 	up(&wcnss_power_on_lock);
-#ifdef CONFIG_HUAWEI_WIFI
-	pr_info("wcnss: %s exit,rc:%d;line:%d;\n", __func__,rc,__LINE__);
-#endif
 	return rc;
 }
 EXPORT_SYMBOL(wcnss_wlan_power);
