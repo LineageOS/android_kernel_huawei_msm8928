@@ -433,6 +433,7 @@ void msm_isp_calculate_framedrop(
 		HANDLE_TO_IDX(stream_cfg_cmd->axi_stream_handle)];
 	uint32_t framedrop_period = msm_isp_get_framedrop_period(
 	   stream_cfg_cmd->frame_skip_pattern);
+
 	stream_info->frame_skip_pattern =
 		stream_cfg_cmd->frame_skip_pattern;
 	if (stream_cfg_cmd->frame_skip_pattern == SKIP_ALL)

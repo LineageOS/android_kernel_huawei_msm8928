@@ -1178,10 +1178,10 @@ static void __init populate_soc_sysfs_files(struct device *msm_soc_device)
 	case 3:
 		device_create_file(msm_soc_device,
 					&msm_soc_attr_hw_platform);
-	#ifdef CONFIG_HUAWEI_SENSOR_SELF_ADAPT
+#ifdef CONFIG_HUAWEI_SENSOR_SELF_ADAPT
 		device_create_file(msm_soc_device,
 				&msm_soc_attr_huawei_product);
-	#endif
+#endif
 	case 2:
 		device_create_file(msm_soc_device,
 					&msm_soc_attr_raw_id);

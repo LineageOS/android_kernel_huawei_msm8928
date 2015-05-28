@@ -1258,7 +1258,7 @@ static int wcd9xxx_dt_parse_micbias_info(struct device *dev,
 				&prop_val)))
 		micbias->bias4_cfilt_sel = (u8)prop_val;
 
-	/* when codec driver start , these code will set mic's cap mode, 
+	/* when codec driver start , these code will set mic's cap mode,
 	 * for matching hardware, here will change the mode property setting code
 	 * so we can control it easily whether Qualcom modify it or not
 	 */

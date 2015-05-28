@@ -285,31 +285,31 @@
 				reg = <0xc100 0x100>;
 				qcom,pin-num = <2>;
 				qcom,mode = <1>;                /* QPNP_PIN_MODE_DIG_OUT */
-				qcom,output-type = <0>;         /* QPNP_PIN_OUT_BUF_CMOS */ 
-				qcom,invert = <0>;              /* QPNP_PIN_INVERT_DISABLE */ 
-				qcom,pull = <5>;                /* QPNP_PIN_PULL_NO */ 
+				qcom,output-type = <0>;         /* QPNP_PIN_OUT_BUF_CMOS */
+				qcom,invert = <0>;              /* QPNP_PIN_INVERT_DISABLE */
+				qcom,pull = <5>;                /* QPNP_PIN_PULL_NO */
 				qcom,vin-sel = <3>;             /*GPIO & MPP	  8026 Connection
 								VIN0	            VPH_PWR
 								VIN1	            L20 (3.075V)
 								VIN2	            L2 (1.2V always On)
 								VIN3	            L6 (1.8V always On)
 								*/
-				qcom,out-strength = <3>;        /* QPNP_PIN_OUT_STRENGTH_HIGH */ 
-				qcom,src-sel = <0>;             /* QPNP_PIN_SEL_FUNC_CONSTANT */ 
-				qcom,master-en = <1>;           /* enable this gpio */ 
+				qcom,out-strength = <3>;        /* QPNP_PIN_OUT_STRENGTH_HIGH */
+				qcom,src-sel = <0>;             /* QPNP_PIN_SEL_FUNC_CONSTANT */
+				qcom,master-en = <1>;           /* enable this gpio */
 			};
 
 			gpio@c200 {/*NFC clock req*/
 				reg = <0xc200 0x100>;
 				qcom,pin-num = <3>;
-				qcom,mode = <0>;                /* QPNP_PIN_MODE_DIG_IN */ 
-				qcom,output-type = <0>;         /* QPNP_PIN_OUT_BUF_CMOS */ 
-				qcom,invert = <0>;              /* QPNP_PIN_INVERT_DISABLE */ 
-				qcom,pull = <4>;                /* QPNP_PIN_PULL_DN */ 
-				qcom,vin-sel = <2>;             /* QPNP_PIN_VIN2  */ 
-				qcom,out-strength = <2>;        /* QPNP_PIN_OUT_STRENGTH_MED */ 
-				qcom,src-sel = <0>;             /* QPNP_PIN_SEL_FUNC_CONSTANT */ 
-				qcom,master-en = <1>;           /* enable this gpio */ 
+				qcom,mode = <0>;                /* QPNP_PIN_MODE_DIG_IN */
+				qcom,output-type = <0>;         /* QPNP_PIN_OUT_BUF_CMOS */
+				qcom,invert = <0>;              /* QPNP_PIN_INVERT_DISABLE */
+				qcom,pull = <4>;                /* QPNP_PIN_PULL_DN */
+				qcom,vin-sel = <2>;             /* QPNP_PIN_VIN2  */
+				qcom,out-strength = <2>;        /* QPNP_PIN_OUT_STRENGTH_MED */
+				qcom,src-sel = <0>;             /* QPNP_PIN_SEL_FUNC_CONSTANT */
+				qcom,master-en = <1>;           /* enable this gpio */
 			};
 			gpio@c300 {
 				reg = <0xc300 0x100>;

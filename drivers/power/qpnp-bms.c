@@ -27,7 +27,6 @@
 #include <linux/qpnp/qpnp-adc.h>
 #include <linux/qpnp/power-on.h>
 #include <linux/of_batterydata.h>
-//remove huawei battery id solution
 
 #ifdef CONFIG_HUAWEI_KERNEL
 #include <linux/time.h>

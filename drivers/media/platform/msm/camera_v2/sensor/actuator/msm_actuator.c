@@ -751,7 +751,7 @@ static int msm_actuator_close(struct v4l2_subdev *sd,
 		if((a_ctrl->vcm_pwd != 0) && a_ctrl->vcm_power_up)
 		{
 			//set pwd gpio to low
-			rc = gpio_direction_output(a_ctrl->vcm_pwd, 0);	
+			rc = gpio_direction_output(a_ctrl->vcm_pwd, 0);
 			if (!rc)
 			{
 				//output to low success

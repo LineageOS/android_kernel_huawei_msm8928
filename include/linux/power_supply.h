@@ -157,6 +157,7 @@ enum power_supply_property {
 	POWER_SUPPLY_PROP_MANUFACTURER,
 	POWER_SUPPLY_PROP_SERIAL_NUMBER,
 };
+
 /* notify bq to set output current*/
 enum power_supply_type {
 	POWER_SUPPLY_TYPE_UNKNOWN = 0,
@@ -172,6 +173,7 @@ enum power_supply_type {
 	POWER_SUPPLY_TYPE_OTG,
 #endif
 };
+
 union power_supply_propval {
 	int intval;
 	const char *strval;

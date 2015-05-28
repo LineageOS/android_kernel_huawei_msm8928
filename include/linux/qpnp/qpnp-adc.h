@@ -235,7 +235,7 @@ enum qpnp_adc_scale_fn_type {
 	SCALE_QRD_SKUAA_BATT_THERM,
 #ifdef CONFIG_HUAWEI_KERNEL
 	SCALE_HUAWEI_PA_THERM,
-#endif 
+#endif
 	SCALE_QRD_SKUG_BATT_THERM = 9,
 	SCALE_NONE,
 };

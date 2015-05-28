@@ -361,8 +361,8 @@ struct mmc_card {
 #define MMC_QUIRK_BROKEN_HPI (1 << 11)
  /* Skip data-timeout advertised by card */
 #define MMC_QUIRK_BROKEN_DATA_TIMEOUT	(1<<12)
-#ifdef CONFIG_HUAWEI_KERNEL 
-#define MMC_QUIRK_SAMSUNG_SMART (1<<10)          /* Samsung SMART is available */ 
+#ifdef CONFIG_HUAWEI_KERNEL
+#define MMC_QUIRK_SAMSUNG_SMART (1<<10)          /* Samsung SMART is available */
 #endif
 
 	unsigned int		erase_size;	/* erase size in sectors */
@@ -661,7 +661,7 @@ extern struct mmc_wr_pack_stats *mmc_blk_get_packed_statistics(
 extern void mmc_blk_init_packed_statistics(struct mmc_card *card);
 extern void mmc_blk_disable_wr_packing(struct mmc_queue *mq);
 extern int mmc_send_long_pon(struct mmc_card *card);
-#ifdef CONFIG_HUAWEI_KERNEL 
-extern ssize_t mmc_samsung_smart_handle(struct mmc_card *card, char *buf); 
+#ifdef CONFIG_HUAWEI_KERNEL
+extern ssize_t mmc_samsung_smart_handle(struct mmc_card *card, char *buf);
 #endif
 #endif /* LINUX_MMC_CARD_H */

@@ -151,7 +151,8 @@ do { \
 
 #define QPNP_PWM_1KHZ				1024
 #define QPNP_GET_RAMP_STEP_DURATION(ramp_time_ms) \
-	((ramp_time_ms * QPNP_PWM_1KHZ) / 1024)
+		((ramp_time_ms * QPNP_PWM_1KHZ) / 1024)
+
 /* LPG Control for PAUSE_HI_MULTIPLIER_LSB */
 #define QPNP_PAUSE_HI_MULTIPLIER_LSB_MASK	0xFF
 
