@@ -1157,11 +1157,6 @@
 					0x0fa00000 0x500000>; /* Address and Size of Hole */
 	};
 
-	huawei,huawei-mem-hole {
-		compatible = "huawei,huawei-mem-hole";
-		huawei,memblock-remove-huawei = <0x12C00000 0x100000>;
-	};
-
 	tsens: tsens@fc4a8000 {
 		compatible = "qcom,msm-tsens";
 		reg = <0xfc4a8000 0x2000>,
