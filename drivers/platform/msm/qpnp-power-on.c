@@ -23,9 +23,6 @@
 #include <linux/input.h>
 #include <linux/log2.h>
 #include <linux/qpnp/power-on.h>
-#ifdef CONFIG_HUAWEI_KERNEL
-#include <linux/huawei_apanic.h>
-#endif
 
 /* Common PNP defines */
 #define QPNP_PON_REVISION2(base)		(base + 0x01)
@@ -389,27 +386,8 @@ static irqreturn_t qpnp_kpdpwr_irq(int irq, void *_pon)
 	return IRQ_HANDLED;
 }
 
-#ifdef CONFIG_MSM_DLOAD_MODE
-#ifdef CONFIG_HUAWEI_KERNEL
-extern void clear_dload_mode(void);
-#endif
-#endif
-
 static irqreturn_t qpnp_kpdpwr_bark_irq(int irq, void *_pon)
 {
-#ifdef CONFIG_MSM_DLOAD_MODE
-#ifdef CONFIG_HUAWEI_KERNEL
-	/* clear dload mode to reduce false triggering dump*/
-	clear_dload_mode();
-#endif
-#endif
-
-#ifdef CONFIG_HUAWEI_KERNEL
-    /*clear the hardware reset magic number reset */
-    clear_hw_reset();
-	/*print message to inform developer this is triggered by long press power key */
-	printk(KERN_ERR "long press power key have detected!\n");
-#endif
 	return IRQ_HANDLED;
 }
 

@@ -38,10 +38,6 @@
 #include "timer.h"
 #include "wdog_debug.h"
 
-#ifdef CONFIG_HUAWEI_KERNEL
-#include <linux/huawei_apanic.h>
-#endif
-
 #define WDT0_RST	0x38
 #define WDT0_EN		0x40
 #define WDT0_BARK_TIME	0x4C
@@ -113,12 +109,6 @@ static void set_dload_mode(int on)
 	}
 }
 
-#ifdef CONFIG_HUAWEI_KERNEL
-void clear_dload_mode(void)
-{
-	set_dload_mode(0);
-}
-#endif
 static bool get_dload_mode(void)
 {
 	return dload_mode_enabled;
@@ -220,11 +210,6 @@ static void __msm_power_off(int lower_pshold)
 static void msm_power_off(void)
 {
 	/* MSM initiated power off, lower ps_hold */
-#ifdef CONFIG_HUAWEI_KERNEL
-	/*clear hardware reset magic number to imem*/
-	__raw_writel(0, HW_RESET_LOG_MAGIC_NUM_ADDR);
-	printk("clear hardware reset magic number when power off\n");
-#endif
 	__msm_power_off(1);
 }
 
@@ -375,11 +360,6 @@ static void msm_restart_prepare(const char *cmd)
 		set_dload_mode(0);
 #endif
 
-#ifdef CONFIG_HUAWEI_KERNEL
-	/*clear hardware reset magic number to imem*/
-	__raw_writel(0, HW_RESET_LOG_MAGIC_NUM_ADDR);
-	printk("clear hardware reset magic number when reboot\n");
-#endif
 #ifdef CONFIG_HUAWEI_KERNEL
 	__raw_writel(RESTART_FLAG_MAGIC_NUM, restart_flag_addr);
 #endif
