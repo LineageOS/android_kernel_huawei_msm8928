@@ -52,26 +52,23 @@
 		compatible = "gpio-keys";
 		input-name = "gpio-keys";
 
-		/*we use gpio 107 and 108 for hall function,so we disable the following config*/
-		/*
-		*camera_focus {
-		*	label = "camera_focus";
-		*	gpios = <&msmgpio 108 0x1>;
-		*	linux,input-type = <1>;
-		*	linux,code = <0x210>;
-		*	gpio-key,wakeup;
-		*	debounce-interval = <15>;
-		*};
+		camera_focus {
+			label = "camera_focus";
+			gpios = <&msmgpio 108 0x1>;
+			linux,input-type = <1>;
+			linux,code = <0x210>;
+			gpio-key,wakeup;
+			debounce-interval = <15>;
+		};
 
-		*camera_snapshot {
-		*	label = "camera_snapshot";
-		*	gpios = <&msmgpio 107 0x1>;
-		*	linux,input-type = <1>;
-		*	linux,code = <0x2fe>;
-		*	gpio-key,wakeup;
-		*	debounce-interval = <15>;
-		*};
-		*/
+		camera_snapshot {
+			label = "camera_snapshot";
+			gpios = <&msmgpio 107 0x1>;
+			linux,input-type = <1>;
+			linux,code = <0x2fe>;
+			gpio-key,wakeup;
+			debounce-interval = <15>;
+		};
 
 		vol_up {
 			label = "volume_up";
@@ -371,12 +368,25 @@
 		qcom,src-sel = <2>;		/* QPNP_PIN_SEL_FUNC_1 */
 		qcom,master-en = <1>;	/* Enable GPIO */
 	};
+
 	gpio@c100 { /* GPIO 2 */
+		qcom,mode = <1>;
+		qcom,output-type = <0>;
+		qcom,pull = <5>;
+		qcom,vin-sel = <3>;
+		qcom,out-strength = <3>;
+		qcom,src-sel = <2>;
+		qcom,master-en = <1>;
 	};
 
 	gpio@c200 { /* GPIO 3 */
-
+		qcom,mode = <0>;		/* QPNP_PIN_MODE_DIG_IN */
+		qcom,pull = <5>;		/* QPNP_PIN_PULL_NO */
+		qcom,vin-sel = <2>;		/* QPNP_PIN_VIN2 */
+		qcom,src-sel = <2>;		/* QPNP_PIN_SEL_FUNC_1 */
+		qcom,master-en = <1>;
 	};
+
 	gpio@c300 { /* GPIO 4 */
 	};
 
