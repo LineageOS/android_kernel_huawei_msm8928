@@ -341,15 +341,8 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 			     selected->pid, selected->comm,
 			     selected_oom_score_adj, selected_tasksize);
 		lowmem_deathpending_timeout = jiffies + HZ;
-#ifdef CONFIG_HUAWEI_KERNEL
-		/* Set TIF_MEMDIE tsk_thread flag before send kill signal to theselected thread.
-		 * This is to fit a usual code sequence and avoidpotential race issue. */
-		set_tsk_thread_flag(selected, TIF_MEMDIE);
-		send_sig(SIGKILL, selected, 0);
-#else
 		send_sig(SIGKILL, selected, 0);
 		set_tsk_thread_flag(selected, TIF_MEMDIE);
-#endif
 		rem -= selected_tasksize;
 		rcu_read_unlock();
 		/* give the system time to free up the memory */
