@@ -939,10 +939,6 @@ static int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 
 
 	pr_debug("%s(), dev_name%s\n", __func__, dev_name(cpu_dai->dev));
-#ifdef CONFIG_HUAWEI_KERNEL
-	pr_debug("%s(), huawei_audio mbhc: extn_cable(%d), cs(%lu)\n",
-			__func__, mbhc_cfg.detect_extn_cable, mbhc_cfg.cs_enable_flags);
-#endif
 
 	rtd->pmdown_time = 0;
 

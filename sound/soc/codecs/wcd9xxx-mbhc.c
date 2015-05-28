@@ -10,16 +10,6 @@
  * GNU General Public License for more details.
  */
 
-#ifdef CONFIG_HUAWEI_KERNEL
-/* Open debug log for development version, will be closed after TR5 */
-#ifdef CONFIG_DYNAMIC_DEBUG
-#undef CONFIG_DYNAMIC_DEBUG
-#endif
-#ifndef DEBUG
-#define DEBUG
-#endif
-#endif
-
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/firmware.h>
@@ -1171,11 +1161,6 @@ static s32 __wcd9xxx_codec_sta_dce_v(struct wcd9xxx_mbhc *mbhc, s8 dce,
 		mv = (value - z) * (s32)micb_mv / (mb - z);
 	}
 
-#ifdef CONFIG_HUAWEI_KERNEL
-    pr_debug("%s: dce=%d, bias_value=%d, value=%d, z=%d, mb=%d, mv=%d",
-        __func__, dce, bias_value, value, z, mb, mv);
-#endif
-
 	return mv;
 }
 
@@ -1634,9 +1619,6 @@ wcd9xxx_find_plug_type(struct wcd9xxx_mbhc *mbhc,
 	const s16 no_mic = plug_type->v_no_mic;
 
 	pr_debug("%s: event_state 0x%lx\n", __func__, event_state);
-#ifdef CONFIG_HUAWEI_KERNEL
-	pr_debug("%s: huawei_audio: no_mic=%d, hs_max=%d\n", __func__, no_mic, hs_max);
-#endif
 
 	for (i = 0, d = dt, ch = 0; i < size; i++, d++) {
 		vdce = wcd9xxx_codec_sta_dce_v(mbhc, true, d->dce);
@@ -3222,13 +3204,6 @@ static int wcd9xxx_determine_button(const struct wcd9xxx_mbhc *mbhc,
 						 MBHC_BTN_DET_V_BTN_HIGH);
 
 	for (i = 0; i < btn_det->num_btn; i++) {
-#ifdef CONFIG_HUAWEI_KERNEL
-		if (0 == i)
-		{
-			pr_debug("%s: huawei_audio: btn_low=%d, btn_high=%d\n",
-					__func__, v_btn_low[0], v_btn_high[0]);
-        }
-#endif
 		if ((v_btn_low[i] <= micmv) && (v_btn_high[i] >= micmv)) {
 			btn = i;
 			break;
@@ -4401,13 +4376,10 @@ static int wcd9xxx_event_notify(struct notifier_block *self, unsigned long val,
 	struct wcd9xxx_mbhc *mbhc = ((struct wcd9xxx_resmgr *)data)->mbhc;
 	struct snd_soc_codec *codec = mbhc->codec;
 	enum wcd9xxx_notify_event event = (enum wcd9xxx_notify_event)val;
-    /* only need the notify for "MICBIAS_x" and "HPHx_PA" event */
-    if( ((event > WCD9XXX_EVENT_POST_BG_MBHC_ON) && (event < WCD9XXX_EVENT_PRE_CFILT_1_OFF)) ||
-        ((event > WCD9XXX_EVENT_POST_CFILT_3_ON) && (event < WCD9XXX_EVENT_PRE_TX_3_ON)) )
-    {
-        pr_debug("%s: enter event %s(%d)\n", __func__,
-            wcd9xxx_get_event_string(event), event);
-    }
+
+	pr_debug("%s: enter event %s(%d)\n", __func__,
+		 wcd9xxx_get_event_string(event), event);
+
 	switch (event) {
 	/* MICBIAS usage change */
 	case WCD9XXX_EVENT_PRE_MICBIAS_1_ON:
@@ -4621,11 +4593,9 @@ static int wcd9xxx_event_notify(struct notifier_block *self, unsigned long val,
 		WARN(1, "Unknown event %d\n", event);
 		ret = -EINVAL;
 	}
-    if( ((event > WCD9XXX_EVENT_POST_BG_MBHC_ON) && (event < WCD9XXX_EVENT_PRE_CFILT_1_OFF)) ||
-        ((event > WCD9XXX_EVENT_POST_CFILT_3_ON) && (event < WCD9XXX_EVENT_PRE_TX_3_ON)) )
-    {
-        pr_debug("%s: leave\n", __func__);
-    }
+
+	pr_debug("%s: leave\n", __func__);
+
 	return ret;
 }
 
@@ -4768,7 +4738,6 @@ int wcd9xxx_mbhc_init(struct wcd9xxx_mbhc *mbhc, struct wcd9xxx_resmgr *resmgr,
 	void *core_res;
 
 	pr_debug("%s: enter\n", __func__);
-
 	memset(&mbhc->mbhc_bias_regs, 0, sizeof(struct mbhc_micbias_regs));
 	memset(&mbhc->mbhc_data, 0, sizeof(struct mbhc_internal_cal_data));
 
