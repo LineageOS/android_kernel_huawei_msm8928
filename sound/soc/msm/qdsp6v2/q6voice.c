@@ -28,6 +28,7 @@
 #include "audio_acdb.h"
 #include "q6voice.h"
 
+
 /*
   Set TIMEOUT_MS from 200 to 300, according to CR 595881.
   Due to updates in the Fluence V5 algorithm, the initialization
@@ -35,7 +36,12 @@ sequence for Fluence V5 takes longer than 200ms. Voice driver
 has a timeout of 200ms for DSP response. Increase the timeout
 to 300msec to prevent voice call failures.
 */
+#ifdef CONFIG_HUAWEI_KERNEL
 #define TIMEOUT_MS 300
+#else
+#define TIMEOUT_MS 200
+#endif
+
 
 #define CMD_STATUS_SUCCESS 0
 #define CMD_STATUS_FAIL 1

@@ -96,14 +96,21 @@
 #define WCD9XXX_MEAS_INVALD_RANGE_HIGH_MV 80
 
 /* enable mbhc's cs mode to detect headset and set some value to adapt auto MMI */
+#ifdef CONFIG_HUAWEI_KERNEL
 #define CSMODE_HS_DETECT_PLUG_INERVAL_MS  200
+#endif
 
 /*
  * Invalid voltage range for the detection
  * of plug type with current source
  */
+#ifdef CONFIG_HUAWEI_KERNEL
 #define WCD9XXX_CS_MEAS_INVALD_RANGE_LOW_MV 3110
 #define WCD9XXX_CS_MEAS_INVALD_RANGE_HIGH_MV 3265
+#else
+#define WCD9XXX_CS_MEAS_INVALD_RANGE_LOW_MV 160
+#define WCD9XXX_CS_MEAS_INVALD_RANGE_HIGH_MV 265
+#endif
 
 /*
  * Threshold used to detect euro headset
@@ -126,8 +133,12 @@
 #define WCD9XXX_V_CS_NO_MIC 5
 #define WCD9XXX_MB_MEAS_DELTA_MAX_MV 80
 /* enable mbhc's cs mode to detect headset and set some value to adapt auto MMI */
+#ifdef CONFIG_HUAWEI_KERNEL
 #define WCD9XXX_CS_MEAS_DELTA_MAX_MV 35
 #define WCD9XXX_CS_MEAS_DELTA_SPECIAL_MAX_MV 350
+#else
+#define WCD9XXX_CS_MEAS_DELTA_MAX_MV 12
+#endif
 
 static int impedance_detect_en;
 module_param(impedance_detect_en, int,
@@ -1485,11 +1496,11 @@ wcd9xxx_cs_find_plug_type(struct wcd9xxx_mbhc *mbhc,
 			type = PLUG_TYPE_INVALID;
 			goto exit;
 		}
+#ifdef CONFIG_HUAWEI_KERNEL
 		/* set value before original, use for below  if condition */
 		if( d->mic_bias )
-		{
 		   dmicbias = d;
-		}
+#endif
 	}
 
 	delta_thr = ((highhph_cnt == sz) || highhph) ?
@@ -1510,17 +1521,18 @@ wcd9xxx_cs_find_plug_type(struct wcd9xxx_mbhc *mbhc,
 			pr_debug("%s: Invalid, delta %dmv, %dmv and %dmv\n",
 				 __func__, d->_vdces, minv, maxv);
 			type = PLUG_TYPE_INVALID;
+#ifdef CONFIG_HUAWEI_KERNEL
 			/* modify exit condition for HPH_TYPE & detect micbias*/
-			if( PLUG_TYPE_HIGH_HPH == d->_type && dmicbias )
-			{
+			if( PLUG_TYPE_HIGH_HPH == d->_type && dmicbias ) {
 			  if(abs(minv - d->_vdces) > WCD9XXX_CS_MEAS_DELTA_SPECIAL_MAX_MV ||
 			     abs(maxv - d->_vdces) > WCD9XXX_CS_MEAS_DELTA_SPECIAL_MAX_MV )
 			     goto exit;
 			}
 			else
-			{
 			     goto exit;
-			}
+#else
+			goto exit;
+#endif
 		} else if (d->swap_gnd) {
 			dgnd = d;
 		}
@@ -1876,9 +1888,11 @@ wcd9xxx_codec_cs_get_plug_type(struct wcd9xxx_mbhc *mbhc, bool highhph)
 			wcd9xxx_turn_onoff_current_source(mbhc, true, false);
 		if (rt[i].swap_gnd)
 			wcd9xxx_codec_hphr_gnd_switch(codec, false);
+#ifdef CONFIG_HUAWEI_KERNEL
 		/* add this code to correct detecting of TTY device */
 		if( rt[i].swap_gnd && rt[i-1].mic_bias)
 			msleep(CSMODE_HS_DETECT_PLUG_INERVAL_MS);
+#endif
 	}
 
 	type = wcd9xxx_cs_find_plug_type(mbhc, rt, ARRAY_SIZE(rt), highhph,
@@ -3274,6 +3288,7 @@ static void wcd9xxx_get_z(struct wcd9xxx_mbhc *mbhc, s16 *dce_z, s16 *sta_z)
 		*dce_z = wcd9xxx_codec_sta_dce(mbhc, 1, false);
 		pr_debug("%s: dce_z 0x%x\n", __func__, *dce_z & 0xFFFF);
 	}
+#ifdef CONFIG_HUAWEI_KERNEL
 	/* Verify address validity, before print log */
 	if (sta_z)
 	{
@@ -3285,6 +3300,7 @@ static void wcd9xxx_get_z(struct wcd9xxx_mbhc *mbhc, s16 *dce_z, s16 *sta_z)
 		*dce_z = wcd9xxx_codec_sta_dce(mbhc, 1, false);
 		pr_debug("%s: dce_z 0x%x\n", __func__, *dce_z & 0xFFFF);
 	}
+#endif
 
 	/* Connect override from micbias */
 	if (change)

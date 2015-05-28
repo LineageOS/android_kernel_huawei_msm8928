@@ -56,6 +56,7 @@
 
 #define ADSP_STATE_READY_TIMEOUT_MS 3000
 
+#ifdef CONFIG_HUAWEI_KERNEL
 #define HAC_EN_GPIO              112
 #define DEFUALT_HAC_SWITCH_VALUE 0x0
 #define HAC_ENABLE               1
@@ -63,6 +64,7 @@
 #define GPIO_PULL_DOWN           0
 
 static int msm8226_hac_switch = DEFUALT_HAC_SWITCH_VALUE;
+#endif
 
 static void *adsp_state_notifier;
 
@@ -107,14 +109,20 @@ static struct wcd9xxx_mbhc_config mbhc_cfg = {
 	.detect_extn_cable = false,
 #else
 	.detect_extn_cable = true,
+	.micbias_enable_flags = 1 << MBHC_MICBIAS_ENABLE_THRESHOLD_HEADSET,
 #endif
 	.insert_detect = true,
 	.swap_gnd_mic = NULL,
 	.cs_enable_flags = (1 << MBHC_CS_ENABLE_POLLING |
 			    1 << MBHC_CS_ENABLE_INSERTION |
 			    1 << MBHC_CS_ENABLE_REMOVAL),
+#ifdef CONFIG_HUAWEI_KERNEL
 	.do_recalibration = false,
 	.use_vddio_meas = false,
+#else
+	.do_recalibration = true,
+	.use_vddio_meas = true,
+#endif
 };
 
 struct msm_auxpcm_gpio {
@@ -731,6 +739,7 @@ static const struct soc_enum msm_snd_enum[] = {
 	SOC_ENUM_SINGLE_EXT(8, proxy_rx_ch_text),
 };
 
+#ifdef CONFIG_HUAWEI_KERNEL
 /* The function to pull up GPIO 151 to enable HAC*/
 static void hac_gpio_on(void)
 {
@@ -802,8 +811,8 @@ static int msm8226_hac_switch_put(struct snd_kcontrol *kcontrol,
     }
     return ret;
 }
+#endif
 
-/* to add HAC structure in ALSA */
 static const struct snd_kcontrol_new msm_snd_controls[] = {
 	SOC_ENUM_EXT("SLIM_0_RX Channels", msm_snd_enum[0],
 		     msm_slim_0_rx_ch_get, msm_slim_0_rx_ch_put),
@@ -815,8 +824,10 @@ static const struct snd_kcontrol_new msm_snd_controls[] = {
 		     msm_btsco_rate_get, msm_btsco_rate_put),
 	SOC_ENUM_EXT("PROXY_RX Channels", msm_snd_enum[2],
 			msm_proxy_rx_ch_get, msm_proxy_rx_ch_put),
+#ifdef CONFIG_HUAWEI_KERNEL
 	SOC_ENUM_EXT("HAC",msm8226_hac_switch_enum[0],
 			msm8226_hac_switch_get,msm8226_hac_switch_put),
+#endif
 };
 
 static int msm_afe_set_config(struct snd_soc_codec *codec)

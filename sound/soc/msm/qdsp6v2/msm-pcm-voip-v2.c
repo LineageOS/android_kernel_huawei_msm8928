@@ -261,6 +261,7 @@ static int msm_voip_dtx_mode_get(struct snd_kcontrol *kcontrol,
 }
 
 /* add for CVAA */
+#ifdef CONFIG_HUAWEI_KERNEL
 static int msm_voip_rx_device_mute_get(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)
 {
@@ -294,6 +295,7 @@ static int msm_voip_rx_device_mute_put(struct snd_kcontrol *kcontrol,
 done:
 	return ret;
 }
+#endif
 
 static struct snd_kcontrol_new msm_voip_controls[] = {
 	SOC_SINGLE_MULTI_EXT("Voip Tx Mute", SND_SOC_NOPM, 0,
@@ -310,10 +312,12 @@ static struct snd_kcontrol_new msm_voip_controls[] = {
 			     msm_voip_evrc_min_max_rate_config_put),
 	SOC_SINGLE_EXT("Voip Dtx Mode", SND_SOC_NOPM, 0, 1, 0,
 		       msm_voip_dtx_mode_get, msm_voip_dtx_mode_put),
+#ifdef CONFIG_HUAWEI_KERNEL
 	SOC_SINGLE_MULTI_EXT("Voip Rx Device Mute", SND_SOC_NOPM, 0,
 			     MAX_RAMP_DURATION,
 			     0, 2,msm_voip_rx_device_mute_get,
 			     msm_voip_rx_device_mute_put),
+#endif
 };
 
 static int msm_pcm_voip_probe(struct snd_soc_platform *platform)
