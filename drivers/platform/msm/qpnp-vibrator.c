@@ -34,47 +34,6 @@
 #define QPNP_VIB_EN			BIT(7)
 #define QPNP_VIB_VTG_SET_MASK		0x1F
 #define QPNP_VIB_LOGIC_SHIFT		4
-#define QPNP_TIME_LOWER_LIMIT	1000  //1000ms
-/* Add dynamic_log interface */
-#define VIB_ERR  1
-#define VIB_INFO 2
-#define VIB_DBG  3
-
-int vib_debug_mask = VIB_INFO ;
-module_param_named(vib_debug_mask, vib_debug_mask, int, 0664);
-
-#ifndef VIB_LOG_ERR
-#define VIB_LOG_ERR( x...)					\
-do{											\
-	if( vib_debug_mask >= VIB_ERR )			\
-	{										\
-		printk(KERN_ERR "[VIB_ERR] " x);	\
-	}										\
-											\
-}while(0)
-#endif
-
-#ifndef VIB_LOG_INFO
-#define VIB_LOG_INFO( x...)					\
-do{											\
-	if( vib_debug_mask >= VIB_INFO )		\
-	{										\
-		printk(KERN_ERR "[VIB_INFO] " x);	\
-	}										\
-											\
-}while(0)
-#endif
-
-#ifndef VIB_LOG_DBG
-#define VIB_LOG_DBG( x...)					\
-do{											\
-	if( vib_debug_mask >= VIB_DBG )			\
-	{										\
-		printk(KERN_ERR "[VIB_DBG] " x);	\
-	}										\
-											\
-}while(0)
-#endif
 
 struct qpnp_vib {
 	struct spmi_device *spmi;
@@ -97,8 +56,6 @@ static int qpnp_vib_read_u8(struct qpnp_vib *vib, u8 *data, u16 reg)
 {
 	int rc;
 
-	VIB_LOG_DBG("%s %d:vib read u8 data = %d reg = %d\n", __func__, __LINE__, *data, reg);
-
 	rc = spmi_ext_register_readl(vib->spmi->ctrl, vib->spmi->sid,
 							reg, data, 1);
 	if (rc < 0)
@@ -111,8 +68,6 @@ static int qpnp_vib_read_u8(struct qpnp_vib *vib, u8 *data, u16 reg)
 static int qpnp_vib_write_u8(struct qpnp_vib *vib, u8 *data, u16 reg)
 {
 	int rc;
-
-	VIB_LOG_DBG("%s %d:vib write u8 data = %d reg = %d\n", __func__, __LINE__, *data, reg);
 
 	rc = spmi_ext_register_writel(vib->spmi->ctrl, vib->spmi->sid,
 							reg, data, 1);
@@ -127,8 +82,6 @@ int qpnp_vibrator_config(struct qpnp_vib_config *vib_cfg)
 {
 	u8 reg = 0;
 	int rc = -EINVAL, level;
-
-	VIB_LOG_DBG("%s %d:vib config\n", __func__, __LINE__);
 
 	if (vib_dev == NULL) {
 		pr_err("%s: vib_dev is NULL\n", __func__);
@@ -152,13 +105,8 @@ int qpnp_vibrator_config(struct qpnp_vib_config *vib_cfg)
 	reg &= ~QPNP_VIB_VTG_SET_MASK;
 	reg |= (level & QPNP_VIB_VTG_SET_MASK);
 	rc = qpnp_vib_write_u8(vib_dev, &reg, QPNP_VIB_VTG_CTL(vib_dev->base));
-
 	if (rc)
-	{
-		VIB_LOG_ERR("%s %d:qpnp_vib_write_u8 error ret = %d\n", __func__, __LINE__, rc);
 		return rc;
-	}
-
 	vib_dev->reg_vtg_ctl = reg;
 
 	/* Configure the VIB ENABLE regiser */
@@ -168,15 +116,9 @@ int qpnp_vibrator_config(struct qpnp_vib_config *vib_cfg)
 		reg |= QPNP_VIB_EN;
 	else
 		reg |= BIT(vib_cfg->enable_mode - 1);
-
-	VIB_LOG_DBG("%s %d:ret = %d\n", __func__, __LINE__, reg);
 	rc = qpnp_vib_write_u8(vib_dev, &reg, QPNP_VIB_EN_CTL(vib_dev->base));
 	if (rc < 0)
-	{
-		VIB_LOG_ERR("%s %d:qpnp_vib_write_u8 error ret = %d\n", __func__, __LINE__, rc);
 		return rc;
-	}
-
 	vib_dev->reg_en_ctl = reg;
 
 	return rc;
@@ -188,43 +130,26 @@ static int qpnp_vib_set(struct qpnp_vib *vib, int on)
 	int rc;
 	u8 val;
 
-	VIB_LOG_DBG("%s %d:vib set on = %d\n", __func__, __LINE__, on);
-
 	if (on) {
 		val = vib->reg_vtg_ctl;
 		val &= ~QPNP_VIB_VTG_SET_MASK;
 		val |= (vib->vtg_level & QPNP_VIB_VTG_SET_MASK);
 		rc = qpnp_vib_write_u8(vib, &val, QPNP_VIB_VTG_CTL(vib->base));
-
 		if (rc < 0)
-		{
-			VIB_LOG_ERR("%s %d:qpnp_vib_write_u8 error ret = %d\n", __func__, __LINE__, rc);
 			return rc;
-		}
-
 		vib->reg_vtg_ctl = val;
 		val = vib->reg_en_ctl;
 		val |= QPNP_VIB_EN;
 		rc = qpnp_vib_write_u8(vib, &val, QPNP_VIB_EN_CTL(vib->base));
-
 		if (rc < 0)
-		{
-			VIB_LOG_ERR("%s %d:qpnp_vib_write_u8 error ret = %d\n", __func__, __LINE__, rc);
 			return rc;
-		}
-
 		vib->reg_en_ctl = val;
 	} else {
 		val = vib->reg_en_ctl;
 		val &= ~QPNP_VIB_EN;
 		rc = qpnp_vib_write_u8(vib, &val, QPNP_VIB_EN_CTL(vib->base));
-
 		if (rc < 0)
-		{
-			VIB_LOG_ERR("%s %d:qpnp_vib_write_u8 error ret = %d\n", __func__, __LINE__, rc);
 			return rc;
-		}
-
 		vib->reg_en_ctl = val;
 	}
 
@@ -236,7 +161,6 @@ static void qpnp_vib_enable(struct timed_output_dev *dev, int value)
 	struct qpnp_vib *vib = container_of(dev, struct qpnp_vib,
 					 timed_dev);
 
-	VIB_LOG_DBG("%s %d:qpnp_vib_enable is starting.\n", __func__, __LINE__);
 	mutex_lock(&vib->lock);
 	hrtimer_cancel(&vib->vib_timer);
 
@@ -249,10 +173,7 @@ static void qpnp_vib_enable(struct timed_output_dev *dev, int value)
 		hrtimer_start(&vib->vib_timer,
 			      ktime_set(value / 1000, (value % 1000) * 1000000),
 			      HRTIMER_MODE_REL);
-		if(value > QPNP_TIME_LOWER_LIMIT)
-			VIB_LOG_INFO("%s %d:vibrator enable time = %d.\n", __func__, __LINE__,value);
 	}
-
 	mutex_unlock(&vib->lock);
 	schedule_work(&vib->work);
 }
@@ -271,12 +192,9 @@ static int qpnp_vib_get_time(struct timed_output_dev *dev)
 
 	if (hrtimer_active(&vib->vib_timer)) {
 		ktime_t r = hrtimer_get_remaining(&vib->vib_timer);
-		VIB_LOG_DBG("%s %d:hrtimer_active(&vib->vib_timer) = true\n", __func__, __LINE__);
 		return (int)ktime_to_us(r);
-	} else {
-		VIB_LOG_DBG("%s %d:hrtimer_active(&vib->vib_timer) = false\n", __func__, __LINE__);
+	} else
 		return 0;
-	}
 }
 
 static enum hrtimer_restart qpnp_vib_timer_func(struct hrtimer *timer)
@@ -294,8 +212,6 @@ static enum hrtimer_restart qpnp_vib_timer_func(struct hrtimer *timer)
 static int qpnp_vibrator_suspend(struct device *dev)
 {
 	struct qpnp_vib *vib = dev_get_drvdata(dev);
-
-	VIB_LOG_DBG("%s %d:vibrator suspend\n", __func__, __LINE__);
 
 	hrtimer_cancel(&vib->vib_timer);
 	cancel_work_sync(&vib->work);
@@ -316,12 +232,9 @@ static int __devinit qpnp_vibrator_probe(struct spmi_device *spmi)
 	u8 val;
 	u32 temp_val;
 
-	VIB_LOG_DBG("%s %d:vibrator probe start\n", __func__, __LINE__);
 	vib = devm_kzalloc(&spmi->dev, sizeof(*vib), GFP_KERNEL);
-	if (!vib) {
-		VIB_LOG_ERR("%s %d:devm_kzalloc failed\n", __func__, __LINE__);
+	if (!vib)
 		return -ENOMEM;
-	}
 
 	vib->spmi = spmi;
 
@@ -366,21 +279,13 @@ static int __devinit qpnp_vibrator_probe(struct spmi_device *spmi)
 
 	/* save the control registers values */
 	rc = qpnp_vib_read_u8(vib, &val, QPNP_VIB_VTG_CTL(vib->base));
-
-	if (rc < 0) {
-        VIB_LOG_ERR("%s %d:qpnp_vib_read_u8 error rc = %d\n", __func__, __LINE__, rc);
+	if (rc < 0)
 		return rc;
-	}
-
 	vib->reg_vtg_ctl = val;
 
 	rc = qpnp_vib_read_u8(vib, &val, QPNP_VIB_EN_CTL(vib->base));
-
-	if (rc < 0) {
-        VIB_LOG_ERR("%s %d:qpnp_vib_read_u8 error rc = %d\n", __func__, __LINE__, rc);
+	if (rc < 0)
 		return rc;
-	}
-
 	vib->reg_en_ctl = val;
 
 	mutex_init(&vib->lock);
