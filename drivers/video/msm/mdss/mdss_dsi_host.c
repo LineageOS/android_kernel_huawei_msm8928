@@ -851,7 +851,7 @@ int mdss_dsi_cmds_rx(struct mdss_dsi_ctrl_pdata *ctrl,
 	}
 
 /*fix qcom bug*/
-#ifdef CONFIG_HUAWEI_KERNEL
+#ifdef CONFIG_HUAWEI_LCD
 	if (rlen <= 2) {
 #else
 	if (rlen == 0) {

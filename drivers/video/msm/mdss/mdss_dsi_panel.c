@@ -21,7 +21,9 @@
 #include <linux/leds.h>
 #include <linux/pwm.h>
 #include <linux/err.h>
+#ifdef CONFIG_HUAWEI_LCD
 #include <misc/app_info.h>
+#endif
 
 #include "mdss_dsi.h"
 
@@ -155,11 +157,13 @@ static struct dsi_cmd_desc backlight_cmd = {
 	led_pwm1
 };
 
+#ifdef CONFIG_HUAWEI_LCD
 static char dimming_off[2] = {0x53, 0x24};	/* DTYPE_DCS_WRITE1 */
 static struct dsi_cmd_desc dimming_cmd = {
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 1, sizeof(dimming_off)},
 	dimming_off
 };
+#endif
 
 static void mdss_dsi_panel_bklt_dcs(struct mdss_dsi_ctrl_pdata *ctrl, int level)
 {
@@ -170,10 +174,14 @@ static void mdss_dsi_panel_bklt_dcs(struct mdss_dsi_ctrl_pdata *ctrl, int level)
 	led_pwm1[1] = (unsigned char)level;
 
 	memset(&cmdreq, 0, sizeof(cmdreq));
+#ifdef CONFIG_HUAWEI_LCD
 	if (!level)
 		cmdreq.cmds = &dimming_cmd;
 	else
 		cmdreq.cmds = &backlight_cmd;
+#else
+	cmdreq.cmds = &backlight_cmd;
+#endif
 	cmdreq.cmds_cnt = 1;
 	cmdreq.flags = CMD_REQ_COMMIT | CMD_CLK_CTRL;
 	cmdreq.rlen = 0;
