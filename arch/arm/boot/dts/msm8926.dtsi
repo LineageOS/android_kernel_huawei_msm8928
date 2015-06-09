@@ -123,6 +123,7 @@
 
 &memory_hole {
 	qcom,memblock-remove = <0x08000000 0x7500000
+				0x12d00000 0x100000
 				0x0fa00000 0x500000>; /* Address and size of the hole */
 };
 

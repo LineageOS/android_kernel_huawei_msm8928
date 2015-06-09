@@ -26,6 +26,7 @@
 #include <linux/memory.h>
 #include <linux/regulator/qpnp-regulator.h>
 #include <linux/msm_tsens.h>
+#include <linux/persistent_ram.h>
 #include <asm/mach/map.h>
 #include <asm/hardware/gic.h>
 #include <asm/mach/arch.h>
@@ -52,6 +53,39 @@
 #include "spm.h"
 #include "pm.h"
 #include "modem_notifier.h"
+
+#define HW_PERSISTENT_RAM_PHYS 0x12D00000
+#define HW_PERSISTENT_RAM_SIZE SZ_1M
+
+static struct persistent_ram_descriptor hw_persistent_ram_desc[] = {
+	{
+		.name = "ram_console",
+		.size = HW_PERSISTENT_RAM_SIZE,
+	},
+};
+
+static struct persistent_ram hw_persistent_ram = {
+	.start     = HW_PERSISTENT_RAM_PHYS,
+	.size      = HW_PERSISTENT_RAM_SIZE,
+	.num_descs = ARRAY_SIZE(hw_persistent_ram_desc),
+	.descs     = hw_persistent_ram_desc,
+};
+
+static struct resource hw_ram_console_res[] = {
+	{
+		.start = HW_PERSISTENT_RAM_PHYS,
+		.end   = HW_PERSISTENT_RAM_PHYS
+			+ HW_PERSISTENT_RAM_SIZE - 1,
+		.flags = IORESOURCE_MEM,
+	},
+};
+
+static struct platform_device hw_ram_console = {
+	.name = "ram_console",
+	.id = -1,
+	.num_resources = ARRAY_SIZE(hw_ram_console_res),
+	.resource = hw_ram_console_res,
+};
 
 static struct memtype_reserve msm8226_reserve_table[] __initdata = {
 	[MEMTYPE_SMI] = {
@@ -142,6 +176,8 @@ void __init msm8226_init(void)
 #ifdef CONFIG_HUAWEI_MMC
     hw_extern_sdcard_add_device();
 #endif
+
+	platform_device_register(&hw_ram_console);
 }
 #ifdef CONFIG_HUAWEI_MMC
 static struct resource hw_extern_sdcard_resources[] = {
@@ -190,6 +226,10 @@ int __init hw_extern_sdcard_add_device(void)
 }
 #endif
 
+static void __init msm8226_early_ram_console(void)
+{
+	persistent_ram_early_init(&hw_persistent_ram);
+}
 
 static const char *msm8226_dt_match[] __initconst = {
 	"qcom,msm8226",
@@ -212,6 +252,7 @@ DT_MACHINE_START(MSM8226_DT, "Qualcomm MSM 8226 (Flattened Device Tree)")
 	.dt_compat = msm8226_dt_match,
 	.reserve = msm8226_reserve,
 	.init_very_early = msm8226_early_memory,
+	.init_early = msm8226_early_ram_console,
 	.restart = msm_restart,
 	.smp = &arm_smp_ops,
 MACHINE_END
