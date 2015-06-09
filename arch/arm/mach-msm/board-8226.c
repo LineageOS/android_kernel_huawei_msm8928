@@ -54,6 +54,19 @@
 #include "pm.h"
 #include "modem_notifier.h"
 
+/* #define AUTORESTART 30000 */
+#ifdef AUTORESTART
+#include <linux/workqueue.h>
+
+static void auto_restart_work_handler(struct work_struct *w)
+{
+        msm_restart(0, "auto_restart");
+}
+
+static struct workqueue_struct *auto_restart_wq = 0;
+static DECLARE_DELAYED_WORK(auto_restart_work, auto_restart_work_handler);
+#endif
+
 #define HW_PERSISTENT_RAM_PHYS 0x12D00000
 #define HW_PERSISTENT_RAM_SIZE SZ_1M
 
@@ -178,7 +191,13 @@ void __init msm8226_init(void)
 #endif
 
 	platform_device_register(&hw_ram_console);
+
+#ifdef AUTORESTART
+	auto_restart_wq = create_singlethread_workqueue("auto_restart_wq");
+	queue_delayed_work(auto_restart_wq, &auto_restart_work, msecs_to_jiffies(AUTORESTART));
+#endif
 }
+
 #ifdef CONFIG_HUAWEI_MMC
 static struct resource hw_extern_sdcard_resources[] = {
     {
