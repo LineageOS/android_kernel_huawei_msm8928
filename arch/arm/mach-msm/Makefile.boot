@@ -101,8 +101,6 @@ endif
    zreladdr-$(CONFIG_ARCH_MSM8226)	:= 0x00008000
 # reduce DTB size delete MSM dtb
 ifeq ($(CONFIG_HUAWEI_KERNEL),y)
-	dtb-$(CONFIG_ARCH_MSM8226)	+= msm8226-mainboard.dtb
-	dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-mainboard-va.dtb
 	dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-mate2-va.dtb
 	dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-mate2-vb.dtb
 else
