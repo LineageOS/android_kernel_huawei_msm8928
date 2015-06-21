@@ -76,8 +76,7 @@
 			<1050000 1050000 1140000>,
 			<1050000 1050000 1140000>;
 		qcom,cpr-voltage-ceiling = <1050000 1150000 1280000>;
-		/* increase CPU turbo voltage from 1.1v to 1.14v */
-		qcom,cpr-voltage-floor = <1050000 1050000 1140000>;
+		qcom,cpr-voltage-floor = <1050000 1050000 1100000>;
 		vdd-apc-supply = <&pm8226_s2>;
 
 		vdd-mx-supply = <&pm8226_l3_ao>;
