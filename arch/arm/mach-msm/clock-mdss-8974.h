@@ -24,9 +24,8 @@ void mdss_clk_ctrl_pre_init(struct clk *ahb_clk);
 void mdss_clk_ctrl_post_init(void);
 
 struct hdmi_pll_vco_clk {
-	unsigned long rate;	/* current vco rate */
-	unsigned long min_rate;	/* min vco rate */
-	unsigned long max_rate;	/* max vco rate */
+	unsigned long rate;	/* vco rate */
+	unsigned long *rate_list;
 	bool rate_set;
 
 	struct clk c;
