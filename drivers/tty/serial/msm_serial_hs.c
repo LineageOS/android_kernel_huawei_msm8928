@@ -574,10 +574,7 @@ static void hex_dump_ipc(char *prefix, char *string, int size)
 static void dump_uart_hs_registers(struct msm_hs_port *msm_uport)
 {
 	struct uart_port *uport = &(msm_uport->uport);
-	if (msm_uport->clk_state != MSM_HS_CLK_ON) {
-	        MSM_HS_WARN("%s: Failed.Clocks are OFF\n", __func__);
-	        return;
-	}
+	msm_hs_clock_vote(msm_uport);
 	MSM_HS_DBG("MR1:%x MR2:%x TFWR:%x RFWR:%x DMEN:%x IMR:%x MISR:%x NCF_TX:%x\n",
 	msm_hs_read(uport, UART_DM_MR1),
 	msm_hs_read(uport, UART_DM_MR2),
@@ -598,6 +595,7 @@ static void dump_uart_hs_registers(struct msm_hs_port *msm_uport)
 				msm_uport->clk_req_off_state,
 					msm_uport->rx.flush);
 	MSM_HS_INFO("clk_state:%d", msm_uport->clk_state);
+	msm_hs_clock_unvote(msm_uport);
 }
 
 static void msm_hs_release_port(struct uart_port *port)
@@ -1095,10 +1093,6 @@ static void msm_hs_set_termios(struct uart_port *uport,
 	struct msm_hs_rx *rx = &msm_uport->rx;
 	struct sps_pipe *sps_pipe_handle = rx->prod.pipe_handle;
 
-	if (msm_uport->clk_state != MSM_HS_CLK_ON) {
-		MSM_HS_WARN("%s: Failed.Clocks are OFF\n", __func__);
-		return;
-        }
 	mutex_lock(&msm_uport->clk_mutex);
 	msm_hs_write(uport, UART_DM_IMR, 0);
 
@@ -1345,6 +1339,7 @@ static void msm_hs_stop_rx_locked(struct uart_port *uport)
 	}
 	if (!is_blsp_uart(msm_uport) && msm_uport->rx.flush != FLUSH_SHUTDOWN)
 		msm_uport->rx.flush = FLUSH_STOP;
+
 }
 
 /*  Transmit the next chunk of data */
@@ -1713,10 +1708,6 @@ static void msm_hs_start_tx_locked(struct uart_port *uport )
 {
 	struct msm_hs_port *msm_uport = UARTDM_TO_MSM(uport);
 
-	if (msm_uport->clk_state != MSM_HS_CLK_ON) {
-		MSM_HS_WARN("%s: Failed.Clocks are OFF\n", __func__);
-		return;
-	}
 	if (msm_uport->tx.tx_ready_int_en == 0) {
 		msm_uport->tx.tx_ready_int_en = 1;
 		if (msm_uport->tx.dma_in_flight == 0)
@@ -1895,12 +1886,6 @@ void msm_hs_set_mctrl_locked(struct uart_port *uport,
 {
 	unsigned int set_rts;
 	unsigned int data;
-        struct msm_hs_port *msm_uport = UARTDM_TO_MSM(uport);
-
-	if (msm_uport->clk_state != MSM_HS_CLK_ON) {
-		MSM_HS_WARN("%s:Failed.Clocks are OFF\n", __func__);
-		return;
-	}
 
 	/* RTS is active low */
 	set_rts = TIOCM_RTS & mctrl ? 0 : 1;
@@ -1939,11 +1924,6 @@ static void msm_hs_enable_ms_locked(struct uart_port *uport)
 {
 	struct msm_hs_port *msm_uport = UARTDM_TO_MSM(uport);
 
-	if (msm_uport->clk_state != MSM_HS_CLK_ON) {
-		MSM_HS_WARN("%s:Failed.Clocks are OFF\n", __func__);
-		return;
-	}
-
 	/* Enable DELTA_CTS Interrupt */
 	msm_uport->imr_reg |= UARTDM_ISR_DELTA_CTS_BMSK;
 	msm_hs_write(uport, UART_DM_IMR, msm_uport->imr_reg);
@@ -1968,12 +1948,6 @@ static void msm_hs_flush_buffer(struct uart_port *uport)
 static void msm_hs_break_ctl(struct uart_port *uport, int ctl)
 {
 	unsigned long flags;
-	struct msm_hs_port *msm_uport = UARTDM_TO_MSM(uport);
-
-	if (msm_uport->clk_state != MSM_HS_CLK_ON) {
-		MSM_HS_WARN("%s: Failed.Clocks are OFF\n", __func__);
-		return;
-	}
 
 	spin_lock_irqsave(&uport->lock, flags);
 	msm_hs_write(uport, UART_DM_CR, ctl ? START_BREAK : STOP_BREAK);
