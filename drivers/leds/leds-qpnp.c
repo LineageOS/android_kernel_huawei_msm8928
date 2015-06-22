@@ -978,11 +978,6 @@ static int qpnp_flash_set(struct qpnp_led_data *led)
 		led->flash_cfg->current_prgm =
 			(val * FLASH_MAX_LEVEL / led->max_current);
 
-	led->flash_cfg->current_prgm =
-		led->flash_cfg->current_prgm >> FLASH_CURRENT_PRGM_SHIFT;
-	if (!led->flash_cfg->current_prgm)
-		led->flash_cfg->current_prgm = FLASH_CURRENT_PRGM_MIN;
-
 	/* Set led current */
 	if (val > 0) {
 		if (led->flash_cfg->torch_enable) {
@@ -3475,6 +3470,7 @@ static int __devinit qpnp_leds_probe(struct spmi_device *spmi)
 				"Failure reading led id, rc =  %d\n", rc);
 			goto fail_id_check;
 		}
+
 		rc = qpnp_get_common_configs(led, temp);
 		if (rc) {
 			dev_err(&led->spmi_dev->dev,
