@@ -470,8 +470,6 @@ adb_function_bind_config(struct android_usb_function *f,
 
 static void adb_android_function_enable(struct android_usb_function *f)
 {
-    /* normal mode contains adb port even if adbd is not started */
-#ifndef CONFIG_HUAWEI_USB
 	struct android_dev *dev = f->android_dev;
 	struct adb_data *data = f->config;
 
@@ -481,13 +479,10 @@ static void adb_android_function_enable(struct android_usb_function *f)
 	/* Disable the gadget until adbd is ready */
 	if (!data->opened)
 		android_disable(dev);
-#endif
 }
 
 static void adb_android_function_disable(struct android_usb_function *f)
 {
-    /* normal mode contains adb port even if adbd is not started */
-#ifndef CONFIG_HUAWEI_USB
 	struct android_dev *dev = f->android_dev;
 	struct adb_data *data = f->config;
 
@@ -496,7 +491,6 @@ static void adb_android_function_disable(struct android_usb_function *f)
 	/* Balance the disable that was called in closed_callback */
 	if (!data->opened)
 		android_enable(dev);
-#endif
 }
 
 static struct android_usb_function adb_function = {
@@ -510,8 +504,6 @@ static struct android_usb_function adb_function = {
 
 static void adb_ready_callback(void)
 {
-    /* normal mode contains adb port even if adbd is not started */
-#ifndef CONFIG_HUAWEI_USB
 	struct android_dev *dev = adb_function.android_dev;
 	struct adb_data *data = adb_function.config;
 
@@ -528,13 +520,10 @@ static void adb_ready_callback(void)
 
 	if (dev)
 		mutex_unlock(&dev->mutex);
-#endif
 }
 
 static void adb_closed_callback(void)
 {
-    /* normal mode contains adb port even if adbd is not started */
-#ifndef CONFIG_HUAWEI_USB
 	struct adb_data *data = adb_function.config;
 	struct android_dev *dev = adb_function.android_dev;
 
@@ -557,7 +546,6 @@ static void adb_closed_callback(void)
 
 	if (dev)
 		mutex_unlock(&dev->mutex);
-#endif
 }
 
 
