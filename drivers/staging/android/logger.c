@@ -737,15 +737,6 @@ DEFINE_LOGGER_DEVICE(log_events, LOGGER_LOG_EVENTS, CONFIG_LOGCAT_SIZE*1024)
 DEFINE_LOGGER_DEVICE(log_radio, LOGGER_LOG_RADIO, CONFIG_LOGCAT_SIZE*1024)
 DEFINE_LOGGER_DEVICE(log_system, LOGGER_LOG_SYSTEM, CONFIG_LOGCAT_SIZE*1024)
 
-#ifdef CONFIG_HUAWEI_KERNEL
-static struct miscdevice log_exception = {
-	.minor = MISC_DYNAMIC_MINOR,
-	.name = "log_exception",
-	.fops = &logger_fops,
-	.parent = NULL,
-};
-#endif
-
 static struct logger_log *get_log_from_minor(int minor)
 {
 	if (log_main.misc.minor == minor)
@@ -756,10 +747,6 @@ static struct logger_log *get_log_from_minor(int minor)
 		return &log_radio;
 	if (log_system.misc.minor == minor)
 		return &log_system;
-#ifdef CONFIG_HUAWEI_KERNEL
-	if (log_exception.minor == minor)
-		return &log_system;
-#endif
 	return NULL;
 }
 
@@ -800,9 +787,6 @@ static int __init logger_init(void)
 	if (unlikely(ret))
 		goto out;
 
-#ifdef CONFIG_HUAWEI_KERNEL
-	ret = misc_register(&log_exception);
-#endif
 out:
 	return ret;
 }
