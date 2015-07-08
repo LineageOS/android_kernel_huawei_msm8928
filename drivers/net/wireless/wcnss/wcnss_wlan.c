@@ -444,10 +444,6 @@ static ssize_t wcnss_wlan_macaddr_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
 	char macAddr[WLAN_MAC_ADDR_SIZE];
-#ifdef CONFIG_HUAWEI_KERNEL
-	u16 i;
-	char macAddrRev[WLAN_MAC_ADDR_SIZE];
-#endif
 
 	if (!penv)
 		return -ENODEV;
@@ -463,14 +459,7 @@ static ssize_t wcnss_wlan_macaddr_store(struct device *dev,
 		return -EINVAL;
 	}
 
-#ifdef CONFIG_HUAWEI_KERNEL
-	for (i = 0; i < WLAN_MAC_ADDR_SIZE; i++) {
-		macAddrRev[WLAN_MAC_ADDR_SIZE-1-i] = macAddr[i];
-	}
-	memcpy(penv->wlan_nv_macAddr, macAddrRev, sizeof(penv->wlan_nv_macAddr));
-#else
 	memcpy(penv->wlan_nv_macAddr, macAddr, sizeof(penv->wlan_nv_macAddr));
-#endif
 
 	pr_info("%s: Write MAC Addr:" MAC_ADDRESS_STR "\n", __func__,
 		penv->wlan_nv_macAddr[0], penv->wlan_nv_macAddr[1],
