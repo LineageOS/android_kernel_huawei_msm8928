@@ -735,15 +735,12 @@ enum iris_xfr_t {
 	IRIS_XFR_AF_LIST,
 	IRIS_XFR_MAX
 };
-#ifdef CONFIG_HUAWEI_RADIO
-extern int fm_debug_mask;
 
 #undef FMDBG
-#define FMDBG(fmt, args...)\
-	do { \
-	    if (fm_debug_mask)\
-		    pr_info("iris_radio: " fmt, ##args);\
-	} while (0)
+#ifdef FM_DEBUG
+#define FMDBG(fmt, args...) pr_info("iris_radio: " fmt, ##args)
+#else
+#define FMDBG(fmt, args...)
 #endif
 
 #undef FMDERR
