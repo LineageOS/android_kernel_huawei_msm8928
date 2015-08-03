@@ -304,12 +304,6 @@ static void android_pm_qos_update_latency(struct android_dev *dev, int vote)
 		|| !pdata->swfi_latency)
 		return;
 
-	/* fix the warning "pm_qos_update_request() called for unknown object" */
-#ifdef CONFIG_HUAWEI_USB
-	if (!pdata->swfi_latency)
-		return;
-#endif
-
 	swfi_latency = pdata->swfi_latency + 1;
 	if (vote)
 		pm_qos_update_request(&dev->pm_qos_req_dma,
