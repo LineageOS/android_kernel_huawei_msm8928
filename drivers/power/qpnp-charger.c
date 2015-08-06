@@ -3311,7 +3311,6 @@ qpnp_batt_power_get_property(struct power_supply *psy,
 	struct qpnp_chg_chip *chip = container_of(psy, struct qpnp_chg_chip,
 								batt_psy);
 #ifdef CONFIG_HUAWEI_KERNEL
-	int batt_level = 0;
 	int rc = 0;
 	u8 reg_sts = 0;
 #endif
@@ -3431,13 +3430,6 @@ qpnp_batt_power_get_property(struct power_supply *psy,
 		switch (psp) {
 		case POWER_SUPPLY_PROP_STATUS:
 			val->intval = get_prop_batt_status(chip);
-#ifdef CONFIG_HUAWEI_KERNEL
-			batt_level = get_prop_capacity(chip);
-			if(BATT_FULL_LEVEL == batt_level && qpnp_chg_is_usb_chg_plugged_in(chip))
-			{
-				val->intval = POWER_SUPPLY_STATUS_FULL;
-			}
-#endif
 			break;
 		case POWER_SUPPLY_PROP_CHARGE_TYPE:
 			val->intval = get_prop_charge_type(chip);
