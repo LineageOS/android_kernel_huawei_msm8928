@@ -3742,6 +3742,23 @@ static void qpnp_bms_external_power_changed(struct power_supply *psy)
 	battery_status_check(chip);
 }
 
+#ifdef CONFIG_HUAWEI_KERNEL
+static int hw_voltage_now(struct qpnp_bms_chip *chip)
+{
+	int rc, batt_temp;
+	struct qpnp_vadc_result result;
+
+	rc = qpnp_vadc_read(chip->vadc_dev, LR_MUX1_BATT_THERM, &result);
+	if (rc) {
+		pr_err("Unable to read batt_temp\n");
+		return rc;
+	} else {
+		batt_temp = (int)result.physical;
+	}
+	return estimate_ocv(chip, batt_temp);
+}
+#endif
+
 static int qpnp_bms_power_get_property(struct power_supply *psy,
 					enum power_supply_property psp,
 					union power_supply_propval *val)
@@ -3779,7 +3796,7 @@ static int qpnp_bms_power_get_property(struct power_supply *psy,
 		break;
 #ifdef CONFIG_HUAWEI_KERNEL
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
-		val->intval = estimate_ocv(chip);
+		val->intval = hw_voltage_now(chip);
 		break;
 	case POWER_SUPPLY_PROP_CURRENT_REMAIN_CAPACITY:
 		val->intval = get_prop_current_remain_capacity(chip);
