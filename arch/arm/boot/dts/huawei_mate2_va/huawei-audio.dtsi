@@ -14,6 +14,7 @@
     };
 };
 &soc {
+    /delete-node/ sound;
     sound-9302 {
         huawei,audio-routing =
             "RX_BIAS", "MCLK",
