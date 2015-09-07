@@ -73,3 +73,4 @@ obj-$(CONFIG_QPNP_MISC) += qpnp-misc.o
 obj-$(CONFIG_HUAWEI_HALL_MRMS501A) += mrms501a.o
 obj-$(CONFIG_HUAWEI_HALL_AK8789) += ak8789.o
 obj-$(CONFIG_HUAWEI_SENSOR_SELF_ADAPT) += sensor_adsp_info.o
+obj-$(CONFIG_UID_CPUTIME) 	+= uid_cputime.o
