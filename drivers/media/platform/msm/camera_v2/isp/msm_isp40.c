@@ -81,10 +81,6 @@
 #define VFE40_BUS_BDG_QOS_CFG_6     0x000002DC
 #define VFE40_BUS_BDG_QOS_CFG_7     0x000002E0
 
-#ifdef CONFIG_HUAWEI_KERNEL_CAMERA
-#define HW_MAX_SOF_LOG_NUM 5
-static int log_print_num = 0;
-#endif
 #define VFE40_CLK_IDX 1
 static struct msm_cam_clk_info msm_vfe40_clk_info[] = {
 	{"camss_top_ahb_clk", -1},
@@ -378,15 +374,7 @@ static void msm_vfe40_process_camif_irq(struct vfe_device *vfe_dev,
 		return;
 
 	if (irq_status0 & (1 << 0)) {
-#ifdef CONFIG_HUAWEI_KERNEL_CAMERA
-		if(log_print_num > 0)
-		{
-			log_print_num--;
-			pr_info("%s: SOF IRQ %d\n", __func__,log_print_num);
-		}
-#else
 		ISP_DBG("%s: SOF IRQ\n", __func__);
-#endif
 		if (vfe_dev->axi_data.src_info[VFE_PIX_0].raw_stream_count > 0
 			&& vfe_dev->axi_data.src_info[VFE_PIX_0].
 			pix_stream_count == 0) {
@@ -644,11 +632,6 @@ static long msm_vfe40_reset_hardware(struct vfe_device *vfe_dev ,
 	} else {
 		msm_camera_io_w_mb(0x1EF, vfe_dev->vfe_base + 0xC);
 	}
-#ifdef CONFIG_HUAWEI_KERNEL_CAMERA
-		pr_info("%s: \n",__func__);
-		//we print 5 times when camera stream on
-		log_print_num = HW_MAX_SOF_LOG_NUM;
-#endif
 
 return rc;
 
