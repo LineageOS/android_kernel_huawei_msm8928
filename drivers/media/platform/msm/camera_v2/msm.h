@@ -14,6 +14,7 @@
 #define _MSM_H
 
 #include <linux/version.h>
+#include <linux/completion.h>
 #include <linux/i2c.h>
 #include <linux/videodev2.h>
 #include <linux/pm_qos.h>
@@ -31,7 +32,10 @@
 
 #define MSM_POST_EVT_TIMEOUT 5000
 #define MSM_POST_EVT_NOTIMEOUT 0xFFFFFFFF
+
+#ifdef CONFIG_HUAWEI_KERNEL_CAMERA
 #define MAX_ACTUATOR_NUMBER 2
+#endif
 
 struct msm_video_device {
 	struct video_device *vdev;
@@ -71,7 +75,7 @@ struct msm_command {
 struct msm_command_ack {
 	struct list_head list;
 	struct msm_queue_head command_q;
-	wait_queue_head_t wait;
+	struct completion wait_complete;
 	int stream_id;
 };
 
@@ -117,5 +121,7 @@ struct vb2_queue *msm_get_stream_vb2q(unsigned int session_id,
 	unsigned int stream_id);
 struct msm_stream *msm_get_stream_from_vb2q(struct vb2_queue *q);
 struct msm_session *msm_session_find(unsigned int session_id);
+#ifdef CONFIG_HUAWEI_KERNEL_CAMERA
 void msm_sd_get_actdev(struct v4l2_subdev *subdev_act[]);
+#endif
 #endif /*_MSM_H */

@@ -1,4 +1,4 @@
-/* Copyright (c) 2013, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -13,6 +13,7 @@
 #include <linux/io.h>
 #include <media/v4l2-subdev.h>
 #include <linux/ratelimit.h>
+#include <asm/div64.h>
 
 #include "msm.h"
 #include "msm_isp_util.h"
@@ -217,6 +218,28 @@ static inline void msm_isp_get_timestamp(struct msm_isp_timestamp *time_stamp)
 	do_gettimeofday(&(time_stamp->event_time));
 }
 
+static inline void msm_isp_get_vt_tstamp(struct vfe_device *vfe_dev,
+	struct msm_isp_timestamp *time_stamp)
+{
+	uint32_t avtimer_msw_1st = 0, avtimer_lsw = 0;
+	uint32_t avtimer_msw_2nd = 0;
+	uint64_t av_timer_tick = 0;
+
+	if (!vfe_dev->p_avtimer_msw || !vfe_dev->p_avtimer_lsw) {
+		pr_err("%s: ioremap failed\n", __func__);
+		return;
+	}
+	do {
+		avtimer_msw_1st = msm_camera_io_r(vfe_dev->p_avtimer_msw);
+		avtimer_lsw = msm_camera_io_r(vfe_dev->p_avtimer_lsw);
+		avtimer_msw_2nd = msm_camera_io_r(vfe_dev->p_avtimer_msw);
+	} while (avtimer_msw_1st != avtimer_msw_2nd);
+	av_timer_tick = ((uint64_t)avtimer_msw_1st << 32) | avtimer_lsw;
+	avtimer_lsw = do_div(av_timer_tick, USEC_PER_SEC);
+	time_stamp->vt_time.tv_sec = (uint32_t)(av_timer_tick);
+	time_stamp->vt_time.tv_usec = avtimer_lsw;
+}
+
 int msm_isp_subscribe_event(struct v4l2_subdev *sd, struct v4l2_fh *fh,
 	struct v4l2_event_subscription *sub)
 {
@@ -254,6 +277,43 @@ int msm_isp_unsubscribe_event(struct v4l2_subdev *sd, struct v4l2_fh *fh,
 		vfe_dev->axi_data.event_mask &= ~(1 << event_idx);
 	}
 	return rc;
+}
+
+static int msm_isp_get_max_clk_rate(struct vfe_device *vfe_dev, long *rate)
+{
+	int           clk_idx = 0;
+	unsigned long max_value = ~0;
+	long          round_rate = 0;
+
+	if (!vfe_dev || !rate) {
+		pr_err("%s:%d failed: vfe_dev %p rate %p\n", __func__, __LINE__,
+			vfe_dev, rate);
+		return -EINVAL;
+	}
+
+	*rate = 0;
+	if (!vfe_dev->hw_info) {
+		pr_err("%s:%d failed: vfe_dev->hw_info %p\n", __func__,
+			__LINE__, vfe_dev->hw_info);
+		return -EINVAL;
+	}
+
+	clk_idx = vfe_dev->hw_info->vfe_clk_idx;
+	if (clk_idx >= ARRAY_SIZE(vfe_dev->vfe_clk)) {
+		pr_err("%s:%d failed: clk_idx %d max array size %d\n",
+			__func__, __LINE__, clk_idx,
+			ARRAY_SIZE(vfe_dev->vfe_clk));
+		return -EINVAL;
+	}
+
+	round_rate = clk_round_rate(vfe_dev->vfe_clk[clk_idx], max_value);
+	if (round_rate < 0) {
+		pr_err("%s: Invalid vfe clock rate\n", __func__);
+		return -EINVAL;
+	}
+
+	*rate = round_rate;
+	return 0;
 }
 
 static int msm_isp_set_clk_rate(struct vfe_device *vfe_dev, long *rate)
@@ -435,39 +495,13 @@ static int msm_isp_send_hw_cmd(struct vfe_device *vfe_dev,
 	uint32_t *cfg_data, uint32_t cmd_len)
 {
 	switch (reg_cfg_cmd->cmd_type) {
-	case VFE_WRITE:
-	case VFE_READ: {
-		if ((reg_cfg_cmd->u.rw_info.reg_offset >
-			(UINT_MAX - reg_cfg_cmd->u.rw_info.len)) ||
-			((reg_cfg_cmd->u.rw_info.reg_offset +
-			reg_cfg_cmd->u.rw_info.len) >
-			resource_size(vfe_dev->vfe_mem))) {
-			pr_err("%s:%d reg_offset %d len %d res %d\n",
-				__func__, __LINE__,
-				reg_cfg_cmd->u.rw_info.reg_offset,
-				reg_cfg_cmd->u.rw_info.len,
-				(uint32_t)resource_size(vfe_dev->vfe_mem));
-			return -EINVAL;
-		}
-
-		if ((reg_cfg_cmd->u.rw_info.cmd_data_offset >
-			(UINT_MAX - reg_cfg_cmd->u.rw_info.len)) ||
-			((reg_cfg_cmd->u.rw_info.cmd_data_offset +
-			reg_cfg_cmd->u.rw_info.len) > cmd_len)) {
-			pr_err("%s:%d cmd_data_offset %d len %d cmd_len %d\n",
-				__func__, __LINE__,
-				reg_cfg_cmd->u.rw_info.cmd_data_offset,
-				reg_cfg_cmd->u.rw_info.len, cmd_len);
-			return -EINVAL;
-		}
-		break;
-	}
-	default:
-		break;
-	}
-
-	switch (reg_cfg_cmd->cmd_type) {
 	case VFE_WRITE: {
+		if (resource_size(vfe_dev->vfe_mem) <
+			(reg_cfg_cmd->u.rw_info.reg_offset +
+			reg_cfg_cmd->u.rw_info.len)) {
+			pr_err("%s: VFE_WRITE: Invalid length\n", __func__);
+			return -EINVAL;
+		}
 		msm_camera_io_memcpy(vfe_dev->vfe_base +
 			reg_cfg_cmd->u.rw_info.reg_offset,
 			cfg_data + reg_cfg_cmd->u.rw_info.cmd_data_offset/4,
@@ -603,6 +637,33 @@ static int msm_isp_send_hw_cmd(struct vfe_device *vfe_dev,
 		}
 		break;
 	}
+	case VFE_HW_UPDATE_LOCK: {
+		uint32_t update_id =
+			vfe_dev->axi_data.src_info[VFE_PIX_0].last_updt_frm_id;
+		if (vfe_dev->axi_data.src_info[VFE_PIX_0].frame_id != *cfg_data
+			|| update_id == *cfg_data) {
+			ISP_DBG("hw update lock failed,acquire id %u\n",
+				*cfg_data);
+			ISP_DBG("hw update lock failed,current id %lu\n",
+				vfe_dev->axi_data.src_info[VFE_PIX_0].frame_id);
+			ISP_DBG("hw update lock failed,last id %u\n",
+				update_id);
+			return -EINVAL;
+		}
+		break;
+	}
+	case VFE_HW_UPDATE_UNLOCK: {
+		if (vfe_dev->axi_data.src_info[VFE_PIX_0].frame_id
+			!= *cfg_data) {
+			ISP_DBG("hw update across frame boundary,begin id %u\n",
+				*cfg_data);
+			ISP_DBG("hw update across frame boundary,end id %lu\n",
+				vfe_dev->axi_data.src_info[VFE_PIX_0].frame_id);
+		}
+		vfe_dev->axi_data.src_info[VFE_PIX_0].last_updt_frm_id =
+			vfe_dev->axi_data.src_info[VFE_PIX_0].frame_id;
+		break;
+	}
 	case VFE_READ: {
 		int i;
 		uint32_t *data_ptr = cfg_data +
@@ -623,6 +684,27 @@ static int msm_isp_send_hw_cmd(struct vfe_device *vfe_dev,
 	case GET_SOC_HW_VER:
 		*cfg_data = vfe_dev->soc_hw_version;
 		break;
+	case GET_MAX_CLK_RATE: {
+		int rc = 0;
+
+		if (cmd_len < sizeof(unsigned long)) {
+			pr_err("%s:%d failed: invalid cmd len %d exp %d\n",
+				__func__, __LINE__, cmd_len,
+				sizeof(unsigned long));
+			return -EINVAL;
+		}
+		rc = msm_isp_get_max_clk_rate(vfe_dev,
+			(unsigned long *)cfg_data);
+		if (rc < 0) {
+			pr_err("%s:%d failed: rc %d\n", __func__, __LINE__, rc);
+			return -EINVAL;
+		}
+		break;
+	}
+	case SET_WM_UB_SIZE: {
+		vfe_dev->vfe_ub_size = *cfg_data;
+		break;
+	}
 	}
 	return 0;
 }
@@ -675,7 +757,7 @@ int msm_isp_proc_cmd(struct vfe_device *vfe_dev, void *arg)
 	}
 
 	for (i = 0; i < proc_cmd->num_cfg; i++)
-		msm_isp_send_hw_cmd(vfe_dev, &reg_cfg_cmd[i],
+		rc = msm_isp_send_hw_cmd(vfe_dev, &reg_cfg_cmd[i],
 			cfg_data, proc_cmd->cmd_len);
 
 	if (copy_to_user(proc_cmd->cfg_data,
@@ -959,9 +1041,9 @@ static inline void msm_isp_process_overflow_irq(
 	overflow_mask &= *irq_status1;
 	if (overflow_mask) {
 		pr_warning("%s: Bus overflow detected: 0x%x\n",
-				__func__, overflow_mask);
+			__func__, overflow_mask);
 		atomic_set(&vfe_dev->error_info.overflow_state,
-				OVERFLOW_DETECTED);
+			OVERFLOW_DETECTED);
 		pr_warning("%s: Start bus overflow recovery\n", __func__);
 		/*Store current IRQ mask*/
 		vfe_dev->hw_info->vfe_ops.core_ops.get_irq_mask(vfe_dev,
@@ -971,7 +1053,7 @@ static inline void msm_isp_process_overflow_irq(
 		vfe_dev->hw_info->vfe_ops.core_ops.
 			update_camif_state(vfe_dev, DISABLE_CAMIF_IMMEDIATELY);
 		/*Halt the hardware & Clear all other IRQ mask*/
-		vfe_dev->hw_info->vfe_ops.axi_ops.halt(vfe_dev,0);
+		vfe_dev->hw_info->vfe_ops.axi_ops.halt(vfe_dev, 0);
 		/*Update overflow state*/
 		atomic_set(&vfe_dev->error_info.overflow_state, HALT_REQUESTED);
 		*irq_status0 = 0;
@@ -1003,7 +1085,7 @@ static inline void msm_isp_reset_burst_count(
 	}
 }
 
-static inline void msm_isp_process_overflow_recovery(
+static void msm_isp_process_overflow_recovery(
 	struct vfe_device *vfe_dev,
 	uint32_t irq_status0, uint32_t irq_status1)
 {
@@ -1020,7 +1102,8 @@ static inline void msm_isp_process_overflow_recovery(
 	case HALT_REQUESTED: {
 		pr_err("%s: Halt done, Restart Pending\n", __func__);
 		/*Reset the hardware*/
-		vfe_dev->hw_info->vfe_ops.core_ops.reset_hw(vfe_dev, 0);
+		vfe_dev->hw_info->vfe_ops.core_ops.reset_hw(vfe_dev,
+			ISP_RST_SOFT, 0);
 		/*Update overflow state*/
 		atomic_set(&vfe_dev->error_info.overflow_state,
 				RESTART_REQUESTED);
@@ -1053,6 +1136,7 @@ static inline void msm_isp_process_overflow_recovery(
 		break;
 	}
 }
+
 irqreturn_t msm_isp_process_irq(int irq_num, void *data)
 {
 	unsigned long flags;
@@ -1099,6 +1183,8 @@ irqreturn_t msm_isp_process_irq(int irq_num, void *data)
 	queue_cmd->vfeInterruptStatus0 = irq_status0;
 	queue_cmd->vfeInterruptStatus1 = irq_status1;
 	msm_isp_get_timestamp(&queue_cmd->ts);
+	if (vfe_dev->vt_enable)
+		msm_isp_get_vt_tstamp(vfe_dev, &queue_cmd->ts);
 	queue_cmd->cmd_used = 1;
 	vfe_dev->taskletq_idx =
 		(vfe_dev->taskletq_idx + 1) % MSM_VFE_TASKLETQ_SIZE;
@@ -1189,7 +1275,10 @@ int msm_isp_open_node(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 		return -EBUSY;
 	}
 
-	rc = vfe_dev->hw_info->vfe_ops.core_ops.reset_hw(vfe_dev, 1);
+	memset(&vfe_dev->error_info, 0, sizeof(vfe_dev->error_info));
+	atomic_set(&vfe_dev->error_info.overflow_state, NO_OVERFLOW);
+	rc = vfe_dev->hw_info->vfe_ops.core_ops.reset_hw(vfe_dev,
+		ISP_RST_HARD, 1);
 	if (rc <= 0) {
 		pr_err("%s: reset timeout\n", __func__);
 		mutex_unlock(&vfe_dev->core_mutex);
@@ -1220,22 +1309,12 @@ int msm_isp_open_node(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 	vfe_dev->vfe_open_cnt++;
 	vfe_dev->taskletq_idx = 0;
 	vfe_dev->vt_enable = 0;
+	vfe_dev->p_avtimer_lsw = NULL;
+	vfe_dev->p_avtimer_msw = NULL;
 	mutex_unlock(&vfe_dev->core_mutex);
 	mutex_unlock(&vfe_dev->realtime_mutex);
 	return 0;
 }
-
-#ifdef CONFIG_MSM_AVTIMER
-void msm_isp_end_avtimer(void)
-{
-       avcs_core_disable_power_collapse(0);
-}
-#else
-void msm_isp_end_avtimer(void)
-{
-       pr_err("AV Timer is not supported\n");
-}
-#endif
 
 int msm_isp_close_node(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 {
@@ -1251,7 +1330,7 @@ int msm_isp_close_node(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 		return -ENODEV;
 	}
 
-	rc = vfe_dev->hw_info->vfe_ops.axi_ops.halt(vfe_dev,1);
+	rc = vfe_dev->hw_info->vfe_ops.axi_ops.halt(vfe_dev, 1);
 	if (rc <= 0)
 		pr_err("%s: halt timeout rc=%ld\n", __func__, rc);
 
@@ -1259,7 +1338,11 @@ int msm_isp_close_node(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 	vfe_dev->hw_info->vfe_ops.core_ops.release_hw(vfe_dev);
 	vfe_dev->vfe_open_cnt--;
 	if (vfe_dev->vt_enable) {
-                msm_isp_end_avtimer();
+		iounmap(vfe_dev->p_avtimer_lsw);
+		iounmap(vfe_dev->p_avtimer_msw);
+	#ifdef CONFIG_MSM_AVTIMER
+		avcs_core_disable_power_collapse(0);
+	#endif
 		vfe_dev->vt_enable = 0;
 	}
 	mutex_unlock(&vfe_dev->core_mutex);

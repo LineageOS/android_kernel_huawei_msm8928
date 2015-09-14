@@ -1,5 +1,8 @@
 
 #include "msm_sensor.h"
+#include <misc/app_info.h>
+#include "./msm.h"
+#include "./actuator/msm_actuator.h"
 #define HW_IMX135_SENSOR_NAME "hw_imx135"
 DEFINE_MSM_MUTEX(hw_imx135_mut);
 
@@ -25,7 +28,7 @@ static struct msm_sensor_power_setting hw_imx135_power_setting[] = {
 		.seq_type = SENSOR_VREG,
 		.seq_val = CAM_VIO,
 		.config_val = 0,
-		.delay = 5,
+		.delay = 0,
 	},
 	{
 		.seq_type = SENSOR_VREG,
@@ -37,20 +40,20 @@ static struct msm_sensor_power_setting hw_imx135_power_setting[] = {
 		.seq_type = SENSOR_GPIO,
 		.seq_val = SENSOR_GPIO_RESET,
 		.config_val = GPIO_OUT_HIGH,
-		.delay = 5,
+		.delay = 1,
 	},
 	{
 		.seq_type = SENSOR_CLK,
 		.seq_val = SENSOR_CAM_MCLK,
              /* formular to macro */
 		.config_val = MSM_SENSOR_MCLK_24HZ,
-		.delay = 20,
+		.delay = 1,
 	},
 	{
 		.seq_type = SENSOR_I2C_MUX,
 		.seq_val = 0,
 		.config_val = 0,
-		.delay = 25,
+		.delay = 0,
 	},
 };
 static struct v4l2_subdev_info hw_imx135_subdev_info[] = {
@@ -198,7 +201,7 @@ typedef struct otp_vcm {
 #define IMX135_OTP_LSC_SIZE    504
 #define IMX135_OTP_LOTNO_SIZE    9
 #define IMX135_OTP_LSC_LOTNO_SIZE    (IMX135_OTP_LSC_SIZE + IMX135_OTP_LOTNO_SIZE)
-
+#define IMX135_OTP_LSC_WRITE_SIZE    9
 #define IMX135_OTP_LSC_FILE    "/data/lsc_param"
 
 /* OTP parameters. */
@@ -469,12 +472,12 @@ static void hw_imx135_otp_set_wb_gain(void)
             }
         }
     }
-    //disable awb otp
-    //if (dig_gain_R<0x100)
+
+    if (dig_gain_R<0x100)
         dig_gain_R = 0x100;
-    //if (dig_gain_G<0x100)
+    if (dig_gain_G<0x100)
         dig_gain_G = 0x100;
-   // if (dig_gain_B<0x100)
+    if (dig_gain_B<0x100)
         dig_gain_B = 0x100;
 
     hw_imx135_otp_dig_gain.gr_gain = dig_gain_G;
@@ -832,6 +835,9 @@ static bool hw_imx135_otp_set_lsc(void)
 {
     uint8_t *lsc_param = NULL;
     int i = 0;
+    int rc = 0;
+    struct msm_camera_i2c_seq_reg_setting write_setting ={0};
+    struct msm_camera_i2c_seq_reg_array reg_setting ={0};
 
     /* Lens shading parameters are burned OK. */
     if (0xFF == hw_imx135_otp_lsc_id)
@@ -845,14 +851,24 @@ static bool hw_imx135_otp_set_lsc(void)
         return false;
     }
 
-    /* Write lens shading parameters to sensor registers. */
-    for (i=0; i<IMX135_OTP_LSC_SIZE; i++)
-    {
-        hw_imx135_cci_i2c_write(IMX135_SENSOR_REG_LSC_ADDR+i, *(lsc_param+i));
+   for(i = 0; i<IMX135_OTP_LSC_SIZE/IMX135_OTP_LSC_WRITE_SIZE; i++)
+   {
+        write_setting.size = 1;
+        write_setting.reg_setting = &reg_setting;
+        write_setting.addr_type = MSM_CAMERA_I2C_WORD_ADDR;
+        reg_setting.reg_addr = IMX135_SENSOR_REG_LSC_ADDR + i*IMX135_OTP_LSC_WRITE_SIZE;
+
+        memcpy(reg_setting.reg_data,lsc_param+i*IMX135_OTP_LSC_WRITE_SIZE,IMX135_OTP_LSC_WRITE_SIZE);
+        reg_setting.reg_data_size = IMX135_OTP_LSC_WRITE_SIZE;
+
+        rc = hw_imx135_s_ctrl.sensor_i2c_client->i2c_func_tbl->i2c_write_seq_table(
+        hw_imx135_s_ctrl.sensor_i2c_client,&write_setting );
+        if (rc < 0)
+        {
+            pr_err("%s:Fail!rc = %d \n", __func__, rc);
+        }
     }
-
     CDBG("%s: OTP set LSC OK.\n", __func__);
-
     return true;
 }
 
@@ -917,11 +933,11 @@ static bool hw_imx135_otp_update_lsc(void)
     }
 
     CDBG("%s: OTP flag = %#x\n", __func__, hw_imx135_otp_flag);
+//cancel file operation for  avoiding crash caused by write partition
     if (!(hw_imx135_otp_flag & IMX135_OTP_LSC_WRITED))
     {
-        schedule_work(&record_otp_lsc_work);
+		schedule_work(&record_otp_lsc_work);
     }
-
     pr_info("%s: OTP update LSC done\n", __func__);
     return true;
 }
@@ -932,8 +948,7 @@ static bool hw_imx135_otp_update_lsc(void)
 ***************************************************************************/
 static int hw_imx135_set_otp_info(struct msm_sensor_ctrl_t *s_ctrl)
 {
-    INIT_WORK(&record_otp_lsc_work, hw_imx135_otp_record_lsc_func);
-
+	//INIT_WORK(&record_otp_lsc_work, hw_imx135_otp_record_lsc_func);
     if(!hw_imx135_otp_update_wb())
     {
         pr_err("%s:hw_imx135_otp_update_wb fail\n", __func__);
@@ -992,6 +1007,10 @@ static bool hw_imx135_otp_match_module(void)
 ***************************************************************************/
 static int hw_imx135_match_module(struct msm_sensor_ctrl_t *s_ctrl)
 {
+    struct v4l2_subdev *subdev_act[MAX_ACTUATOR_NUMBER] = {NULL};
+    struct msm_actuator_ctrl_t *a_ctrl = NULL;
+    int i=0;
+
     if(!hw_imx135_otp_match_module())
     {
         pr_err("%s: Check OTP module info failed\n", __func__);
@@ -1010,6 +1029,20 @@ static int hw_imx135_match_module(struct msm_sensor_ctrl_t *s_ctrl)
         pr_err("%s:read a wrong vendor code from OTP!!\n", __func__);
         goto DEFAULT_CONFIG;
     }
+
+    app_info_set("camera_main", "hw_imx135_liteon");
+       if(!strncmp(s_ctrl->sensordata->sensor_info->sensor_project_name, "23060094FA-IMX-L", MAX_SENSOR_NAME))
+       {
+               /*if it's sunny module, we need to get the actuator ctrl to change af parameter to index 4*/
+               msm_sd_get_actdev(subdev_act);
+               for(i=0; i<MAX_ACTUATOR_NUMBER; i++)
+               {
+                       if(NULL != subdev_act[i])
+                               a_ctrl =  subdev_act[i]->dev_priv;
+                       if(NULL != a_ctrl)
+                               a_ctrl->cam_name = MSM_ACTUATOR_MAIN_CAM_7;
+               }
+       }
 
     pr_info("%s: sensor_name=%s, sensor_project_name=%s\n",  __func__,
             s_ctrl->sensordata->sensor_name, s_ctrl->sensordata->sensor_info->sensor_project_name);
@@ -1054,6 +1087,8 @@ static int32_t hw_imx135_platform_probe(struct platform_device *pdev)
     if(match && match->data)
     {
         rc = msm_sensor_platform_probe(pdev, match->data);
+	if(!rc)
+		INIT_WORK(&record_otp_lsc_work, hw_imx135_otp_record_lsc_func);
     }
 	return rc;
 }

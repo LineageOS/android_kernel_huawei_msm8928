@@ -1,3 +1,4 @@
+/*disable otp and add module app info*/
 /* Copyright (c) 2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,7 +18,11 @@ DEFINE_MSM_MUTEX(hw_ov5648_mut);
 
 static struct msm_sensor_ctrl_t hw_ov5648_s_ctrl;
 
+#include <misc/app_info.h>
+#define USE_HW_OV5648_OTP
+#ifdef USE_HW_OV5648_OTP
 static int8_t hw_ov5648_module_id = 0;
+#endif
 
 static struct msm_sensor_power_setting hw_ov5648_power_setting[] = {
 	{
@@ -36,7 +41,7 @@ static struct msm_sensor_power_setting hw_ov5648_power_setting[] = {
 		.seq_type = SENSOR_GPIO,
 		.seq_val = SENSOR_GPIO_RESET,
 		.config_val = GPIO_OUT_HIGH,
-		.delay = 5,
+		.delay = 1,
 	},
 	{
 		.seq_type = SENSOR_CLK,
@@ -48,7 +53,7 @@ static struct msm_sensor_power_setting hw_ov5648_power_setting[] = {
 		.seq_type = SENSOR_I2C_MUX,
 		.seq_val = 0,
 		.config_val = 0,
-		.delay = 25,
+		.delay = 0,
 	},
 };
 static struct v4l2_subdev_info hw_ov5648_subdev_info[] = {
@@ -87,6 +92,7 @@ static const struct of_device_id hw_ov5648_dt_match[] = {
 	{}
 };
 
+#ifdef USE_HW_OV5648_OTP
 int RG_Ratio_Typical = 0x26c;
 int BG_Ratio_Typical = 0x2ed;
 
@@ -235,6 +241,7 @@ static int update_awb_gain(struct msm_sensor_ctrl_t *s_ctrl,int R_gain, int G_ga
 		ov5648_write_i2c(s_ctrl,0x518a, B_gain>>8);
 		ov5648_write_i2c(s_ctrl,0x518b, B_gain & 0x00ff);
 	}
+	pr_info("%s: R_gain=%d, G_gain=%d, B_gain=%d \n",__func__,R_gain,G_gain,B_gain);
 	
 	return 0;
 }
@@ -324,13 +331,14 @@ int  ov5648_write_otp (struct msm_sensor_ctrl_t *s_ctrl)
 	}
 	return 0;
 }
-
+#endif
 /****************************************************************************
 * FunctionName: hw_ov5648_match_module;
 * Description : Check which manufacture this module based sensor ov5648 belong to;
 ***************************************************************************/
 static int hw_ov5648_match_module(struct msm_sensor_ctrl_t *s_ctrl)
 {
+ #ifdef USE_HW_OV5648_OTP
 	/*read otp data only once*/
 	if(false == otp_read)
 	{
@@ -351,16 +359,16 @@ static int hw_ov5648_match_module(struct msm_sensor_ctrl_t *s_ctrl)
 
        /* formular to : driver use sensor name without module name */
 	if(0x02 == hw_ov5648_module_id)
+#endif
 	{
 		s_ctrl->sensordata->sensor_name = "hw_ov5648_foxconn";
 
 		strncpy(s_ctrl->sensordata->sensor_info->sensor_project_name, "23060132FF-OV-F", strlen("23060132FF-OV-F")+1);
 	}
-	else{
-		s_ctrl->sensordata->sensor_name = "hw_ov5648_foxconn";
-    		strncpy(s_ctrl->sensordata->sensor_info->sensor_project_name, "23060132FF-OV", strlen("23060132FF-OV")+1);
-	}
-	pr_info("%s %d : hw_imx135_match_module sensor_name=%s, sensor_project_name=%s \n",  __func__, __LINE__,
+
+    app_info_set("camera_slave", "hw_ov5648_foxconn");
+
+	pr_info("%s %d : hw_ov5648_match_module sensor_name=%s, sensor_project_name=%s \n",  __func__, __LINE__,
     		s_ctrl->sensordata->sensor_name, s_ctrl->sensordata->sensor_info->sensor_project_name);
 	pr_info("check module id from camera id PIN:OK \n");
 	return 0;
@@ -372,7 +380,9 @@ static struct msm_sensor_fn_t hw_ov5648_func_tbl = {
 	.sensor_power_down = msm_sensor_power_down,
 	.sensor_match_id = msm_sensor_match_id,
 	.sensor_match_module = hw_ov5648_match_module,
+#ifdef USE_HW_OV5648_OTP
 	.sensor_write_otp = ov5648_write_otp,
+#endif
 };
 
 MODULE_DEVICE_TABLE(of, hw_ov5648_dt_match);
@@ -391,6 +401,11 @@ static int32_t hw_ov5648_platform_probe(struct platform_device *pdev)
 	const struct of_device_id *match;
 	pr_info("%s:%d\n", __func__, __LINE__);
 	match = of_match_device(hw_ov5648_dt_match, &pdev->dev);
+	 if(!match) 
+ 	{
+		pr_err("%s:var match equal null !\n",__func__);
+		return 0;
+ 	}
 	rc = msm_sensor_platform_probe(pdev, match->data);
 	return rc;
 }

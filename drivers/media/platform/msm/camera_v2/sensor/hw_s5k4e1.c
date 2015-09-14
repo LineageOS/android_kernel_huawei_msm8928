@@ -1,3 +1,4 @@
+/*disable otp and add module otp info*/
 /* Copyright (c) 2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -12,12 +13,16 @@
  */
 #include "msm_sensor.h"
 
+#include <misc/app_info.h>
+
 #define HW_S5K4E1_SENSOR_NAME "hw_s5k4e1"
 DEFINE_MSM_MUTEX(hw_s5k4e1_mut);
 
 static struct msm_sensor_ctrl_t hw_s5k4e1_s_ctrl;
-
+#define USE_HW_S5K4E1_OTP
+#ifdef USE_HW_S5K4E1_OTP
 static int8_t hw_s5k4e1_module_id = 0;
+#endif
 static struct msm_sensor_power_setting hw_s5k4e1_power_setting[] = {
 	{
 		.seq_type = SENSOR_VREG,
@@ -29,7 +34,7 @@ static struct msm_sensor_power_setting hw_s5k4e1_power_setting[] = {
 		.seq_type = SENSOR_VREG,
 		.seq_val = CAM_VIO,
 		.config_val = 0,
-		.delay = 5,
+		.delay = 0,
 	},
 	{
 		.seq_type = SENSOR_VREG,
@@ -48,13 +53,13 @@ static struct msm_sensor_power_setting hw_s5k4e1_power_setting[] = {
 		.seq_val = SENSOR_CAM_MCLK,
               /* formular to macro */
 		.config_val = MSM_SENSOR_MCLK_24HZ,
-		.delay = 20,
+		.delay = 5,
 	},
 	{
 		.seq_type = SENSOR_I2C_MUX,
 		.seq_val = 0,
 		.config_val = 0,
-		.delay = 25,
+		.delay = 0,
 	},
 };
 static struct v4l2_subdev_info hw_s5k4e1_subdev_info[] = {
@@ -71,6 +76,7 @@ static const struct i2c_device_id hw_s5k4e1_i2c_id[] = {
 	{ }
 };
 
+#ifdef USE_HW_S5K4E1_OTP
 static int RG_Ratio_Typical = 0x2f1;
 static int BG_Ratio_Typical = 0x2bb;
 #define S5K4E1GA_OTP_MSB  1
@@ -360,7 +366,7 @@ static int update_awb_gain(struct msm_sensor_ctrl_t *s_ctrl,int R_gain, int G_ga
 	        s5k4e1_write_i2c(s_ctrl, 0x0212, B_gain>>8);
 	        s5k4e1_write_i2c(s_ctrl, 0x0213, B_gain & 0x00ff);
 	}
-	
+	pr_info("%s: R_gain=%d, G_gain=%d, B_gain=%d \n",__func__,R_gain,G_gain,B_gain);
 	return 0;
 }
 
@@ -372,6 +378,7 @@ int  s5k4e1_write_otp (struct msm_sensor_ctrl_t *s_ctrl)
 	}
 	return 0;
 }
+#endif
 static int32_t msm_hw_s5k4e1_i2c_probe(struct i2c_client *client,
 	const struct i2c_device_id *id)
 {
@@ -406,6 +413,7 @@ static int hw_s5k4e1_match_module(struct msm_sensor_ctrl_t *s_ctrl)
 
 	/*add project name for the project menu*/
 	int rc = 0;
+#ifdef USE_HW_S5K4E1_OTP
 	hw_s5k4e1_module_id = -1;
 	if(false == otp_read)
 	{
@@ -424,11 +432,14 @@ static int hw_s5k4e1_match_module(struct msm_sensor_ctrl_t *s_ctrl)
 	}
 	
 	if(0x02 == hw_s5k4e1_module_id)
+#endif
 	{
 		s_ctrl->sensordata->sensor_name = "hw_s5k4e1_sunny";
 		strncpy(s_ctrl->sensordata->sensor_info->sensor_project_name, "23060132FF-SAM-S", strlen("23060132FF-SAM-S")+1);
 	
 	}
+
+    app_info_set("camera_slave", "hw_s5k4e1_sunny");
 
 	pr_info("%s %d : hw_s5k4e1_match_module sensor_name=%s, sensor_project_name=%s \n",  __func__, __LINE__,
 	        s_ctrl->sensordata->sensor_name, s_ctrl->sensordata->sensor_info->sensor_project_name);
@@ -441,7 +452,9 @@ static struct msm_sensor_fn_t hw_s5k4e1_func_tbl = {
 	.sensor_power_down = msm_sensor_power_down,
 	.sensor_match_id = msm_sensor_match_id,
 	.sensor_match_module = hw_s5k4e1_match_module,
+#ifdef USE_HW_S5K4E1_OTP
 	.sensor_write_otp = s5k4e1_write_otp,
+#endif
 };
 
 MODULE_DEVICE_TABLE(of, hw_s5k4e1_dt_match);
@@ -460,6 +473,11 @@ static int32_t hw_s5k4e1_platform_probe(struct platform_device *pdev)
 	const struct of_device_id *match;
 
 	match = of_match_device(hw_s5k4e1_dt_match, &pdev->dev);
+ 	if(!match) 
+ 	{
+		pr_err("%s:var match equal null !\n",__func__);
+		return 0;
+ 	}
 	rc = msm_sensor_platform_probe(pdev, match->data);
 	return rc;
 }

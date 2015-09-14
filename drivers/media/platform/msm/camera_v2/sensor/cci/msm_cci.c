@@ -29,7 +29,8 @@
 #define CYCLES_PER_MICRO_SEC 4915
 #define CCI_MAX_DELAY 10000
 
-#define CCI_TIMEOUT msecs_to_jiffies(900)
+#define CCI_TIMEOUT msecs_to_jiffies(100)
+
 /* TODO move this somewhere else */
 #define MSM_CCI_DRV_NAME "msm_cci"
 
@@ -659,8 +660,6 @@ static struct msm_cam_clk_info cci_clk_info[] = {
 	{"cci_clk", -1},
 };
 
-//remove msm_cci_reset
-
 static int32_t msm_cci_init(struct v4l2_subdev *sd,
 	struct msm_camera_cci_ctrl *c_ctrl)
 {
@@ -809,7 +808,6 @@ static int32_t msm_cci_config(struct v4l2_subdev *sd,
 		break;
 	case MSM_CCI_GPIO_WRITE:
 		break;
-//remove msm_cci_reset
 	default:
 		rc = -ENOIOCTLCMD;
 	}
@@ -1117,7 +1115,7 @@ static int __devinit msm_cci_probe(struct platform_device *pdev)
 {
 	struct cci_device *new_cci_dev;
 	int rc = 0;
-	pr_err("%s: pdev %p device id = %d\n", __func__, pdev, pdev->id);
+	CDBG("%s: pdev %p device id = %d\n", __func__, pdev, pdev->id);
 	new_cci_dev = kzalloc(sizeof(struct cci_device), GFP_KERNEL);
 	if (!new_cci_dev) {
 		CDBG("%s: no enough memory\n", __func__);

@@ -101,24 +101,6 @@ config MSM_ISPIF_V1
           of any CID of MSM_CSI22_HEADER can be routed to of pixel
           or raw data interface in VFE.
 
-config S5K3L1YX
-	bool "Sensor S5K3L1YX (BAYER 12M)"
-	depends on MSMB_CAMERA
-	---help---
-		Samsung 12 MP Bayer Sensor with auto focus, uses
-		4 mipi lanes, preview config = 1984 * 1508 at 30 fps,
-		snapshot config = 4000 * 3000 at 20 fps,
-		hfr video at 60, 90 and 120 fps.
-
-config IMX135
-	bool "Sensor IMX135 (BAYER 12M)"
-	depends on MSMB_CAMERA
-	---help---
-		Sony 12 MP Bayer Sensor with auto focus, uses
-		4 mipi lanes, preview config = 2104 x 1560 at 49 fps,
-		snapshot config = 4208 x 3120 at 24 fps,
-		Video HDR support.
-
 config IMX134
 	bool "Sensor IMX134 (BAYER 8M)"
 	depends on MSMB_CAMERA
@@ -128,15 +110,6 @@ config IMX134
 		HFR @60fps and @120fps
 		Video HDR support.
 
-config OV2720
-	bool "Sensor OV2720 (BAYER 2M)"
-	depends on MSMB_CAMERA
-	---help---
-		OmniVision 2 MP Bayer Sensor, supports 2 mipi lanes,
-		preview and snapshot config at 1932 * 1092 at 30 fps,
-		hfr video at 60, 90 and 120 fps. This sensor driver does
-		not support auto focus.
-
 config OV9724
 	bool "Sensor OV9724 (BAYER 2M)"
 	depends on MSMB_CAMERA
@@ -145,23 +118,7 @@ config OV9724
 		preview and snapshot config at 1280*720 at 30 fps,
 		hfr video at 60, 90 and 120 fps. This sensor driver does
 		not support auto focus.
-		
-config HW_S5K4E1
-	bool "Huawei S5K4E1 5M"
-	depends on HUAWEI_KERNEL_CAMERA
-	---help---
-		Samsung 5 MP Bayer Sensor, supports 2 mipi lanes,
-		preview config = 1304*980 30 fps,
-		snapshot config = 2608 * 1960 at 15 fps.
-		This sensor driver does not support auto focus.
-config HW_OV5648
-	bool "Huawei OV5648 5M"
-	depends on HUAWEI_KERNEL_CAMERA
-	---help---
-		OmniVision 5 MP Bayer Sensor, only use 1 mipi lane,
-		preview set to 1296*972 at 30 fps,
-		snapshot set to 2592*1944 at 15 fps,
-		This sensor driver does not support auto focus.
+
 config HI256
         bool "Hynix hi256 (YUV 2MP)"
         depends on MSMB_CAMERA
@@ -178,15 +135,6 @@ config OV5648
 		OmniVision 5 MP Bayer Sensor, only use 1 mipi lane,
 		preview set to 1296*972 at 30 fps,
 		snapshot set to 2592*1944 at 12 fps,
-		This sensor driver does not support auto focus.
-
-config HW_HI542
-	bool "Sensor HW_HI542 (BAYER 5M)"
-	depends on HUAWEI_KERNEL_CAMERA
-	---help---
-		hynix 5 MP Bayer Sensor, supports 2 mipi lanes,
-		preview config = 1304*980 30 fps,
-		snapshot config = 2608 * 1960 at 15 fps.
 		This sensor driver does not support auto focus.
 
 config MT9M114
@@ -281,18 +229,24 @@ config HW_IMX135
 	---help---
 	  Sony 13 MP Bayer BSI Sensor.
 
-config HW_S5K4E1_BACK
-	bool "Huawei hw_s5k4e1_back .5M"
+config HW_S5K4E1
+	bool "Huawei S5K4E1 5M"
 	depends on HUAWEI_KERNEL_CAMERA
 	---help---
-		OmniVision 5 MP bayer Sensor, only use 1 mipi lane,
+		Samsung 5 MP Bayer Sensor, supports 2 mipi lanes,
+		preview config = 1304*980 30 fps,
+		snapshot config = 2608 * 1960 at 15 fps.
 		This sensor driver does not support auto focus.
-config HW_OV5648_BACK
-	bool "Huawei hw_ov5648_back 5M"
+
+config HW_OV5648
+	bool "Huawei OV5648 5M"
 	depends on HUAWEI_KERNEL_CAMERA
 	---help---
-		OmniVision 5M MP bayer Sensor, only use 1 mipi lane,
+		OmniVision 5 MP Bayer Sensor, only use 1 mipi lane,
+		preview set to 1296*972 at 30 fps,
+		snapshot set to 2592*1944 at 15 fps,
 		This sensor driver does not support auto focus.
+
 config HW_LM3642
 	bool "Huawei LM3642"
 	depends on HUAWEI_KERNEL_CAMERA

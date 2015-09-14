@@ -189,7 +189,8 @@ struct msm_gpio_set_tbl {
 };
 
 struct msm_camera_gpio_num_info {
-	uint16_t gpio_num[7];
+	uint16_t gpio_num[10];
+	uint8_t valid[10];
 };
 
 struct msm_camera_gpio_conf {
@@ -239,9 +240,11 @@ enum msm_camera_actuator_name {
 	MSM_ACTUATOR_MAIN_CAM_3,
 	MSM_ACTUATOR_MAIN_CAM_4,
 	MSM_ACTUATOR_MAIN_CAM_5,
+#ifdef CONFIG_HUAWEI_KERNEL_CAMERA
 	MSM_ACTUATOR_MAIN_CAM_6,
 	MSM_ACTUATOR_MAIN_CAM_7,
 	MSM_ACTUATOR_MAIN_CAM_8,
+#endif
 	MSM_ACTUATOR_WEB_CAM_0,
 	MSM_ACTUATOR_WEB_CAM_1,
 	MSM_ACTUATOR_WEB_CAM_2,
