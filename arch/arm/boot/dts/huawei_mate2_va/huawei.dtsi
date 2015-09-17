@@ -16,7 +16,6 @@
 /include/  "huawei-charger.dtsi"
 /include/  "huawei-i2c-detect-va.dtsi"
 /include/  "huawei-gpio.dtsi"
-/include/  "huawei-sdcard.dtsi"
 &pm8226_mpps {
 	mpp@a600 { /* MPP 7 */
 		/* PA_THERM1 config */

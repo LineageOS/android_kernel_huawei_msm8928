@@ -1117,63 +1117,6 @@ static int sdhci_msm_dt_parse_vreg_info(struct device *dev,
 	return ret;
 }
 
-#ifdef CONFIG_HUAWEI_MMC
-static int sdhci_msm_set_detect_info(struct sdhci_msm_pltfm_data *pdata)
-{
-	int ret = 0;
-	char prop_name[MAX_PROP_SIZE] = {0};
-	struct device_node *np = NULL;
-
-	if(!pdata)
-		return ret;
-
-	/*try to get the device node huawei-detect-info.*/
-	np = of_find_compatible_node(NULL,NULL,"huawei-detect-info");
-	if(!np)
-		return ret;
-
-	snprintf(prop_name, MAX_PROP_SIZE,
-			"%s", "huawei,voltage-always-on");
-	if (of_get_property(np, prop_name, NULL)) {
-		pdata->vreg_data->vdd_data->is_always_on = true;
-		pdata->vreg_data->vdd_io_data->is_always_on = true;
-		ret = 1;
-	}
-	else {
-		ret = 0;
-		return ret;
-	}
-	return ret;
-}
-
-static int sdhci_msm_set_gpio_info(struct sdhci_msm_pltfm_data *pdata)
-{
-	int ret = 0;
-	char prop_name[MAX_PROP_SIZE] = {0};
-	struct device_node *np = NULL;
-
-	if(!pdata)
-		return ret;
-
-	/*try to get the device node huawei-gpio-info.*/
-	np = of_find_compatible_node(NULL,NULL,"huawei-gpio-info");
-	if(!np)
-		return ret;
-
-	snprintf(prop_name, MAX_PROP_SIZE,
-			"%s", "huawei,voltage-active-high");
-	if (of_get_property(np, prop_name, NULL)) {
-		pdata->caps2 |= MMC_CAP2_CD_ACTIVE_HIGH;
-		ret = 1;
-	}
-	else {
-		ret = 0;
-	}
-
-	return ret;
-}
-#endif
-
 /* GPIO/Pad data extraction */
 static int sdhci_msm_dt_get_pad_pull_info(struct device *dev, int id,
 		struct sdhci_msm_pad_pull_data **pad_pull_data)
@@ -2828,12 +2771,6 @@ static int __devinit sdhci_msm_probe(struct platform_device *pdev)
 		}
 
 		msm_host->pdata = sdhci_msm_populate_pdata(&pdev->dev);
-#ifdef CONFIG_HUAWEI_MMC
-		if(sdhci_msm_set_gpio_info(msm_host->pdata))
-			pr_info("the voltage of gpio is high when insert the sdcard.\n");
-		else
-			pr_info("the voltage of gpio is low when insert the sdcard.\n");
-#endif
 		if (!msm_host->pdata) {
 			dev_err(&pdev->dev, "DT parsing error\n");
 			goto pltfm_free;
@@ -3080,12 +3017,6 @@ static int __devinit sdhci_msm_probe(struct platform_device *pdev)
 	init_completion(&msm_host->pwr_irq_completion);
 
 	if (gpio_is_valid(msm_host->pdata->status_gpio)) {
-#ifdef CONFIG_HUAWEI_MMC
-		if(sdhci_msm_set_detect_info(msm_host->pdata))
-			pr_info("use special sdcard slot.\n");
-		else
-			pr_info("use common sdcard slot.\n");
-#endif
 		ret = mmc_cd_gpio_request(msm_host->mmc,
 				msm_host->pdata->status_gpio);
 		if (ret) {
