@@ -31,16 +31,8 @@ static int mmc_cd_get_status(struct mmc_host *host)
 	if (!cd || !gpio_is_valid(cd->gpio))
 		goto out;
 
-#ifdef CONFIG_HUAWEI_MMC
-	ret = gpio_get_value_cansleep(cd->gpio);
-	if(host->caps2 & MMC_CAP2_CD_ACTIVE_HIGH)
-		ret = gpio_get_value_cansleep(cd->gpio);
-	else
-		ret = !gpio_get_value_cansleep(cd->gpio);
-#else
 	ret = !gpio_get_value_cansleep(cd->gpio) ^
 		!!(host->caps2 & MMC_CAP2_CD_ACTIVE_HIGH);
-#endif
 out:
 	return ret;
 }
