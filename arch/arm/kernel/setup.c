@@ -937,34 +937,9 @@ static int __init meminfo_cmp(const void *_a, const void *_b)
 	return cmp < 0 ? -1 : cmp > 0 ? 1 : 0;
 }
 
-#ifdef CONFIG_HUAWEI_KERNEL
-static int __init dt_scan_for_machine_name(unsigned long node, const char *uname,
-		int depth, void *data)
-{
-	char *name;
-	int ret;
-	unsigned long length;
-
-	ret = of_flat_dt_is_compatible(node, "huawei,hw_machine_name");
-	if( !ret )
-		return 0;
-
-	name = of_get_flat_dt_prop(node, "machine_name",&length);
-	if( !name || !length )
-		return 0;
-
-	*(unsigned long *)data = (unsigned long)name;
-
-	return 1;
-}
-#endif
-
 void __init setup_arch(char **cmdline_p)
 {
 	struct machine_desc *mdesc;
-#ifdef CONFIG_HUAWEI_KERNEL
-	unsigned long machine_name_addr = 0;
-#endif
 
 	setup_processor();
 	mdesc = setup_machine_fdt(__atags_pointer);
@@ -972,11 +947,6 @@ void __init setup_arch(char **cmdline_p)
 		mdesc = setup_machine_tags(machine_arch_type);
 	machine_desc = mdesc;
 	machine_name = mdesc->name;
-#ifdef CONFIG_HUAWEI_KERNEL
-	of_scan_flat_dt(dt_scan_for_machine_name, &machine_name_addr);
-	if(machine_name_addr)
-		machine_name = (const char*)machine_name_addr;
-#endif
 
 	setup_dma_zone(mdesc);
 
