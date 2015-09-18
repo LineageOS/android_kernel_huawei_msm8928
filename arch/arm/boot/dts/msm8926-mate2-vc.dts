@@ -17,12 +17,12 @@
 
 /* /include/ "msm8226-camera-sensor-cdp.dtsi" */
 
-/include/ "huawei_mate2_vb/huawei.dtsi"
+/include/ "huawei_mate2_vc/huawei.dtsi"
 
 / {
 	model = "Qualcomm MSM 8926 CDP mate2";
 	compatible = "qcom,msm8926-cdp", "qcom,msm8926", "qcom,cdp";
-	qcom,msm-id = <224 8018 0>;
+	qcom,msm-id = <224 8034 0>;
 };
 
 

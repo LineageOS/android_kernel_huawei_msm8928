@@ -22,7 +22,7 @@
 / {
 	model = "Qualcomm MSM 8926 CDP mate2";
 	compatible = "qcom,msm8926-cdp", "qcom,msm8926", "qcom,cdp";
-	qcom,board-id = <8002 0>;
+	qcom,msm-id = <224 8018 0>;
 };
 
 

@@ -113,10 +113,3 @@
                   status = "ok";
         };
 };
-
-/ {
-        machine_info {
-                  compatible = "huawei,hw_machine_name";
-                  machine_name = "Qualcomm msm 8928";
-        };
-};

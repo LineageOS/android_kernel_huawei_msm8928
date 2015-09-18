@@ -52,7 +52,7 @@
 				cy,self_cap_num = <28>; /* Number of self cap lines */ 
 				cy,ignore_list_mut_cap = <27 447>; /*mutual capacitance ignore list*/
 				cy,data_start_byte = <8>; /*the data byte after command header*/
-				cy,tp_ic_version = "TMD463";/*ic version*/
+				cy,tp_ic_version = "TMA463";/*ic version*/
 
 				cy,mt {
 					cy,name = "cyttsp4_mt";
