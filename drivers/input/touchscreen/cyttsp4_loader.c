@@ -44,7 +44,7 @@
  #include <misc/app_info.h> //hyuc
 #include "cyttsp4_device_access.h"
 #include <linux/hw_tp_common.h>
-
+#include "cyttsp4_devtree.h"
 #define CYTTSP4_LOADER_NAME "cyttsp4_loader"
 #define CYTTSP4_AUTO_LOAD_FOR_CORRUPTED_FW 1
 
@@ -156,6 +156,7 @@ enum ldr_status {
 	ERROR_INVALID_COMMAND = 15,
 	ERROR_INVALID
 };
+extern cypress4_tp_cap_info tp_get_cap_data_f(void);
 
 #if CYTTSP4_FW_UPGRADE || CYTTSP4_TTCONFIG_UPGRADE
 /*
@@ -717,6 +718,8 @@ static int _cyttsp4_load_app(struct cyttsp4_device *ttsp, const u8 *fw,
 
 	tp_log_info( "%s: Send BL Loader Enter\n", __func__);
 
+	/* delay 5ms for send BL Loader Enter CMD return OK */
+	msleep(5);
 	retval = _cyttsp4_ldr_enter(ttsp, dev_id);
 	if (retval < 0) {
 		tp_log_err(
@@ -1807,6 +1810,7 @@ static void cyttsp4_fw_and_config_upgrade(
 	int rc;
 	u16 ttconfig_version;
 	char * module_name = NULL;
+	static cypress4_tp_cap_info capacitance_data;
 
 	data->si = cyttsp4_request_sysinfo(ttsp);
 	if (data->si == NULL)
@@ -1863,7 +1867,27 @@ static void cyttsp4_fw_and_config_upgrade(
 	ttconfig_version = data->si->ttconfig.version & CY_VER_MASK;
 	/* show module name in project manue */
 	module_name = get_touch_module_name(GET_PANELID(pannel_id));
-	sprintf(touch_info,"cypress_TMA463_%s.%d",module_name,ttconfig_version);
+	capacitance_data = tp_get_cap_data_f();
+	/* check if capacitance data is ok */
+	if( false == capacitance_data.data_ok )
+	{
+		tp_log_err("%s: the capacitance infomation is not proper!\n", __func__);
+		return;
+	}
+	switch (capacitance_data.tp_ic_version) {
+		case CY_TMA445:
+			sprintf(touch_info,"cypress_TMA445_%s.%d",module_name,ttconfig_version);
+			break;
+		case CY_TMA445D:
+			sprintf(touch_info,"cypress_TMA445D_%s.%d",module_name,ttconfig_version);
+			break;
+		case CY_TMA463:
+			sprintf(touch_info,"cypress_TMA463_%s.%d",module_name,ttconfig_version);
+			break;
+		default:
+			sprintf(touch_info,"cypress_UNKNOWN_%s.%d",module_name,ttconfig_version);
+			break;
+	}
 
 	rc = app_info_set("touch_panel", touch_info);
 	if (rc) 
@@ -1899,6 +1923,7 @@ static void cyttsp4_fw_recovery_upgrade(struct cyttsp4_loader_data *data)
 	u8 pannel_id;
 	char * module_name = NULL;
 	u16 ttconfig_version;
+	static cypress4_tp_cap_info capacitance_data;
 
 	pm_runtime_get_sync(dev);
 	data->si = cyttsp4_request_sysinfo(ttsp);
@@ -1931,8 +1956,27 @@ static void cyttsp4_fw_recovery_upgrade(struct cyttsp4_loader_data *data)
 	pannel_id = data->si->si_ptrs.pcfg->panel_info0;
 	ttconfig_version = data->si->ttconfig.version & CY_VER_MASK;
 	module_name = get_touch_module_name(GET_PANELID(pannel_id));
-	sprintf(touch_info,"cypress_TMA463_%s.%d",module_name,ttconfig_version);
-
+	capacitance_data = tp_get_cap_data_f();
+	/* check if capacitance data is ok */
+	if( false == capacitance_data.data_ok )
+	{
+		tp_log_err("%s: the capacitance infomation is not proper!\n", __func__);
+		return;
+	}
+	switch (capacitance_data.tp_ic_version) {
+		case CY_TMA445:
+			sprintf(touch_info,"cypress_TMA445_%s.%d",module_name,ttconfig_version);
+			break;
+		case CY_TMA445D:
+			sprintf(touch_info,"cypress_TMA445D_%s.%d",module_name,ttconfig_version);
+			break;
+		case CY_TMA463:
+			sprintf(touch_info,"cypress_TMA463_%s.%d",module_name,ttconfig_version);
+			break;
+		default:
+			sprintf(touch_info,"cypress_UNKNOWN_%s.%d",module_name,ttconfig_version);
+			break;
+	}
 	rc = app_info_set("touch_panel", touch_info);
 	if (rc) 
 	{

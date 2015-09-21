@@ -421,7 +421,7 @@ static void free_mt_pdata(void *pdata)
 			struct cyttsp4_extended_mt_platform_data, pdata);
 
 	if (mt_pdata) {
-		free_touch_framework(mt_pdata->frmwrk);
+		/* free_touch_framework(mt_pdata->frmwrk); */
 		free_wakeup_keys(mt_pdata->wakeup_keys);
 	}
 
@@ -812,7 +812,7 @@ static cypress4_tp_cap_info tp_cap_data =
     .ignore_list_size_mut_cap  = 0,
     .ignore_list_size_self_cap = 0,
     .data_start_byte = 0,
-    .tp_ic_version = CY_TMD445,
+    .tp_ic_version = CY_TMA445,
 };
 
 cypress4_tp_cap_info tp_get_cap_data_f(void)
@@ -997,17 +997,21 @@ static void get_tp_cap_pdata(struct device_node *core_node)
         goto tp_cap_get_fail;
     }
 
-    if (!strncmp("TMD463", get_tp_ic_version, MAX_NAME_LENGTH))
+    if (!strncmp("TMA463", get_tp_ic_version, MAX_NAME_LENGTH))
     {
-        tp_cap_data.tp_ic_version = CY_TMD463;
+        tp_cap_data.tp_ic_version = CY_TMA463;
     }
-    else if(!strncmp("TMD445", get_tp_ic_version, MAX_NAME_LENGTH))
+    else if(!strncmp("TMA445", get_tp_ic_version, MAX_NAME_LENGTH))
     {
-        tp_cap_data.tp_ic_version = CY_TMD445;
+        tp_cap_data.tp_ic_version = CY_TMA445;
+    }
+    else if(!strncmp("TMA445D", get_tp_ic_version, MAX_NAME_LENGTH))
+    {
+        tp_cap_data.tp_ic_version = CY_TMA445D;
     }
     else
     {
-        tp_cap_data.tp_ic_version = CY_TMDUNKNOW;
+        tp_cap_data.tp_ic_version = CY_TMAUNKNOW;
         tp_log_err("%s: tp ic version is unknown\n", __func__);
         goto tp_cap_get_fail;
     }

@@ -447,7 +447,7 @@ static int cyttsp4_grpdata_show_touch_params(struct device *dev, u8 *ic_buf,
 	struct cyttsp4_device_access_data *dad = dev_get_drvdata(dev);
 	u8 cmd_buf[CY_CMD_CAT_READ_CFG_BLK_CMD_SZ] = {0};
 	int return_buf_size = CY_CMD_CAT_READ_CFG_BLK_RET_SZ;
-	u16 config_row_size;
+	u16 config_row_size = 0;
 	int row_offset;
 	int offset_in_single_row = 0;
 	int rc;
@@ -1510,7 +1510,7 @@ static ssize_t cyttsp4_get_panel_data_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	struct cyttsp4_device_access_data *dad = dev_get_drvdata(dev);
-	u8 return_buf[CY_CMD_CAT_RETRIEVE_PANEL_SCAN_RET_SZ];
+	u8 return_buf[CY_CMD_CAT_RETRIEVE_PANEL_SCAN_RET_SZ] = {0};
 
 	int rc = 0;
 	int rc1 = 0;
@@ -2359,7 +2359,7 @@ int  cyttsp4_get_panel_data_check(char **buf)
 	}
 
 	/*445 can't detect open via cap test,so need more*/
-	if(CY_TMD445 == capacitance_data.tp_ic_version){
+	if((CY_TMA445D == capacitance_data.tp_ic_version)||(CY_TMA445 == capacitance_data.tp_ic_version)){
 		tp_log_info("%s,tmd445 need open test individual\n",__func__);
 		/*Send CAT command for open test*/
 		result = cyttsp4_ic_grpdata_store(dev, NULL, grpdata_opentest, strlen(grpdata_opentest));
@@ -2989,7 +2989,7 @@ static int cyttsp4_device_access_probe(struct cyttsp4_device *ttsp)
 	struct cyttsp4_device_access_platform_data *pdata =
 			dev_get_platdata(dev);
 	int rc = 0;
-    struct kobject * kobject_ts;
+	struct kobject * kobject_ts;
     
 	tp_log_info( "%s\n", __func__);
 	tp_log_debug( "%s: debug on\n", __func__);
@@ -3004,19 +3004,21 @@ static int cyttsp4_device_access_probe(struct cyttsp4_device *ttsp)
 
 	access_dev = dev;
 
-    kobject_ts = tp_get_touch_screen_obj();
-    if( NULL == kobject_ts )
-    {
-        tp_log_err("%s: Error, get kobj failed!\n", __func__);
-        return -1;
-    }
+	kobject_ts = tp_get_touch_screen_obj();
+	if( NULL == kobject_ts )
+	{
+		tp_log_err("%s: Error, get kobj failed!\n", __func__);
+		rc = -1;
+		goto  cyttsp4_sysfs_create_file_failed;
+	}
 	/*add the node touch_mmi_test for mmi test apk*/
 	rc = sysfs_create_file(kobject_ts, &touch_mmi_test_attribute.attr);
 	if (rc)
 	{
 		kobject_put(kobject_ts);
 		tp_log_err("%s: touch_mmi_test create file error\n", __func__);
-		return -1;
+		rc = -1;
+		goto  cyttsp4_sysfs_create_file_failed;
 	}
 
 	rc = sysfs_create_file(kobject_ts, &touch_calibration_attribute.attr);
@@ -3024,7 +3026,8 @@ static int cyttsp4_device_access_probe(struct cyttsp4_device *ttsp)
 	{
 		kobject_put(kobject_ts);
 		tp_log_err("%s: touch_calibration create file error\n", __func__);
-		return -1;
+		rc = -1;
+		goto  cyttsp4_sysfs_create_file_failed;
 	}
 	
 	mutex_init(&dad->sysfs_lock);
@@ -3057,12 +3060,13 @@ static int cyttsp4_device_access_probe(struct cyttsp4_device *ttsp)
 	tp_log_info( "%s: ok\n", __func__);
 	return 0;
 
- cyttsp4_device_access_setup_sysfs_failed:
+cyttsp4_device_access_setup_sysfs_failed:
 	pm_runtime_suspend(dev);
 	pm_runtime_disable(dev);
 	dev_set_drvdata(dev, NULL);
+cyttsp4_sysfs_create_file_failed:
 	kfree(dad);
- cyttsp4_device_access_probe_data_failed:
+cyttsp4_device_access_probe_data_failed:
 	tp_log_err( "%s failed.\n", __func__);
 	return rc;
 }

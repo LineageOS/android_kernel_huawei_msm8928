@@ -32,11 +32,12 @@
 
 #include "cyttsp4_mt_common.h"
 #include <linux/cyttsp4_core.h>
+#include <linux/config_interface.h>
 #include <linux/hw_tp_common.h>
 
 #define IS_WAKEUP_GUESTURE_SUPPORTED(_m) \
 ((_m) && (_m)->pdata && (_m)->pdata->wakeup_keys && ((_m)->pdata->wakeup_keys->size != 0))
-
+struct cyttsp4_device * pri_dev = NULL;
 #if defined(CONFIG_FB)
 static int fb_notifier_callback(struct notifier_block *self,
 				unsigned long event, void *data);
@@ -46,6 +47,67 @@ static int fb_notifier_callback(struct notifier_block *self,
 static int cyttsp4_mt_suspend(struct device *dev);
 static int cyttsp4_mt_resume(struct device *dev);
 #endif
+
+enum cyttsp4_sleep_state {
+	SS_SLEEP_OFF,
+	SS_SLEEP_ON,
+	SS_SLEEPING,
+	SS_WAKING,
+};
+
+enum cyttsp4_startup_state {
+	STARTUP_NONE,
+	STARTUP_QUEUED,
+	STARTUP_RUNNING,
+};
+
+enum cyttsp4_opmode {
+	OPMODE_NONE,
+	OPMODE_FINGER,
+	OPMODE_GLOVE,
+};
+struct cyttsp4_core_data {
+	struct device *dev;
+	struct cyttsp4_core *core;
+	struct list_head atten_list[CY_ATTEN_NUM_ATTEN];
+	struct mutex system_lock;
+	struct mutex adap_lock;
+	enum cyttsp4_mode mode;
+	enum cyttsp4_sleep_state sleep_state;
+	enum cyttsp4_startup_state startup_state;
+	enum cyttsp4_opmode opmode;
+	int int_status;
+	int cmd_toggle;
+	spinlock_t spinlock;
+	struct cyttsp4_core_platform_data *pdata;
+	wait_queue_head_t wait_q;
+	int irq;
+	struct work_struct startup_work;
+	struct cyttsp4_sysinfo sysinfo;
+	void *exclusive_dev;
+	int exclusive_waits;
+	atomic_t ignore_irq;
+	bool irq_enabled;
+	bool irq_wake;
+	bool wake_initiated_by_device;
+	bool invalid_touch_app;
+	int max_xfer;
+	int apa_mc_en;
+	int glove_en;
+	int stylus_en;
+	int proximity_en;
+	u8 default_scantype;
+	u8 easy_wakeup_gesture;
+	u8 easy_wakeup_supported_gestures;
+	unsigned int active_refresh_cycle_ms;
+	u8 heartbeat_count;
+#ifdef VERBOSE_DEBUG
+	u8 pr_buf[CY_MAX_PRBUF_SIZE];
+#endif
+	struct work_struct watchdog_work;
+	struct timer_list watchdog_timer;
+};
+extern int set_holster_sensitivity(struct cyttsp4_core_data *cd,unsigned long status);
 
 static void cyttsp4_lift_all(struct cyttsp4_mt_data *md)
 {
@@ -821,6 +883,12 @@ static ssize_t holster_touch_window_store(struct kobject *dev,
 	int x1 = 0;
 	int y1 = 0;
 	int rc = size;
+	unsigned long holster_status = 0;
+	int ret = 0;
+	char product_name[32]={0};
+	struct cyttsp4_core *core = NULL;
+	struct cyttsp4_core_data *cd = NULL;
+
 	rc = sscanf(buf, "%ld %d %d %d %d",&enable, &x0, &y0, &x1, &y1);
 	if (!rc) {
 		tp_log_err("sscanf return invaild :%d\n", rc);
@@ -839,7 +907,43 @@ static ssize_t holster_touch_window_store(struct kobject *dev,
 	holster_info.bottom_right_x1 = x1;
 	holster_info.bottom_right_y1 = y1;
 	holster_info.holster_enable = enable;
+
 	rc = size;
+	if(pri_dev == NULL)
+	{
+		tp_log_err("%s: device point err!\n",__func__);
+		goto  out;
+	}
+	core = pri_dev->core;
+	if(core == NULL)
+	{
+		tp_log_err("%s: core point err!\n",__func__);
+		goto  out;
+	}
+	cd = dev_get_drvdata(&core->dev);
+	if(cd == NULL)
+	{
+		tp_log_err("%s: cd point err!\n",__func__);
+		goto  out;
+	}
+
+	ret = get_product_name(product_name,32);
+	if(ret)
+	{
+		tp_log_err("%s:get product name fail.\n",__func__);
+		goto out;
+	}
+
+	if(strstr(product_name,"MT2") != NULL)
+	{
+		if(enable == 0)
+			holster_status = 2;
+		else if(enable == 1)
+			holster_status = 1;
+		ret = set_holster_sensitivity(cd,holster_status);
+		if(ret < 0)
+			tp_log_err("%s:set holster sensitivity  fail.\n",__func__);
+	}
 out:
 	return rc;
 }
@@ -888,6 +992,7 @@ static int cyttsp4_mt_probe(struct cyttsp4_device *ttsp)
 	tp_log_debug( "%s: debug on\n", __func__);
 	tp_log_debug( "%s: verbose debug on\n", __func__);
 
+	pri_dev = ttsp ;
 	if (pdata == NULL) {
 		tp_log_err( "%s: Missing platform data\n", __func__);
 		rc = -ENODEV;

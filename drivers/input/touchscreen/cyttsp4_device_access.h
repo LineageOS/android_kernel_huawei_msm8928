@@ -77,9 +77,10 @@ enum check_data_type{
 };
 typedef enum
 {
-	CY_TMD445 = 0,
-	CY_TMD463 = 1,
-	CY_TMDUNKNOW
+	CY_TMA445 = 0,
+	CY_TMA463 = 1,
+	CY_TMA445D,
+	CY_TMAUNKNOW
 }cy_tp_ic_version;
 /* tp capacitance infomation */
 /* add a element of self capcitance number */
