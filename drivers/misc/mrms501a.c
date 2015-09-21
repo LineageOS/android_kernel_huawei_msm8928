@@ -16,6 +16,7 @@
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 #include <linux/input.h>
+#include <misc/app_info.h>
 #define MR_OPEN_EVENT_VALUE  (~(0x00000002))
 #define MR_CLOSE_EVENT_VALUE (0x00000002)
 #define mrms501a_TIMER_INTERVAL  HZ //jiffies 1S
@@ -115,7 +116,7 @@ static void timer_detect_func(unsigned long arg)
 
 static int __devinit mrms501a_probe(struct platform_device *pdev)
 {
-    int ret = 0;
+	int ret = 0,rc=0;
 	u32 temp_val;
     
     struct mrms501a_data_struct *mrus = kzalloc(sizeof(struct mrms501a_data_struct), GFP_KERNEL);
@@ -219,6 +220,12 @@ static int __devinit mrms501a_probe(struct platform_device *pdev)
      ret = request_irq(gpio_to_irq(irq_gpio), (irq_handler_t)mrms501a_interrupt, 
 					 IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING | IRQF_NO_SUSPEND,
 					 "mrms501a", mrus);
+    /* set app info */
+    rc = app_info_set("Hall", "Mrms501a");
+    if (rc < 0)
+    {
+        MRUS_ERRMSG("%s(line %d): app_info_set error,ret=%d\n",__func__,__LINE__,ret);
+    }
     if (ret < 0) {
         MRUS_ERRMSG("mrms501a: request irq failed %d", ret);
         goto request_threaded_irq_failed;
