@@ -104,6 +104,7 @@ endif
 ifeq ($(CONFIG_HUAWEI_KERNEL),y)
 	dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-mate2-va.dtb
 	dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-mate2-vb.dtb
+	dtb-$(CONFIG_ARCH_MSM8226)	+= msm8926-mate2-vc.dtb
 else
 	dtb-$(CONFIG_ARCH_MSM8226)	+= msm8226-sim.dtb
 	dtb-$(CONFIG_ARCH_MSM8226)	+= msm8226-fluid.dtb
