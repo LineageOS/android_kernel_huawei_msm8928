@@ -691,7 +691,11 @@ static int64_t convert_s36_to_s64(uint64_t raw36)
 static int read_cc_raw(struct qpnp_bms_chip *chip, int64_t *reading,
 							int cc_type)
 {
+#ifdef CONFIG_HUAWEI_KERNEL
+	int64_t raw_reading = 0;
+#else
 	int64_t raw_reading;
+#endif
 	int rc;
 #ifdef	CONFIG_HUAWEI_KERNEL
 	static int64_t last_reading = 0;
@@ -1149,12 +1153,27 @@ static int read_soc_params_raw(struct qpnp_bms_chip *chip,
 		goto param_err;
 	}
 
+#ifdef CONFIG_HUAWEI_KERNEL
+	raw->cc = 0;
+	raw->shdw_cc = 0;
+	rc = read_cc_raw(chip, &raw->cc, CC);
+	if (rc) {
+		pr_err("Failed to read raw cc data, rc = %d\n", rc);
+		goto param_err;
+	}
+	rc = read_cc_raw(chip, &raw->shdw_cc, SHDW_CC);
+	if (rc) {
+		pr_err("Failed to read raw shadow cc data, rc = %d\n", rc);
+		goto param_err;
+	}
+#else
 	rc = read_cc_raw(chip, &raw->cc, CC);
 	rc |= read_cc_raw(chip, &raw->shdw_cc, SHDW_CC);
 	if (rc) {
 		pr_err("Failed to read raw cc data, rc = %d\n", rc);
 		goto param_err;
 	}
+#endif
 
 	unlock_output_data(chip);
 	mutex_unlock(&chip->bms_output_lock);
@@ -1612,7 +1631,11 @@ static int get_prop_bms_current_now(struct qpnp_bms_chip *chip)
 /* Returns coulomb counter in uAh */
 static int get_prop_bms_charge_counter(struct qpnp_bms_chip *chip)
 {
+#ifdef CONFIG_HUAWEI_KERNEL
+	int64_t cc_raw = 0;
+#else
 	int64_t cc_raw;
+#endif
 
 	mutex_lock(&chip->bms_output_lock);
 	lock_output_data(chip);
@@ -1626,7 +1649,11 @@ static int get_prop_bms_charge_counter(struct qpnp_bms_chip *chip)
 /* Returns shadow coulomb counter in uAh */
 static int get_prop_bms_charge_counter_shadow(struct qpnp_bms_chip *chip)
 {
+#ifdef CONFIG_HUAWEI_KERNEL
+	int64_t cc_raw = 0;
+#else
 	int64_t cc_raw;
+#endif
 
 	mutex_lock(&chip->bms_output_lock);
 	lock_output_data(chip);
@@ -2746,42 +2773,6 @@ static int calculate_state_of_charge(struct qpnp_bms_chip *chip,
 		pr_debug("SOC before adjustment = %d\n", soc);
 		new_calculated_soc = adjust_soc(chip, &params, soc, batt_temp);
 	}
-#ifdef CONFIG_HUAWEI_KERNEL
-
-#define CAPACITY_99 99
-#define CAPACITY_100 100
-#define SAMPLE_COUNTER 5
-#define DELTA_I_REPORT_100 -200000
-
-	if(new_calculated_soc == CAPACITY_99 && is_battery_charging(chip))
-	{
-		int ibat_ua = 0;
-		int vbat_uv = 0;
-
-		get_simultaneous_batt_v_and_i(chip,&ibat_ua, &vbat_uv);
-		pr_info("ibat_ua = %d\n",ibat_ua);
-		if(ibat_ua > DELTA_I_REPORT_100 && ibat_ua < 0)
-		{
-			chip->fake_soc_count++;
-			pr_info("fake_soc_count = %d\n",chip->fake_soc_count);
-			if(chip->fake_soc_count == SAMPLE_COUNTER)
-			{
-				chip->fake_soc_count = 0;
-				new_calculated_soc = CAPACITY_100;
-				chip->last_ocv_uv = find_ocv_for_pc(chip, batt_temp,find_pc_for_soc(chip, &params, new_calculated_soc));
-				pr_info("fake adjust soc = %d\n",new_calculated_soc);
-			}
-		}
-		else
-		{
-			chip->fake_soc_count = 0;
-		}
-	}
-	else
-	{
-		chip->fake_soc_count = 0;
-	}
-#endif
 
 	/* always clamp soc due to BMS hw/sw immaturities */
 	new_calculated_soc = clamp_soc_based_on_voltage(chip,
