@@ -2527,6 +2527,8 @@ static int __devinit bq2419x_charger_probe(struct i2c_client *client,
 
     dev_err(di->dev, "bq2419x probe ok!\n");
     bq_device = di;
+    kfree(pdata);
+    pdata = NULL;
     return 0;
 
 err_sysfs:
