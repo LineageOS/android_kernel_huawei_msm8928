@@ -787,23 +787,6 @@ int msm_camera_init_gpio_pin_tbl(struct device_node *of_node,
 		CDBG("%s qcom,gpio-reset %d\n", __func__,
 			gconf->gpio_num_info->gpio_num[SENSOR_GPIO_AF_PWDM]);
 	}
-
-    if (of_property_read_bool(of_node, "qcom,cam-id-gpio") == true) {
-		rc = of_property_read_u32(of_node, "qcom,cam-id-gpio", &val);
-		if (rc < 0) {
-			pr_err("%s:%d read qcom,cam-id-gpio failed rc %d\n",
-				__func__, __LINE__, rc);
-			goto ERROR;
-		} else if (val >= gpio_array_size) {
-			pr_err("%s:%d qcom,cam-id-gpio invalid %d\n",
-				__func__, __LINE__, val);
-			goto ERROR;
-		}
-		gconf->gpio_num_info->gpio_num[SENSOR_GPIO_CAM_ID] = gpio_array[val];
-		gconf->gpio_num_info->valid[SENSOR_GPIO_CAM_ID] = 1;
-		pr_info("%s qcom,cam-id-gpio %d\n", __func__,
-			gconf->gpio_num_info->gpio_num[SENSOR_GPIO_CAM_ID]);
-	}
 #endif
 	if (of_property_read_bool(of_node, "qcom,gpio-standby") == true) {
 		rc = of_property_read_u32(of_node, "qcom,gpio-standby", &val);

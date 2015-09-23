@@ -111,7 +111,7 @@ enum msm_sensor_power_seq_gpio_t {
 	SENSOR_GPIO_FL_EN,
 	SENSOR_GPIO_FL_NOW,
 #ifdef CONFIG_HUAWEI_KERNEL_CAMERA
-	SENSOR_GPIO_CAM_ID,
+	SENSOR_GPIO_CAM_ID, /* u-ra: unused, ABI compat, don't remove */
 #endif
 	SENSOR_GPIO_MAX,
 };
