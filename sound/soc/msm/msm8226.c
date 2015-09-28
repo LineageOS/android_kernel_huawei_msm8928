@@ -61,16 +61,6 @@
 
 #define ADSP_STATE_READY_TIMEOUT_MS 50
 
-#ifdef CONFIG_HUAWEI_KERNEL
-#define HAC_EN_GPIO              112
-#define DEFUALT_HAC_SWITCH_VALUE 0x0
-#define HAC_ENABLE               1
-#define GPIO_PULL_UP             1
-#define GPIO_PULL_DOWN           0
-
-static int msm8226_hac_switch = DEFUALT_HAC_SWITCH_VALUE;
-#endif
-
 static void *adsp_state_notifier;
 
 static int msm8226_auxpcm_rate = 8000;
@@ -867,80 +857,6 @@ static const struct soc_enum msm_snd_enum[] = {
 	SOC_ENUM_SINGLE_EXT(3, slim0_rx_sample_rate_text),
 };
 
-#ifdef CONFIG_HUAWEI_KERNEL
-/* The function to pull up GPIO 151 to enable HAC*/
-static void hac_gpio_on(void)
-{
-	int ret = 0;
-	pr_debug("%s: Configure HAC GPIO %u",__func__, HAC_EN_GPIO);
-	ret = gpio_request(HAC_EN_GPIO,
-			"HAC_EN_GPIO");
-	if (ret)
-	{
-		pr_err("%s: Failed to configure hac enable "
-				"gpio %u\n", __func__, HAC_EN_GPIO);
-		return;
-	}
-
-	pr_debug("%s: Enable hac enable gpio %u\n",
-			__func__, HAC_EN_GPIO);
-	gpio_direction_output(HAC_EN_GPIO, GPIO_PULL_UP);
-}
-
-/* The function to pull down GPIO 151 to disable HAC*/
-static void hac_gpio_off(void)
-{
-    pr_debug("%s: Pull down and free hac enable gpio %u\n",
-            __func__, HAC_EN_GPIO);
-    gpio_direction_output(HAC_EN_GPIO, GPIO_PULL_DOWN);
-    gpio_free(HAC_EN_GPIO);
-}
-
-static const char *hac_switch_text[] = {"OFF","ON"};
-
-static const struct soc_enum msm8226_hac_switch_enum[] = {
-    SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(hac_switch_text),
-                        hac_switch_text),
-};
-
-/* The function to get hac status */
-static int msm8226_hac_switch_get(struct snd_kcontrol *kcontrol,
-					struct snd_ctl_elem_value *ucontrol)
-{
-    if(NULL == kcontrol || NULL == ucontrol)
-    {
-        pr_err("%s: input pointer is null\n", __func__);
-    }
-	pr_debug("%s: msm8226_hac_switch = %d\n", __func__,
-			 msm8226_hac_switch);
-	ucontrol->value.integer.value[0] = msm8226_hac_switch;
-	return 0;
-}
-
-/* The function to set hac status */
-static int msm8226_hac_switch_put(struct snd_kcontrol *kcontrol,
-					struct snd_ctl_elem_value *ucontrol)
-{
-    int ret = 0;
-    if(NULL == kcontrol || NULL == ucontrol)
-    {
-        pr_err("%s: input pointer is null\n", __func__);
-    }
-    msm8226_hac_switch = ucontrol->value.integer.value[0];
-    pr_debug("%s: msm8226_hac_switch = %d\n", __func__,msm8226_hac_switch);
-    if(HAC_ENABLE == msm8226_hac_switch)
-    {
-        hac_gpio_on();
-        ret = HAC_ENABLE;
-    }
-    else
-    {
-        hac_gpio_off();
-    }
-    return ret;
-}
-#endif
-
 static const struct snd_kcontrol_new msm_snd_controls[] = {
 	SOC_ENUM_EXT("SLIM_0_RX Channels", msm_snd_enum[0],
 		     msm_slim_0_rx_ch_get, msm_slim_0_rx_ch_put),
@@ -952,10 +868,6 @@ static const struct snd_kcontrol_new msm_snd_controls[] = {
 		     msm_btsco_rate_get, msm_btsco_rate_put),
 	SOC_ENUM_EXT("PROXY_RX Channels", msm_snd_enum[2],
 			msm_proxy_rx_ch_get, msm_proxy_rx_ch_put),
-#ifdef CONFIG_HUAWEI_KERNEL
-	SOC_ENUM_EXT("HAC",msm8226_hac_switch_enum[0],
-			msm8226_hac_switch_get,msm8226_hac_switch_put),
-#endif
 	SOC_ENUM_EXT("SLIM_0_RX Format", msm_snd_enum[3],
 			slim0_rx_bit_format_get, slim0_rx_bit_format_put),
 	SOC_ENUM_EXT("SLIM_0_RX SampleRate", msm_snd_enum[4],
