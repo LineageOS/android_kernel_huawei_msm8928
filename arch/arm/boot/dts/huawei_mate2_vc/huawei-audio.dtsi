@@ -16,7 +16,7 @@
 &soc {
     /delete-node/ sound;
     sound-9302 {
-        huawei,audio-routing =
+        qcom,audio-routing =
             "RX_BIAS", "MCLK",
             "LDO_H", "MCLK",
             "SPK_OUT", "MCLK",
@@ -30,8 +30,7 @@
             "AMIC4", "MIC BIAS1 External",
             "MIC BIAS1 External", "Analog Mic4";
 
-        huawei,cdc-mclk-gpios = <&pm8226_gpios 1 0>;
-        huawei,cdc-vdd-spkr-gpios = <&msmgpio 111 0>;
-        huawei,headset-jack-type-NO;
+        qcom,cdc-vdd-spkr-gpios = <&msmgpio 111 0>;
+        /delete-property/ qcom,headset-jack-type-NC;
     };
 };

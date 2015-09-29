@@ -2313,13 +2313,8 @@ static __devinit int msm8226_asoc_machine_probe(struct platform_device *pdev)
 	if (ret)
 		goto err;
 
-#ifdef CONFIG_HUAWEI_KERNEL
-	ret = snd_soc_of_parse_audio_routing(card,
-			"huawei,audio-routing");
-#else
 	ret = snd_soc_of_parse_audio_routing(card,
 			"qcom,audio-routing");
-#endif
 	if (ret)
 		goto err;
 
@@ -2339,13 +2334,8 @@ static __devinit int msm8226_asoc_machine_probe(struct platform_device *pdev)
 		goto err;
 	}
 
-#ifdef CONFIG_HUAWEI_KERNEL
-	pdata->mclk_gpio = of_get_named_gpio(pdev->dev.of_node,
-				"huawei,cdc-mclk-gpios", 0);
-#else
 	pdata->mclk_gpio = of_get_named_gpio(pdev->dev.of_node,
 				"qcom,cdc-mclk-gpios", 0);
-#endif
 	if (pdata->mclk_gpio < 0) {
 		dev_err(&pdev->dev,
 			"Looking up %s property in node %s failed %d\n",
@@ -2363,15 +2353,6 @@ static __devinit int msm8226_asoc_machine_probe(struct platform_device *pdev)
 
 	mbhc_cfg.gpio_level_insert = of_property_read_bool(pdev->dev.of_node,
 					"qcom,headset-jack-type-NC");
-/* Detection level should be low when headset is connected for NO-type jack */
-#ifdef CONFIG_HUAWEI_KERNEL
-    mbhc_cfg.gpio_level_insert = !of_property_read_bool(pdev->dev.of_node,
-                    "huawei,headset-jack-type-NO");
-    pr_debug("huawei_audio: mbhc_cfg.gpio_level_insert=%d\n", mbhc_cfg.gpio_level_insert);
-#else
-    mbhc_cfg.gpio_level_insert = of_property_read_bool(pdev->dev.of_node,
-                    "qcom,headset-jack-type-NO");
-#endif
 
 	ret = of_property_read_string(pdev->dev.of_node,
 		"qcom,mbhc-audio-jack-type", &mbhc_audio_jack_type);
@@ -2420,13 +2401,8 @@ static __devinit int msm8226_asoc_machine_probe(struct platform_device *pdev)
 		goto err;
 	}
 
-#ifdef CONFIG_HUAWEI_KERNEL
-	vdd_spkr_gpio = of_get_named_gpio(pdev->dev.of_node,
-				"huawei,cdc-vdd-spkr-gpios", 0);
-#else
 	vdd_spkr_gpio = of_get_named_gpio(pdev->dev.of_node,
 				"qcom,cdc-vdd-spkr-gpios", 0);
-#endif
 	if (vdd_spkr_gpio < 0) {
 		dev_dbg(&pdev->dev,
 			"Looking up %s property in node %s failed %d\n",
