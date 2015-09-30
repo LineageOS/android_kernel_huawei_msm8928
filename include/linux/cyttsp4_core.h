@@ -96,7 +96,7 @@ do{                                     \
 do{                                     \
     if( cyttsp_debug_mask >= TP_INFO )  \
     {                                   \
-        printk(KERN_ERR "[CYTTSP] " x); \
+        printk(KERN_INFO "[CYTTSP] " x); \
     }                                   \
                                         \
 }while(0)
