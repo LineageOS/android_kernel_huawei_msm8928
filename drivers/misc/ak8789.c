@@ -87,7 +87,7 @@ module_param_named(akm8789_debug_mask, akm8789_debug_mask, int, 0664);
 do{\
 	if( akm8789_debug_mask >= AK8789_LOG_FLOW )\
 	{\
-		printk(KERN_ERR "[%s] (line: %u) " format "\n",__FUNCTION__, __LINE__, ##args);\
+		printk(KERN_INFO "[%s] (line: %u) " format ,__FUNCTION__, __LINE__, ##args);\
 	}\
 } while(0)
 
@@ -95,7 +95,7 @@ do{\
 do{\
 	if( akm8789_debug_mask >= AK8789_LOG_INFO )\
 	{\
-		printk(KERN_ERR "[%s] (line: %u) " format "\n",__FUNCTION__, __LINE__, ##args);\
+		printk(KERN_INFO "[%s] (line: %u) " format ,__FUNCTION__, __LINE__, ##args);\
 	}\
 } while(0)
 
@@ -103,7 +103,7 @@ do{\
 do{\
 	if( akm8789_debug_mask >= AK8789_LOG_ERR)\
 	{\
-		printk(KERN_ERR "[%s] (line: %u) " format "\n",__FUNCTION__, __LINE__, ##args);\
+		printk(KERN_ERR "[%s] (line: %u) " format ,__FUNCTION__, __LINE__, ##args);\
 	}\
 } while(0)
 
@@ -186,7 +186,7 @@ int query_hall_event(void)
 	
 	for ( i = 0; i < hw_hall_dev.used_type; i++){
 		GROUP_VALUE(gpio_ptr->gpio, gpio_ptr->hall_value);
-		AK8789_FLOWMSG("gpio_ptr->gpio=%d,gpio_ptr->hall_value=0x%x,value=0x%x",gpio_ptr->gpio,gpio_ptr->hall_value,value);
+		AK8789_FLOWMSG("gpio_ptr->gpio=%d,gpio_ptr->hall_value=0x%x,value=0x%x\n",gpio_ptr->gpio,gpio_ptr->hall_value,value);
 		gpio_ptr++;
 	}
 
@@ -507,7 +507,7 @@ int hall_pf_probe(struct platform_device *pdev)
 			goto gpio_ln_err;
 		} else {
 			gpio = temp_val;
-			AK8789_ERRMSG("ak8789 irq gpio=%d \n",gpio);
+			AK8789_FLOWMSG("ak8789 irq gpio=%d \n",gpio);
 		}
 
 		gpio_ptr->gpio = gpio;
