@@ -1253,11 +1253,6 @@ static int wcd9xxx_dt_parse_micbias_info(struct device *dev,
 				&prop_val)))
 		micbias->bias4_cfilt_sel = (u8)prop_val;
 
-	/* when codec driver start , these code will set mic's cap mode,
-	 * for matching hardware, here will change the mode property setting code
-	 * so we can control it easily whether Qualcom modify it or not
-	 */
-#ifndef CONFIG_HUAWEI_KERNEL
 	/* micbias external cap */
 	micbias->bias1_cap_mode =
 	    (of_property_read_bool(dev->of_node, "qcom,cdc-micbias1-ext-cap") ?
@@ -1271,21 +1266,6 @@ static int wcd9xxx_dt_parse_micbias_info(struct device *dev,
 	micbias->bias4_cap_mode =
 	    (of_property_read_bool(dev->of_node, "qcom,cdc-micbias4-ext-cap") ?
 	     MICBIAS_EXT_BYP_CAP : MICBIAS_NO_EXT_BYP_CAP);
-#else
-	/* micbias external cap */
-	micbias->bias1_cap_mode =
-	    (of_property_read_bool(dev->of_node, "huawei,cdc-micbias1-ext-cap") ?
-	     MICBIAS_EXT_BYP_CAP : MICBIAS_NO_EXT_BYP_CAP);
-	micbias->bias2_cap_mode =
-	    (of_property_read_bool(dev->of_node, "huawei,cdc-micbias2-ext-cap") ?
-	     MICBIAS_EXT_BYP_CAP : MICBIAS_NO_EXT_BYP_CAP);
-	micbias->bias3_cap_mode =
-	    (of_property_read_bool(dev->of_node, "huawei,cdc-micbias3-ext-cap") ?
-	     MICBIAS_EXT_BYP_CAP : MICBIAS_NO_EXT_BYP_CAP);
-	micbias->bias4_cap_mode =
-	    (of_property_read_bool(dev->of_node, "huawei,cdc-micbias4-ext-cap") ?
-	     MICBIAS_EXT_BYP_CAP : MICBIAS_NO_EXT_BYP_CAP);
-#endif
 
 	micbias->bias2_is_headset_only =
 	    of_property_read_bool(dev->of_node,
