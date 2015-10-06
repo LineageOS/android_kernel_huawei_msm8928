@@ -28,6 +28,7 @@ int get_product_name(char* product_name, int name_len)
    if(product_name == NULL)
    {
        printk(KERN_ERR " param is NULL\n");
+       return DT_PROP_ERROR;
    }
    memset(product_name,0,name_len);
    temp = dt_get_property_for_fac("fac,product_name",&product_name_len);
@@ -49,6 +50,7 @@ int get_hardware_ver(char* hardware_ver, int name_len)
    if(hardware_ver == NULL)
    {
        printk(KERN_ERR " param is NULL\n");
+       return DT_PROP_ERROR;
    }
    memset(hardware_ver,0,name_len);
    temp = dt_get_property_for_fac("fac,hardware_ver",&hardware_ver_len);
@@ -71,6 +73,7 @@ int get_software_ver(char* software_ver, int name_len)
    if(software_ver == NULL)
    {
        printk(KERN_ERR " param is NULL\n");
+       return DT_PROP_ERROR;
    }
    memset(software_ver,0,name_len);
    temp = dt_get_property_for_fac("fac,software_ver",&software_ver_len);
