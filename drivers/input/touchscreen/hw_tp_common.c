@@ -7,9 +7,10 @@
  * 2014-01-04:Add "tp_get_touch_screen_obj" by sunlibin
  *
  */
-#include <linux/hw_tp_common.h>
 #include <linux/module.h>
-#include "synaptics_dsx_i2c.h"
+#include <linux/device.h>
+#include <linux/hw_tp_common.h>
+#include <linux/cyttsp4_core.h>
 
 static struct kobject *touch_screen_kobject_ts = NULL;
 static struct kobject *touch_glove_func_ts = NULL;
