@@ -1,4 +1,5 @@
 #include <linux/fs.h>
+#include <linux/kthread.h>
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <linux/list.h>
@@ -7,9 +8,36 @@
 
 #include <mach/msm_smsm.h>
 
+#define APP_NAME_VALUE_SPLIT_CHAR  "*"
+#define SENSOR_MAX 4
+
 #define SUMSUNG_ID   1
 #define ELPIDA_ID     3
 #define HYNIX_ID     6
+
+static struct kobject *set_appinfo_node_kobject = NULL;
+
+static unsigned int sensors_bitmap = 0;
+static char *sensor_name[SENSOR_MAX] = {
+	"G-Sensor",
+	"M-Sensor",
+	"LP-Sensor",
+	"V-Gyro-Sensor",
+};
+
+void sensors_set_bit(int nr, int *addr)
+{
+	if (NULL != addr)
+		*addr |= (1<<nr);
+}
+
+bool sensors_test_bit(int nr, int *addr)
+{
+	if (NULL != addr)
+		return (*addr)&(1<<nr) ? true : false;
+	else
+		return false;
+}
 
 struct info_node
 {
@@ -29,6 +57,111 @@ typedef struct
 
 static LIST_HEAD(app_info_list);
 static DEFINE_SPINLOCK(app_info_list_lock);
+
+/*
+ * Name and value separation character: *
+ * Example buf: LP-Sensor*avago 9930
+ *   name: LP-Sensor
+ *   value: avago 9930
+ */
+static ssize_t hw_set_app_info_node_store(struct kobject *dev,
+		struct kobj_attribute *attr, const char *buf, size_t size)
+{
+	char* AppStr = NULL;
+	char AppName[APP_INFO_NAME_LENTH] = { 0 };
+	char AppValue[APP_INFO_VALUE_LENTH] = { 0 };
+	int name_lenth = 0, value_lenth = 0, buf_len = 0, ret = -1, idx = 0;
+	char* strtok = NULL;
+
+	buf_len = strlen(buf);
+	AppStr = kmalloc(buf_len+5, GFP_KERNEL);
+	if (!AppStr)
+	{
+		pr_err("%s: kmalloc fail!", __func__);
+		return -1;
+	}
+
+	memset(AppStr, 0, buf_len + 5);
+	sprintf(AppStr, "%s", buf);
+	strtok = strsep(&AppStr, APP_NAME_VALUE_SPLIT_CHAR);
+	if (strtok != NULL)
+	{
+		name_lenth = strlen(strtok);
+		memcpy(AppName, strtok, (name_lenth > (APP_INFO_NAME_LENTH-1)
+				? (APP_INFO_NAME_LENTH-1) : name_lenth));
+	}
+	else
+	{
+		pr_err("%s: buf name Invalid: %s", __func__, buf);
+		goto split_fail_exit;
+	}
+	strtok = strsep(&AppStr, APP_NAME_VALUE_SPLIT_CHAR);
+	if (strtok != NULL)
+	{
+		value_lenth = strlen(strtok);
+		memcpy(AppValue, strtok, (value_lenth > (APP_INFO_VALUE_LENTH-1)
+				? (APP_INFO_VALUE_LENTH-1) : value_lenth));
+	}
+	else
+	{
+		pr_err("%s: buf value Invalid:%s", __func__, buf);
+		goto split_fail_exit;
+	}
+
+	for (idx = 0; idx < SENSOR_MAX; idx++) {
+		if (!strncmp(AppName, sensor_name[idx],
+				strlen(sensor_name[idx]))) {
+			if (sensors_test_bit(idx, &sensors_bitmap)) {
+				goto split_fail_exit;
+			} else {
+				sensors_set_bit(idx,  &sensors_bitmap);
+			}
+			break;
+		}
+	}
+
+	ret = app_info_set(AppName, AppValue);
+	if (ret < 0)
+	{
+		pr_err("%s: app_info_set fail", __func__);
+		goto split_fail_exit;
+	}
+
+split_fail_exit:
+	if (AppStr)
+		kfree(AppStr);
+	return size;
+}
+
+static struct kobj_attribute sys_set_appinfo_init = {
+	.attr = {
+		.name = "set_app_info_node",
+		.mode = (S_IRUGO | S_IWUSR | S_IWGRP),
+	},
+	.show = NULL,
+	.store = hw_set_app_info_node_store,
+};
+
+static int app_info_node_init(void)
+{
+	int err = -100;
+	set_appinfo_node_kobject = kobject_create_and_add("set_app_info", NULL);
+	if (!set_appinfo_node_kobject)
+	{
+		pr_err("%s: create set_app_info folder error!", __func__);
+		return -1;
+	}
+
+	err = sysfs_create_file(set_appinfo_node_kobject,
+				&sys_set_appinfo_init.attr);
+	if (err)
+	{
+		pr_err("%s: init set_appinfo_node_kobject file fail", __func__);
+		return -1;
+	}
+
+	return 1;
+}
 
 int app_info_set(const char * name, const char * value)
 {
@@ -158,6 +291,7 @@ static int __init proc_app_info_init(void)
     proc_create("app_info", 0, NULL, &app_info_proc_fops);
 
     app_info_print_smem();
+    app_info_node_init();
 
     return 0;
 }
