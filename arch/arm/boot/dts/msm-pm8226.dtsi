@@ -84,7 +84,6 @@
 			qcom,vddmax-mv = <4200>;
 			qcom,vddsafe-mv = <4230>;
 			qcom,vinmin-mv = <4350>;
-			low-power-usb-workaround;
 			qcom,vbatdet-delta-mv = <100>;
 			qcom,ibatmax-ma = <1400>;
 			qcom,ibatterm-ma = <100>;
