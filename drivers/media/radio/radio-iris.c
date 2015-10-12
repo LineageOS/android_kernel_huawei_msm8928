@@ -4871,18 +4871,6 @@ static int iris_vidioc_s_frequency(struct file *file, void *priv,
 	return retval;
 }
 
-static int iris_fops_open(struct file *file)
-{
-	static bool init_done = false;
-
-	if(!init_done) {
-		radio_hci_smd_init();
-		init_done = true;
-	}
-
-	return 0;
-}
-
 static int iris_fops_release(struct file *file)
 {
 	struct iris_device *radio = video_get_drvdata(video_devdata(file));
@@ -5107,7 +5095,6 @@ static const struct v4l2_ioctl_ops iris_ioctl_ops = {
 static const struct v4l2_file_operations iris_fops = {
 	.owner = THIS_MODULE,
 	.unlocked_ioctl = video_ioctl2,
-	.open           = iris_fops_open,
 	.release        = iris_fops_release,
 };
 
