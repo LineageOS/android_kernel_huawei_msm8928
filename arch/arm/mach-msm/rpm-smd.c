@@ -1404,7 +1404,7 @@ fail:
 	return -EINVAL;
 }
 
-static struct of_device_id msm_rpm_match_table[] __initdata =  {
+static struct of_device_id msm_rpm_match_table[] __devinitdata =  {
 	{.compatible = "qcom,rpm-smd"},
 	{},
 };
