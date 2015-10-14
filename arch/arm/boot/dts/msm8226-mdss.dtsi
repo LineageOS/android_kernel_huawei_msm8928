@@ -173,12 +173,6 @@
 		qcom,mdss_pan_bpp = <24>;
 		qcom,mdss-fb-map = <&mdss_fb1>;
 	};
-	i2c3: i2c@f9925000 { /* BLSP-1 QUP-3 */
-		lcd_bias@3e {
-			compatible ="ti,lcd_bias"; /* Manufacturer, driver name */
-			reg = <0x3e>; /* Slave Addres */
-		};
-	};
 };
 
 /include/ "msm8226-mdss-panels.dtsi"
