@@ -72,11 +72,8 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata, int enable)
 			goto error;
 		}
 
-#ifndef CONFIG_HUAWEI_LCD
 		if (pdata->panel_info.panel_power_on == 0)
 			mdss_dsi_panel_reset(pdata, 1);
-#endif
-
 	} else {
 
 		mdss_dsi_panel_reset(pdata, 0);
