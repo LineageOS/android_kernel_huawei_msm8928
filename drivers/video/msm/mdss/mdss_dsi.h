@@ -257,6 +257,7 @@ struct mdss_dsi_ctrl_pdata {
 	int disp_en_gpio;
 #ifdef CONFIG_HUAWEI_LCD
 	int disp_en_gpio_vsn;
+	int bl_en_gpio;
 #endif
 	int disp_te_gpio;
 	int mode_gpio;
@@ -296,9 +297,6 @@ struct mdss_dsi_ctrl_pdata {
 
 	struct dsi_buf tx_buf;
 	struct dsi_buf rx_buf;
-#ifdef CONFIG_HUAWEI_LCD
-	int bl_en_gpio;
-#endif
 };
 
 int dsi_panel_device_register(struct device_node *pan_node,
