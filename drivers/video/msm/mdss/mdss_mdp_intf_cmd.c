@@ -465,12 +465,6 @@ static int mdss_mdp_cmd_remove_vsync_handler(struct mdss_mdp_ctl *ctl,
 	struct mdss_mdp_cmd_ctx *ctx;
 	unsigned long flags;
 
-	/*add qcom patch to solve the cmd esd issue
-	 *refactor command mode vsync control logic
-	 *Current logic is prone to corner case when mdss_mdp_remove_vsync_handler
-	 *is called twice: once from mdss_mdp_cmd_stop and again from vsync ctrl
-	 *logic. Need to properly identify the second call and avoid resetting the
-	 *rdptr ticks which prevent from clocks being turned off properly.*/
 	ctx = (struct mdss_mdp_cmd_ctx *) ctl->priv_data;
 	if (!ctx) {
 		pr_err("%s: invalid ctx\n", __func__);
