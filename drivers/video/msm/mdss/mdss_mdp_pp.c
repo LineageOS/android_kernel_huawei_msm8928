@@ -356,7 +356,7 @@ static void pp_update_hist_lut(char __iomem *base,
 				struct mdp_hist_lut_data *cfg);
 static int pp_gm_has_invalid_lut_size(struct mdp_gamut_cfg_data *config);
 static void pp_gamut_config(struct mdp_gamut_cfg_data *gamut_cfg,
-				char __iomem *base, struct pp_sts_type *pp_sts);
+			char __iomem *base, struct pp_sts_type *pp_sts);
 static void pp_pa_config(unsigned long flags, char __iomem *addr,
 				struct pp_sts_type *pp_sts,
 				struct mdp_pa_cfg *pa_config);

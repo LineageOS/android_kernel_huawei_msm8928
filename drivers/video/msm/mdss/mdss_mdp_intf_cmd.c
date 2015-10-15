@@ -47,6 +47,12 @@ struct mdss_mdp_cmd_ctx {
 	struct work_struct pp_done_work;
 	atomic_t pp_done_cnt;
 
+	/* te config */
+	u8 tear_check;
+	u16 height;	/* panel height */
+	u16 vporch;	/* vertical porches */
+	u16 start_threshold;
+	u32 vclk_line;	/* vsync clock per line */
 	struct mdss_panel_recovery recovery;
 	bool ulps;
 	struct mdss_mdp_cmd_ctx *sync_ctx; /* for partial update */
