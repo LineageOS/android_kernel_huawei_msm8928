@@ -1448,11 +1448,7 @@ static int __mdss_mdp_overlay_release_all(struct msm_fb_data_type *mfd,
 	}
 	mutex_unlock(&mdp5_data->ov_lock);
 
-#ifdef CONFIG_HUAWEI_LCD
-	if (cnt && mfd->panel_power_on)
-#else
 	if (cnt)
-#endif
 		mfd->mdp.kickoff_fnc(mfd, NULL);
 
 	list_for_each_entry_safe(rot, tmp, &mdp5_data->rot_proc_list, list) {
