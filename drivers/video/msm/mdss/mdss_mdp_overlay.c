@@ -2952,10 +2952,8 @@ static int mdss_mdp_overlay_off(struct msm_fb_data_type *mfd)
 			mdp5_data->ctl = NULL;
 		}
 
-#ifndef CONFIG_HUAWEI_LCD
 		if (atomic_dec_return(&ov_active_panels) == 0)
 			mdss_mdp_rotator_release_all();
-#endif
 
 		rc = pm_runtime_put(&mfd->pdev->dev);
 		if (rc)
