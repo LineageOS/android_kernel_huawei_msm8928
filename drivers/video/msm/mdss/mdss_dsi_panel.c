@@ -185,66 +185,6 @@ static void mdss_dsi_panel_bklt_dcs(struct mdss_dsi_ctrl_pdata *ctrl, int level)
 	mdss_dsi_cmdlist_put(ctrl, &cmdreq);
 }
 
-#ifdef CONFIG_HUAWEI_LCD
-static void mdss_dsi_panel_bias_en(struct mdss_panel_data *pdata, int enable)
-{
-	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
-
-	if (pdata == NULL) {
-		pr_err("%s: Invalid input data\n", __func__);
-		return;
-	}
-
-	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
-				  panel_data);
-
-	if (!gpio_is_valid(ctrl_pdata->disp_en_gpio))
-		pr_debug("%s: disp_en_gpio not configured\n", __func__);
-
-	if (!gpio_is_valid(ctrl_pdata->disp_en_gpio_vsn))
-		pr_debug("%s: disp_en_gpio_vsn not configured\n", __func__);
-
-	if (!gpio_is_valid(ctrl_pdata->bl_en_gpio))
-		pr_debug("%s: bl_en_gpio not configured\n", __func__);
-
-	if (!gpio_is_valid(ctrl_pdata->rst_gpio)) {
-		pr_debug("%s: rst_gpio not configured\n", __func__);
-		return;
-	}
-
-	if (enable) {
-		if (gpio_is_valid(ctrl_pdata->rst_gpio))
-			gpio_set_value((ctrl_pdata->rst_gpio), 1);
-
-		mdelay(1);
-
-		if (gpio_is_valid(ctrl_pdata->disp_en_gpio))
-			gpio_set_value((ctrl_pdata->disp_en_gpio), 1);
-
-		mdelay(5);
-		if (gpio_is_valid(ctrl_pdata->disp_en_gpio_vsn))
-			gpio_set_value((ctrl_pdata->disp_en_gpio_vsn), 1);
-
-		mdelay(5);
-
-		if (gpio_is_valid(ctrl_pdata->bl_en_gpio))
-			gpio_set_value((ctrl_pdata->bl_en_gpio), 1);
-	} else {
-		if (gpio_is_valid(ctrl_pdata->bl_en_gpio))
-			gpio_set_value((ctrl_pdata->bl_en_gpio), 0);
-
-		/*disable negative voltage*/
-		if (gpio_is_valid(ctrl_pdata->disp_en_gpio_vsn))
-			gpio_set_value((ctrl_pdata->disp_en_gpio_vsn), 0);
-
-		mdelay(5);
-
-		if (gpio_is_valid(ctrl_pdata->disp_en_gpio))
-			gpio_set_value((ctrl_pdata->disp_en_gpio), 0);
-	}
-}
-#endif
-
 void mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
@@ -274,12 +214,27 @@ void mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 	pinfo = &(ctrl_pdata->panel_data.panel_info);
 
 	if (enable) {
-#ifndef CONFIG_HUAWEI_LCD
+#ifdef CONFIG_HUAWEI_LCD
+		if (gpio_is_valid(ctrl_pdata->rst_gpio))
+			gpio_set_value((ctrl_pdata->rst_gpio), 1);
+
+		mdelay(1);
+#endif
+
 		if (gpio_is_valid(ctrl_pdata->disp_en_gpio))
 			gpio_set_value((ctrl_pdata->disp_en_gpio), 1);
-#else
-		/* reset lcd when power on */
-		mdss_dsi_panel_bias_en(pdata, 1);
+
+#ifdef CONFIG_HUAWEI_LCD
+		mdelay(5);
+
+		if (gpio_is_valid(ctrl_pdata->disp_en_gpio_vsn))
+			gpio_set_value((ctrl_pdata->disp_en_gpio_vsn), 1);
+
+		mdelay(5);
+
+		if (gpio_is_valid(ctrl_pdata->bl_en_gpio))
+			gpio_set_value((ctrl_pdata->bl_en_gpio), 1);
+
 		msleep(20);
 #endif
 
@@ -304,13 +259,21 @@ void mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 		}
 	} else {
 		gpio_set_value((ctrl_pdata->rst_gpio), 0);
-#ifndef CONFIG_HUAWEI_LCD
+
+#ifdef CONFIG_HUAWEI_LCD
+		mdelay(10);
+
+		if (gpio_is_valid(ctrl_pdata->bl_en_gpio))
+			gpio_set_value((ctrl_pdata->bl_en_gpio), 0);
+
+		if (gpio_is_valid(ctrl_pdata->disp_en_gpio_vsn))
+			gpio_set_value((ctrl_pdata->disp_en_gpio_vsn), 0);
+
+		mdelay(5);
+#endif
+
 		if (gpio_is_valid(ctrl_pdata->disp_en_gpio))
 			gpio_set_value((ctrl_pdata->disp_en_gpio), 0);
-#else
-		mdelay(10);
-		mdss_dsi_panel_bias_en(pdata, 0);
-#endif
 	}
 }
 
