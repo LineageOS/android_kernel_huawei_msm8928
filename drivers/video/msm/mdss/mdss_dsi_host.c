@@ -1027,9 +1027,6 @@ static int mdss_dsi_cmd_dma_tx(struct mdss_dsi_ctrl_pdata *ctrl,
 	int domain = MDSS_IOMMU_DOMAIN_UNSECURE;
 	char *bp;
 	unsigned long size, addr;
-#ifdef CONFIG_HUAWEI_LCD
-	bool iommu_attached = false;
-#endif
 
 	bp = tp->data;
 
@@ -1045,9 +1042,6 @@ static int mdss_dsi_cmd_dma_tx(struct mdss_dsi_ctrl_pdata *ctrl,
 			pr_err("unable to map dma memory to iommu(%d)\n", ret);
 			return -ENOMEM;
 		}
-#ifdef CONFIG_HUAWEI_LCD
-		iommu_attached = true;
-#endif
 	} else {
 		addr = tp->dmap;
 	}
@@ -1081,12 +1075,7 @@ static int mdss_dsi_cmd_dma_tx(struct mdss_dsi_ctrl_pdata *ctrl,
 	else
 		ret = tp->len;
 
-#ifdef CONFIG_HUAWEI_LCD
-	/* only unmap if attached at start */
-	if (is_mdss_iommu_attached() && iommu_attached)
-#else
 	if (is_mdss_iommu_attached())
-#endif
 		msm_iommu_unmap_contig_buffer(addr,
 			mdss_get_iommu_domain(domain), 0, size);
 
