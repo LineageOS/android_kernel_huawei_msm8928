@@ -1262,6 +1262,7 @@ vreg_set_voltage_fail:
 
 void mdp3_batfet_ctrl(int enable)
 {
+	int rc;
 	if (!mdp3_res->batfet_required)
 		return;
 
@@ -1283,9 +1284,12 @@ void mdp3_batfet_ctrl(int enable)
 	}
 
 	if (enable)
-		regulator_enable(mdp3_res->batfet);
+		rc = regulator_enable(mdp3_res->batfet);
 	else
-		regulator_disable(mdp3_res->batfet);
+		rc = regulator_disable(mdp3_res->batfet);
+
+	if (rc < 0)
+		pr_err("%s: reg enable/disable failed", __func__);
 }
 
 void mdp3_enable_regulator(int enable)
