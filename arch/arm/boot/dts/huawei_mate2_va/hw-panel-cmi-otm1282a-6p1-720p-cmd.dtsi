@@ -340,6 +340,5 @@
 		qcom,column-inversion-cmds-dsi-state = "dsi_lp_mode";
 		qcom,mdss-dsi-panel-esd-cmd = [0a 0b 0c 0d ac];
 		qcom,mdss-dsi-panel-esd-cmd-value = [9c 00 07 00 00];
-		qcom,mdss-dsi-lp11-init;
 	};
 };
