@@ -202,7 +202,7 @@ typedef struct otp_vcm {
 #define IMX135_OTP_LOTNO_SIZE    9
 #define IMX135_OTP_LSC_LOTNO_SIZE    (IMX135_OTP_LSC_SIZE + IMX135_OTP_LOTNO_SIZE)
 #define IMX135_OTP_LSC_WRITE_SIZE    9
-#define IMX135_OTP_LSC_FILE    "/data/lsc_param"
+#define IMX135_OTP_LSC_FILE    "/data/misc/camera/lsc_param"
 
 /* OTP parameters. */
 static uint8_t hw_imx135_otp_flag = 0;
