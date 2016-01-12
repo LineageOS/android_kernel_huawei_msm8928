@@ -31,12 +31,6 @@
 #define CDBG(fmt, args...) do { } while (0)
 #endif
 
-#ifdef CONFIG_HUAWEI_KERNEL_CAMERA
-#define TEMPERATUE_NORMAL 1  //normal
-#define TEMPERATUE_ABNORMAL 0 //abnormal
-static bool led_temperature = TEMPERATUE_NORMAL; //led temperature status
-#endif
-
 int32_t msm_led_i2c_trigger_get_subdev_id(struct msm_led_flash_ctrl_t *fctrl,
 	void *arg)
 {
@@ -62,15 +56,6 @@ int32_t msm_led_i2c_trigger_config(struct msm_led_flash_ctrl_t *fctrl,
 		pr_err("failed\n");
 		return -EINVAL;
 	}
-#ifdef CONFIG_HUAWEI_KERNEL_CAMERA
-	//if led status is off and led status abnormal close the led
-	if((TEMPERATUE_ABNORMAL == led_temperature) && (MSM_CAMERA_LED_TORCH_POWER_NORMAL != cfg->cfgtype))
-	{
-		cfg->cfgtype = MSM_CAMERA_LED_OFF;
-		pr_err("flash can not work.\n");
-	}
-#endif
-
 	switch (cfg->cfgtype) {
 
 	case MSM_CAMERA_LED_INIT:
@@ -98,30 +83,6 @@ int32_t msm_led_i2c_trigger_config(struct msm_led_flash_ctrl_t *fctrl,
 		if (fctrl->func_tbl->flash_led_high)
 			rc = fctrl->func_tbl->flash_led_high(fctrl);
 		break;
-#ifdef CONFIG_HUAWEI_KERNEL_CAMERA
-	//normal
-	case MSM_CAMERA_LED_TORCH_POWER_NORMAL:
-		pr_err("resume the flash.\n");
-		led_temperature = TEMPERATUE_NORMAL;
-		break;
-	//abnormal
-	case MSM_CAMERA_LED_TORCH_POWER_LOW:
-		//need run MSM_CAMERA_LED_OFF to take off the led
-		pr_err("tunn off the flash.\n");
-		led_temperature = TEMPERATUE_ABNORMAL;
-		//close flash
-		if (fctrl->func_tbl->flash_led_off)
-		{
-			rc = fctrl->func_tbl->flash_led_off(fctrl);
-		}
-	case MSM_CAMERA_LED_TORCH_LOW:
-	case MSM_CAMERA_LED_TORCH_MEDIUM:
-		if (fctrl->func_tbl->torch_led_on){
-			msleep(100);    //have to sleep to solve the flash problem of torch app
-			rc = fctrl->func_tbl->torch_led_on(fctrl);
-		}
-		break;
-#endif
 	default:
 		rc = -EFAULT;
 		break;
@@ -300,76 +261,6 @@ int msm_flash_led_high(struct msm_led_flash_ctrl_t *fctrl)
 
 	return rc;
 }
-
-#ifdef CONFIG_HUAWEI_KERNEL_CAMERA
-#define FLASH_FLAG_REGISTER 0x0B
-/****************************************************************************
-* FunctionName: msm_flash_clear_err_and_unlock;
-* Description : clear the error and unlock the IC ;
-* NOTE: this funtion must be called before register is read and write
-***************************************************************************/
-int msm_flash_clear_err_and_unlock(struct msm_led_flash_ctrl_t *fctrl)
-{
-        int rc = 0;
-        uint16_t reg_value=0;
-
-        CDBG("%s entry\n", __func__);
-
-        if (!fctrl) {
-                pr_err("%s:%d fctrl NULL\n", __func__, __LINE__);
-                return -EINVAL;
-        }
-
-
-        if (fctrl->flash_i2c_client) {
-                rc = fctrl->flash_i2c_client->i2c_func_tbl->i2c_read(
-                        fctrl->flash_i2c_client,
-                        FLASH_FLAG_REGISTER,&reg_value, MSM_CAMERA_I2C_BYTE_DATA);
-                if (rc < 0){
-                        pr_err("clear err and unlock %s:%d failed\n", __func__, __LINE__);
-                }
-
-                CDBG("clear err and unlock success:%02x\n",reg_value);
-        }else{
-                pr_err("%s:%d flash_i2c_client NULL\n", __func__, __LINE__);
-                return -EINVAL;
-        }
-
-
-       return 0;
-
-}
-
-/*===========================================================================
- * FUNCTION    msm_torch_led_on
- *
- * DESCRIPTION: used for torch and mmi application
- *==========================================================================*/
-int msm_torch_led_on(struct msm_led_flash_ctrl_t *fctrl)
-{
-    int rc = 0;
-
-    if (!fctrl) {
-        pr_err("%s:%d fctrl NULL\n", __func__, __LINE__);
-        return -EINVAL;
-    }
-
-    gpio_direction_output(fctrl->flash_en, 1);
-
-    //clear the err and unlock IC, this function must be called before read and write register
-    msm_flash_clear_err_and_unlock(fctrl);
-
-    if (fctrl->flash_i2c_client && fctrl->reg_setting) {
-    rc = fctrl->flash_i2c_client->i2c_func_tbl->i2c_write_table(
-            fctrl->flash_i2c_client,
-            fctrl->reg_setting->torch_setting);
-        if (rc < 0)
-            pr_err("%s:%d failed\n", __func__, __LINE__);
-    }
-
-    return rc;
-}
-#endif
 
 static int32_t msm_led_get_dt_data(struct device_node *of_node,
 		struct msm_led_flash_ctrl_t *fctrl)

@@ -34,9 +34,6 @@ struct msm_flash_fn_t {
 	int32_t (*flash_led_off)(struct msm_led_flash_ctrl_t *);
 	int32_t (*flash_led_low)(struct msm_led_flash_ctrl_t *);
 	int32_t (*flash_led_high)(struct msm_led_flash_ctrl_t *);
-#ifdef CONFIG_HUAWEI_KERNEL_CAMERA
-	int32_t (*torch_led_on)(struct msm_led_flash_ctrl_t *);
-#endif
 };
 
 struct msm_led_flash_reg_t {
@@ -45,10 +42,6 @@ struct msm_led_flash_reg_t {
 	struct msm_camera_i2c_reg_setting *release_setting;
 	struct msm_camera_i2c_reg_setting *low_setting;
 	struct msm_camera_i2c_reg_setting *high_setting;
-#ifdef CONFIG_HUAWEI_KERNEL_CAMERA
-	struct msm_camera_i2c_reg_setting *torch_setting;
-#endif
-
 };
 
 struct msm_led_flash_ctrl_t {
@@ -70,10 +63,6 @@ struct msm_led_flash_ctrl_t {
 	uint32_t num_sources;
 	enum msm_camera_device_type_t flash_device_type;
 	uint32_t subdev_id;
-#ifdef CONFIG_HUAWEI_KERNEL_CAMERA
-	uint16_t flash_en;
-	uint16_t flash_now;
-#endif
 };
 
 int msm_flash_i2c_probe(struct i2c_client *client,
@@ -94,7 +83,4 @@ int msm_flash_led_release(struct msm_led_flash_ctrl_t *fctrl);
 int msm_flash_led_off(struct msm_led_flash_ctrl_t *fctrl);
 int msm_flash_led_low(struct msm_led_flash_ctrl_t *fctrl);
 int msm_flash_led_high(struct msm_led_flash_ctrl_t *fctrl);
-#ifdef CONFIG_HUAWEI_KERNEL_CAMERA
-int msm_torch_led_on(struct msm_led_flash_ctrl_t *fctrl);
-#endif
 #endif

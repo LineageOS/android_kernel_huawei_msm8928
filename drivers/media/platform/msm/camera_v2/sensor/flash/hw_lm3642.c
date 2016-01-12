@@ -49,12 +49,6 @@ static struct msm_camera_i2c_reg_array hw_lm3642_high_array[] = {
 	{0x0A, 0x23},
 };
 
-static struct msm_camera_i2c_reg_array lm3642_torch_array[] = {
-	{0x09, 0x20},//140mA
-	{0x0A, 0x02},
-};
-
-
 static void __exit msm_flash_hw_lm3642_i2c_remove(void)
 {
 	i2c_del_driver(&hw_lm3642_i2c_driver);
@@ -152,22 +146,12 @@ static struct msm_camera_i2c_reg_setting hw_lm3642_high_setting = {
 	.delay = 0,
 };
 
-static struct msm_camera_i2c_reg_setting lm3642_torch_setting = {
-	.reg_setting = lm3642_torch_array,
-	.size = ARRAY_SIZE(lm3642_torch_array),
-	.addr_type = MSM_CAMERA_I2C_BYTE_ADDR,
-	.data_type = MSM_CAMERA_I2C_BYTE_DATA,
-	.delay = 0,
-};
-
 static struct msm_led_flash_reg_t hw_lm3642_regs = {
 	.init_setting = &hw_lm3642_init_setting,
 	.off_setting = &hw_lm3642_off_setting,
 	.low_setting = &hw_lm3642_low_setting,
 	.high_setting = &hw_lm3642_high_setting,
 	.release_setting = &hw_lm3642_release_setting,
-	.torch_setting = &lm3642_torch_setting,
-
 };
 
 static struct msm_flash_fn_t hw_lm3642_func_tbl = {
@@ -178,8 +162,6 @@ static struct msm_flash_fn_t hw_lm3642_func_tbl = {
 	.flash_led_off = msm_flash_led_off,
 	.flash_led_low = msm_flash_led_low,
 	.flash_led_high = msm_flash_led_high,
-	.torch_led_on = msm_torch_led_on,
-
 };
 
 static struct msm_led_flash_ctrl_t fctrl = {
