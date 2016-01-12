@@ -17,7 +17,6 @@
 #define FLASH_NAME "qcom,hw_lm3642"
 #define FLASH_FLAG_REGISTER 0x0B
 
-#define CONFIG_MSMB_CAMERA_DEBUG
 #undef CDBG
 #ifdef CONFIG_MSMB_CAMERA_DEBUG
 #define CDBG(fmt, args...) pr_err(fmt, ##args)
