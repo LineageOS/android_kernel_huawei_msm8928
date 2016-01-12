@@ -398,17 +398,10 @@ static struct msm_cam_clk_info cam_8610_clk_info[] = {
 	[SENSOR_CAM_CLK] = {"cam_clk", 0},
 };
 
-#ifdef CONFIG_HUAWEI_KERNEL_CAMERA
-static struct msm_cam_clk_info cam_8226_clk_info[] = {
-	[SENSOR_CAM_MCLK] = {"cam_src_clk", 24000000},
-	[SENSOR_CAM_CLK] = {"cam_clk", 0},
-};
-#else
 static struct msm_cam_clk_info cam_8974_clk_info[] = {
 	[SENSOR_CAM_MCLK] = {"cam_src_clk", 24000000},
 	[SENSOR_CAM_CLK] = {"cam_clk", 0},
 };
-#endif
 
 int msm_sensor_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 {
@@ -1290,20 +1283,6 @@ int32_t msm_sensor_platform_probe(struct platform_device *pdev, void *data)
 			&msm_sensor_cci_func_tbl;
 	if (!s_ctrl->sensor_v4l2_subdev_ops)
 		s_ctrl->sensor_v4l2_subdev_ops = &msm_sensor_subdev_ops;
-
-#ifdef CONFIG_HUAWEI_KERNEL_CAMERA
-	s_ctrl->sensordata->power_info.clk_info =
-		kzalloc(sizeof(cam_8226_clk_info), GFP_KERNEL);
-	if (!s_ctrl->sensordata->power_info.clk_info) {
-		pr_err("%s:%d failed nomem\n", __func__, __LINE__);
-		kfree(cci_client);
-		return -ENOMEM;
-	}
-	memcpy(s_ctrl->sensordata->power_info.clk_info, cam_8226_clk_info,
-			sizeof(cam_8226_clk_info));
-	s_ctrl->sensordata->power_info.clk_info_size =
-		ARRAY_SIZE(cam_8226_clk_info);
-#else
 	s_ctrl->sensordata->power_info.clk_info =
 		kzalloc(sizeof(cam_8974_clk_info), GFP_KERNEL);
 	if (!s_ctrl->sensordata->power_info.clk_info) {
@@ -1315,7 +1294,6 @@ int32_t msm_sensor_platform_probe(struct platform_device *pdev, void *data)
 		sizeof(cam_8974_clk_info));
 	s_ctrl->sensordata->power_info.clk_info_size =
 		ARRAY_SIZE(cam_8974_clk_info);
-#endif
 	rc = s_ctrl->func_tbl->sensor_power_up(s_ctrl);
 	if (rc < 0) {
 		pr_err("%s %s power up failed\n", __func__,
@@ -1548,19 +1526,6 @@ int32_t msm_sensor_init_default_params(struct msm_sensor_ctrl_t *s_ctrl)
 		s_ctrl->sensor_v4l2_subdev_ops = &msm_sensor_subdev_ops;
 
 	/* Initialize clock info */
-#ifdef CONFIG_HUAWEI_KERNEL_CAMERA
-	clk_info = kzalloc(sizeof(cam_8226_clk_info), GFP_KERNEL);
-	if (!clk_info) {
-		pr_err("%s:%d failed no memory clk_info %p\n", __func__,
-			__LINE__, clk_info);
-		rc = -ENOMEM;
-		goto FREE_CCI_CLIENT;
-	}
-	memcpy(clk_info, cam_8226_clk_info, sizeof(cam_8226_clk_info));
-	s_ctrl->sensordata->power_info.clk_info = clk_info;
-	s_ctrl->sensordata->power_info.clk_info_size =
-		ARRAY_SIZE(cam_8226_clk_info);
-#else
 	clk_info = kzalloc(sizeof(cam_8974_clk_info), GFP_KERNEL);
 	if (!clk_info) {
 		pr_err("%s:%d failed no memory clk_info %p\n", __func__,
@@ -1572,7 +1537,6 @@ int32_t msm_sensor_init_default_params(struct msm_sensor_ctrl_t *s_ctrl)
 	s_ctrl->sensordata->power_info.clk_info = clk_info;
 	s_ctrl->sensordata->power_info.clk_info_size =
 		ARRAY_SIZE(cam_8974_clk_info);
-#endif
 
 	return 0;
 
