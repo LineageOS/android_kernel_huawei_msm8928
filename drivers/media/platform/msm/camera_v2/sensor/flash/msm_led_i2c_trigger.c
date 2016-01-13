@@ -153,16 +153,6 @@ int msm_flash_led_release(struct msm_led_flash_ctrl_t *fctrl)
 		power_info->gpio_conf->gpio_num_info->
 		gpio_num[SENSOR_GPIO_FL_NOW],
 		GPIO_OUT_LOW);
-#ifdef CONFIG_HUAWEI_KERNEL_CAMERA
-	/*close flash */
-	if (fctrl->flash_i2c_client && fctrl->reg_setting) {
-		rc = fctrl->flash_i2c_client->i2c_func_tbl->i2c_write_table(
-			fctrl->flash_i2c_client,
-			fctrl->reg_setting->release_setting);
-		if (rc < 0)
-			pr_err("%s:%d failed\n", __func__, __LINE__);
-	}
-#endif
 	rc = msm_camera_request_gpio_table(
 		power_info->gpio_conf->cam_gpio_req_tbl,
 		power_info->gpio_conf->cam_gpio_req_tbl_size, 0);
