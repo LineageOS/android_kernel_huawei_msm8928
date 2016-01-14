@@ -256,20 +256,6 @@ static struct gpiomux_setting gpio_i2c_config = {
 	.pull = GPIOMUX_PULL_NONE,
 };
 
-#ifndef CONFIG_HUAWEI_KERNEL
-static struct gpiomux_setting gpio_uart_active_cfg = {
-	.func = GPIOMUX_FUNC_2,
-	.drv  = GPIOMUX_DRV_16MA,
-	.pull = GPIOMUX_PULL_NONE,
-};
-
-static struct gpiomux_setting gpio_uart_suspend_cfg = {
-	.func = GPIOMUX_FUNC_GPIO,
-	.drv = GPIOMUX_DRV_2MA,
-	.pull = GPIOMUX_PULL_DOWN,
-};
-#endif
-
 static struct msm_gpiomux_config msm_keypad_configs[] __initdata = {
 	{
 		.gpio = 106,
@@ -455,39 +441,6 @@ static struct msm_gpiomux_config msm_synaptics_configs[] __initdata = {
 		},
 	},
 };
-
-#ifndef CONFIG_HUAWEI_KERNEL
-static struct msm_gpiomux_config msm_blsp1_uart6_configs[] __initdata = {
-	{
-		.gpio      = 20,		/* BLSP1 UART6 TX */
-		.settings = {
-			[GPIOMUX_ACTIVE]    = &gpio_uart_active_cfg,
-			[GPIOMUX_SUSPENDED] = &gpio_uart_suspend_cfg,
-		},
-	},
-	{
-		.gpio      = 21,		/* BLSP1 UART6 RX */
-		.settings = {
-			[GPIOMUX_ACTIVE]    = &gpio_uart_active_cfg,
-			[GPIOMUX_SUSPENDED] = &gpio_uart_suspend_cfg,
-		},
-	},
-	{
-		.gpio      = 22,		/* BLSP1 UART6 CTS */
-		.settings = {
-			[GPIOMUX_ACTIVE]    = &gpio_uart_active_cfg,
-			[GPIOMUX_SUSPENDED] = &gpio_uart_suspend_cfg,
-		},
-	},
-	{
-		.gpio      = 23,		/* BLSP1 UART6 RTS */
-		.settings = {
-			[GPIOMUX_ACTIVE]    = &gpio_uart_active_cfg,
-			[GPIOMUX_SUSPENDED] = &gpio_uart_suspend_cfg,
-		},
-	},
-};
-#endif
 
 static struct gpiomux_setting gpio_nc_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
@@ -1232,9 +1185,6 @@ void __init msm8226_init_gpiomux(void)
 			ARRAY_SIZE(msm_auxpcm_configs));
 
 #ifndef CONFIG_HUAWEI_KERNEL
-	msm_gpiomux_install(msm_blsp1_uart6_configs,
-			ARRAY_SIZE(msm_blsp1_uart6_configs));
-
 	if (of_board_is_cdp() || of_board_is_mtp() || of_board_is_xpm())
 		msm_gpiomux_install(usb_otg_sw_configs,
 					ARRAY_SIZE(usb_otg_sw_configs));
