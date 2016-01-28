@@ -106,6 +106,9 @@
 #define CY_CMD_LDR_VERIFY_CHKSUM_STAT_SIZE		8
 
 #define CY_VER_MASK 0xff
+
+#define EASYTOUCH_REV 0x8458D
+
 struct cyttsp4_loader_data {
 	struct cyttsp4_device *ttsp;
 	struct cyttsp4_sysinfo *si;
@@ -203,6 +206,12 @@ static int cyttsp4_check_firmware_version(struct cyttsp4_device *ttsp,
 
 	tp_log_info( "%s: img revctrl_l:0x%04X new revctrl_l:0x%04X\n",
 			__func__, fw_revctrl_img_l, fw_revctrl_new_l);
+
+#ifdef CONFIG_HUAWEI_KERNEL
+	/* let dt firmware cut through */
+	if (fw_revctrl_img_l != EASYTOUCH_REV && fw_revctrl_new_l == EASYTOUCH_REV)
+		return 1;
+#endif
 
 	if (fw_revctrl_new_l > fw_revctrl_img_l)
 		return 1;
