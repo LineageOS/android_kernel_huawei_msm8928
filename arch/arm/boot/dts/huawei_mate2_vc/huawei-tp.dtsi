@@ -82,7 +82,7 @@
 					cy,vkeys_y = <1280>;
 
 					/*8 bits  for gesture control*/
-					cy,easy_wakeup_gesture_keys = <	59 /*Double tap*/
+					cy,easy_wakeup_gesture_keys = <	116 /*Double tap*/
 						60 /*Single finger slide from left to right*/
 						61 /*Single finger slide from right to left*/
 						62 /*Single finger slide from top to bottom*/
