@@ -1765,7 +1765,7 @@ static const uint8_t cyttsp4_ofilm_param_addr[] = {
 /*MT2 integrate the new FW V34*/
 /*MT2 integrate the new FW V36*/
 static u8 ttconfig_Mate2_ofilm_fw_ver[] = {
-	0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09, 0x66, 0x91
+	0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x45, 0x8D
 };
 /* Touchscreen Parameters Endianess (Endianess: 0:Little; 1:Big)*/
 static const uint8_t cyttsp4_Mate2_ofilm_param_endianess = 0;
@@ -1776,7 +1776,7 @@ static const uint8_t cyttsp4_Mate2_ofilm_param_regs[] = {
 	0xFC, 0x07,  /* CONFIG_DATA_SIZE */
 	0xFC, 0x07,  /* CONFIG_DATA_MAX_SIZE */
 	0x4C, 0x00, 0x00, 0x00,  /* SDK_CTRL_CFG_SIZE */
-	0x24, 0x00,  /* CONFIG_VER */
+	0x30, 0x00,  /* CONFIG_VER */
 	0x28, 0x1E,  /* X_LEN_PHY */
 	0x52, 0x35,  /* Y_LEN_PHY */
 	0x01,  /* PANELID_ENABLE */
@@ -1880,7 +1880,7 @@ static const uint8_t cyttsp4_Mate2_ofilm_param_regs[] = {
 	0x02,  /* EASYWAKEUP_VERTICAL_SLIDE_SPACE_MIN */
 	0x08,  /* EASYWAKEUP_VERTICAL_SLIDE_SPACE_MAX */
 	0x1C,  /* EASYWAKEUP_SELF_FILTER_COEFF */
-	0x00,  /* EASYWAKEUP_ENABLE */
+	0x01,  /* EASYWAKEUP_ENABLE */
 	0x14,  /* PROX_BL_SS_SLOW_THOLD */
 	0x08,  /* PROX_BL_SS_SLOW_SPEED_SHIFTER */
 	0x06,  /* PROX_BL_SS_FAST_SPEED_SHIFTER */
