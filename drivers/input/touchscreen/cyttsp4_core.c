@@ -1840,12 +1840,18 @@ static struct cyttsp4_sysinfo *cyttsp4_request_sysinfo_(
 	struct cyttsp4_core *core = ttsp->core;
 	struct cyttsp4_core_data *cd = dev_get_drvdata(&core->dev);
 	bool ready;
+	static int retry_count = 0;
 
+retry:
 	mutex_lock(&cd->system_lock);
 	ready = cd->sysinfo.ready;
 	mutex_unlock(&cd->system_lock);
 	if (ready)
 		return &cd->sysinfo;
+	else if (retry_count++ < 5) {
+		msleep(100);
+		goto retry;
+	}
 
 	return NULL;
 }
