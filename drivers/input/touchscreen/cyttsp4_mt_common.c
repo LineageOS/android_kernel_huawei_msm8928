@@ -673,10 +673,6 @@ static int cyttsp4_mt_rt_suspend(struct device *dev)
 
 	tp_log_debug("%s\n", __func__);
     tp_log_debug("pm_runtime count is: %d\n", dev->power.usage_count.counter );
-    if( cyttsp_debug_mask >= TP_DBG )
-    {
-        WARN_ON(1);
-    }
 
 	mutex_lock(&md->report_lock);
 	md->is_suspended = true;
@@ -692,10 +688,6 @@ static int cyttsp4_mt_rt_resume(struct device *dev)
 
 	tp_log_debug( "%s\n", __func__);
     tp_log_debug("pm_runtime count is: %d\n", dev->power.usage_count.counter );
-    if( cyttsp_debug_mask >= TP_DBG )
-    {
-        WARN_ON(1);
-    }
 
 	mutex_lock(&md->report_lock);
 	md->is_suspended = false;
