@@ -602,22 +602,33 @@ static int fb_notifier_callback(struct notifier_block *self,
 	tp_log_debug("%s\n", __func__);
 
 	if (evdata && evdata->data && event == FB_EVENT_BLANK &&
-		md && md->ttsp) {
+			md && md->ttsp) {
 		blank = evdata->data;
 		/*get the power state of core, 0 is sleep, 1 is wakeup*/
 		state = cyttsp4_request_power_state(md->ttsp);
 		tp_log_debug("%s state=%d\n", __func__, state);
 
-		if (*blank == FB_BLANK_UNBLANK && md->is_suspended == true) {
-			if (!state)
+		switch (*blank) {
+		case FB_BLANK_UNBLANK:
+		case FB_BLANK_NORMAL:
+		case FB_BLANK_VSYNC_SUSPEND:
+		case FB_BLANK_HSYNC_SUSPEND:
+			if (md->is_suspended == true && !state)
 				cyttsp4_mt_resume(&(md->ttsp->dev));
 			else
-				tp_log_err("%s:resume request for working device\n", __func__);
-		} else if (*blank == FB_BLANK_POWERDOWN) {
+				tp_log_err("%s:resume request for working device\n",
+						__func__);
+			break;
+		case FB_BLANK_POWERDOWN:
 			if (state)
 				cyttsp4_mt_suspend(&(md->ttsp->dev));
 			else
-				tp_log_err("%s:suspend request for suspended device\n", __func__);
+				tp_log_err("%s:suspend request for suspended device\n",
+						__func__);
+			break;
+		default:
+			/* Don't handle what we don't understand */
+			break;
 		}
 	}
 
