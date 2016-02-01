@@ -1,9 +1,7 @@
 / {
     huawei_audio_info {
         compatible = "huawei,hw_audio_info";
-        builtin-mic-type = "dual";
         product-identifier = "mate2";
-        codec-type = "wcd9302";
         builtin-master-mic-exist;
         builtin-2nd-mic-exist;
         hand_held_dual_mic_strategy;

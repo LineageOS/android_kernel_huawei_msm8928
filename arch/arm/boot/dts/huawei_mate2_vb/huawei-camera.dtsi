@@ -1,12 +1,5 @@
 /* adjust front camera csid assign */
 
- / {
-        huawei_camera_info {
-                  compatible = "huawei,hw_camera_info";
-                  status = "ok";
-        };
-};
-
 &soc {
 
 		i2c@f9925000{
@@ -55,49 +48,6 @@
 		qcom,actuator-vcm-enable = <1>;
 	};
 	
-	qcom,camera@20 {
-		compatible = "qcom,hw_imx134";
-		reg = <0x20>;
-		qcom,slave-id = <0x20 0x0016 0x0134>;
-		qcom,csiphy-sd-index = <0>;
-		qcom,csid-sd-index = <0>;
-		qcom,actuator-src = <&actuator1>;
-		qcom,led-flash-src = <&led_flash0>;
-		qcom,mount-angle = <90>;
-		qcom,sensor-name = "hw_imx134";
-		cam_vdig-supply = <&pm8226_l5>;
-		cam_vana-supply = <&pm8226_l15>;
-		cam_vio-supply = <&pm8226_lvs1>;
-		cam_vaf-supply = <&pm8226_l15>;
-		qcom,cam-vreg-name = "cam_vdig", "cam_vio",
-					"cam_vana", "cam_vaf";
-		qcom,cam-vreg-type = <0 1 0 0>;
-		qcom,cam-vreg-min-voltage = <1050000 0 2850000 2850000>;
-		qcom,cam-vreg-max-voltage = <1050000 0 2850000 2850000>;
-		qcom,cam-vreg-op-mode = <200000 0 80000 100000>;
-		qcom,gpio-no-mux = <0>;
-		gpios = <&msmgpio 26 0>,
-			<&msmgpio 36 0>,
-			<&msmgpio 37 0>;
-		qcom,gpio-reset = <2>;
-		qcom,gpio-standby = <1>;
-		qcom,gpio-req-tbl-num = <0 1 2>;
-		qcom,gpio-req-tbl-flags = <1 0 0>;
-		qcom,gpio-req-tbl-label = "CAMIF_MCLK",
-			"CAM_STANDBY",
-			"CAM_RESET";
-		qcom,gpio-set-tbl-num = <2>;
-		qcom,gpio-set-tbl-flags = <2>;
-		qcom,gpio-set-tbl-delay = <2500>;
-		qcom,csi-lane-assign = <0xE4>;
-		qcom,csi-lane-mask = <0xF>;
-		qcom,sensor-position = <0>;
-		qcom,sensor-mode = <0>;
-		qcom,sensor-type = <0>;
-		qcom,cci-master = <0>;
-		status = "ok";
-	};
-
 	qcom,camera@24 {
 		compatible = "qcom,hw_imx135";
 		reg = <0x24>;

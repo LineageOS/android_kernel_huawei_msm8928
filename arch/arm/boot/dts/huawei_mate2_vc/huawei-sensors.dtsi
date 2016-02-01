@@ -1,9 +1,4 @@
  / {
-        huawei_sensor_info {
-                  compatible = "huawei,hw_sensor_info";
-                  status = "ok";
-        };
-
         huawei_hall_sensor{
                 compatible = "huawei,hall-ak8789";
                 huawei,hall_gpio_config_rn = <&msmgpio 109 0>;

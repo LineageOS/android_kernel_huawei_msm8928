@@ -40,7 +40,6 @@
 						115 /* KEY_VOLUMEUP */
 						212 /* KEY_CAMERA */
 						116>; /* KEY_POWER */
-				cy,btn_keys-tag = <0>;
 
 				/* tp capacitance infomation */
 				cy,min_mut_cap = "-4000"; /*minimum mutual capcitance*/

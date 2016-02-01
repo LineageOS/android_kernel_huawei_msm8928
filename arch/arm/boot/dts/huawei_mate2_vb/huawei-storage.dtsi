@@ -1,6 +1,0 @@
- / {
-        huawei_storage_info {
-                  compatible = "huawei,hw_storage_info";
-                  status = "ok";
-        };
-};
