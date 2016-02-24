@@ -316,29 +316,5 @@
 		qcom,mdss-dsi-dma-trigger = "trigger_sw";
 		qcom,mdss-dsi-mdp-trigger = "none";
 		qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_dcs";
-		qcom,panel-inverse-off-cmds = [05 01 00 00 00 00 02 20 00];
-		qcom,panel-inverse-on-cmds = [05 01 00 00 00 00 02 21 00];
-		qcom,inverse-on-cmds-dsi-state = "dsi_lp_mode";
-		qcom,inverse-off-cmds-dsi-state = "dsi_lp_mode";
-		qcom,panel-dot-inversion-mode-cmds = [29 01 00 00 00 00 02 00 00
-			      29 01 00 00 00 00 04 FF 12 82 01
-			      29 01 00 00 00 00 02 00 80
-			      29 01 00 00 00 00 03 FF 12 82
-			      29 01 00 00 00 00 02 00 B4
-			      29 01 00 00 00 00 02 C0 00
-			      29 01 00 00 00 00 02 00 00
-			      29 01 00 00 00 00 04 FF FF FF FF];
-		qcom,panel-column-inversion-mode-cmds = [29 01 00 00 00 00 02 00 00
-			      29 01 00 00 00 00 04 FF 12 82 01
-			      29 01 00 00 00 00 02 00 80
-			      29 01 00 00 00 00 03 FF 12 82
-			      29 01 00 00 00 00 02 00 B4
-			      29 01 00 00 00 00 02 C0 50
-			      29 01 00 00 00 00 02 00 00
-			      29 01 00 00 00 00 04 FF FF FF FF];
-		qcom,dot-inversion-cmds-dsi-state = "dsi_lp_mode";
-		qcom,column-inversion-cmds-dsi-state = "dsi_lp_mode";
-		qcom,mdss-dsi-panel-esd-cmd = [0a 0b 0c 0d ac];
-		qcom,mdss-dsi-panel-esd-cmd-value = [9c 00 07 00 00];
 	};
 };
