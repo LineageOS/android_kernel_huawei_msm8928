@@ -824,7 +824,6 @@ extern int hw_get_prop_batt_status( void);
 static int get_battery_status(struct qpnp_bms_chip *chip)
 {
 	union power_supply_propval ret = {0,};
-	int rc;
 
 	if (chip->batt_psy == NULL)
 		chip->batt_psy = power_supply_get_by_name("battery");
@@ -833,13 +832,13 @@ static int get_battery_status(struct qpnp_bms_chip *chip)
 		ret.intval = hw_get_prop_batt_status();
 #else
 		/* if battery has been registered, use the status property */
-		rc = chip->batt_psy->get_property(chip->batt_psy,
+		int rc = chip->batt_psy->get_property(chip->batt_psy,
 					POWER_SUPPLY_PROP_STATUS, &ret);
-#endif
 		if (rc) {
 			pr_debug("Battery does not export status: %d\n", rc);
 			return POWER_SUPPLY_STATUS_UNKNOWN;
 		}
+#endif
 		return ret.intval;
 	}
 
