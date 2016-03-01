@@ -560,18 +560,15 @@ enum hw_high_low_temp_configure_type{
 };
 #define HOT_TEMP_DEFAULT		520	//52бу,stop charging
 #define COLD_TEMP_DEFAULT		0	//0бу,stop charging
+#define MAX_CURRENT_MA_QCOM_PLATFORM	1500
 static int check_temp_flag = false;
 static int bad_temp_flag = false;
 static struct qpnp_chg_chip *global_chip;
-static int force_ps_but_not_chg = false;
-static int hot_design_current = 1500;
-static int running_test_soc_enable = false;
 
 #if defined(CONFIG_CHARGER_BQ2419x) || defined(CONFIG_BATTERY_BQ27510)
 extern struct bq2419x_device_info *bq_device;
 extern struct bq27510_device_info *g_battery_measure_by_bq27510_device;
 #endif
-static int input_current_filter(int mA);
 #endif
 
 #ifdef CONFIG_HUAWEI_KERNEL
@@ -1140,7 +1137,8 @@ qpnp_chg_iusbmax_set(struct qpnp_chg_chip *chip, int mA)
 	}
 
 #ifdef CONFIG_HUAWEI_KERNEL
-	mA = input_current_filter(mA);
+	if (mA > MAX_CURRENT_MA_QCOM_PLATFORM)
+		mA = MAX_CURRENT_MA_QCOM_PLATFORM;
 #endif
 
 	/* Impose input current limit */
@@ -1174,59 +1172,6 @@ qpnp_chg_iusbmax_set(struct qpnp_chg_chip *chip, int mA)
 
 	return rc;
 }
-
-/* hot design current can be  set lower than 500ma */
-#ifdef CONFIG_HUAWEI_KERNEL
-#define MAX_CURRENT_MA_QCOM_PLATFORM	1500
-/*==========================================
-FUNCTION: huawei_hot_design_iusb_set
-
-DESCRIPTION:	set hot_design_current
-				(1)the min current is allowed to set is 500mA
-				(2)only write current into the register when usb chg_type is dcp
-INPUT:	int mA (input current)
-OUTPUT: NULL
-RETURN: success zero
-
-============================================*/
-static int huawei_hot_design_iusb_set(int mA)
-{
-	int rc = 0;
-	union power_supply_propval ret = {0,};
-	if(0 == mA)
-	{
-		hot_design_current = MAX_CURRENT_MA_QCOM_PLATFORM;
-	}
-	else
-	{
-		hot_design_current = mA;
-	}
-	if(global_chip != NULL)
-	{
-		if (qpnp_chg_is_usb_chg_plugged_in(global_chip))
-		{
-			global_chip->usb_psy->get_property(global_chip->usb_psy,
-				  POWER_SUPPLY_PROP_CURRENT_MAX, &ret);
-			if(ret.intval > 2)
-			{
-				ret.intval = ret.intval / 1000;
-				ret.intval = ret.intval <= hot_design_current ? ret.intval : hot_design_current;
-				rc = qpnp_chg_iusbmax_set(global_chip,ret.intval );
-				pr_debug("set current is  %d hot_design_current %d \n",ret.intval,hot_design_current);
-			}
-		}
-	}
-
-	pr_debug("hot_design_current %d\n",hot_design_current);
-	return rc;
-}
-
-static int input_current_filter(int mA)
-{
-	mA = mA <= hot_design_current ? mA : hot_design_current;
-	return mA;
-}
-#endif
 
 #define QPNP_CHG_VINMIN_MIN_MV		4000
 #define QPNP_CHG_VINMIN_HIGH_MIN_MV	5600
@@ -1412,9 +1357,9 @@ qpnp_chg_charge_en(struct qpnp_chg_chip *chip, int enable)
 	}
 	pr_debug("charging %s\n", enable ? "enabled" : "disabled");
 #ifdef CONFIG_HUAWEI_KERNEL
-	if((bad_temp_flag || force_ps_but_not_chg) && enable)
+	if(bad_temp_flag && enable)
 	{
-		pr_info("force_ps_but_not_chg %d ,bad_temp_flag %d, no t enable charge\n",force_ps_but_not_chg,bad_temp_flag);
+		pr_info("bad_temp_flag %d, no t enable charge\n", bad_temp_flag);
 		return 0;
 	}
 #endif
@@ -1983,13 +1928,6 @@ qpnp_chg_usb_usbin_valid_irq_handler(int irq, void *_chip)
 		{
 			check_temp_flag = true;
 		}
-		if(force_ps_but_not_chg && usb_present)
-		{
-			force_ps_but_not_chg = false;
-			qpnp_chg_charge_en(chip, !force_ps_but_not_chg);
-			qpnp_chg_force_run_on_batt(chip, force_ps_but_not_chg);
-			pr_info("force_ps_but_not_chg is changed to false\n");
-		}
 #endif
 		chip->usb_present = usb_present;
 		if (!usb_present) {
@@ -2401,11 +2339,6 @@ qpnp_batt_property_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_COOL_TEMP:
 	case POWER_SUPPLY_PROP_WARM_TEMP:
 	case POWER_SUPPLY_PROP_CAPACITY:
-#ifdef CONFIG_HUAWEI_KERNEL
-	case POWER_SUPPLY_PROP_FACTORY_DIG:
-	case POWER_SUPPLY_PROP_HOT_IUSB_LIMIT:
-	case POWER_SUPPLY_PROP_RUNNING_TEST_SOC:
-#endif
 		return 1;
 	default:
 		break;
@@ -2423,13 +2356,6 @@ qpnp_chg_buck_control(struct qpnp_chg_chip *chip, int enable)
 		pr_debug("Charging disabled\n");
 		return 0;
 	}
-#ifdef CONFIG_HUAWEI_KERNEL
-	if(force_ps_but_not_chg && enable)
-	{
-		pr_info("Force_ps_but_not_chg is true\n");
-		return 0;
-	}
-#endif
 
 	rc = qpnp_chg_charge_en(chip, enable);
 	if (rc) {
@@ -2560,19 +2486,6 @@ static enum power_supply_property pm_power_props_mains[] = {
 
 static enum power_supply_property msm_batt_power_props[] = {
 	POWER_SUPPLY_PROP_CHARGING_ENABLED,
-#ifdef CONFIG_HUAWEI_KERNEL
-	POWER_SUPPLY_PROP_FACTORY_DIG,
-	POWER_SUPPLY_PROP_HOT_IUSB_LIMIT,
-	POWER_SUPPLY_PROP_RUNNING_TEST_SOC,
-	POWER_SUPPLY_PROP_BAT_STS,
-	POWER_SUPPLY_PROP_BUCK_STS,
-	POWER_SUPPLY_PROP_CHG_STS,
-	POWER_SUPPLY_PROP_USB_STS,
-	POWER_SUPPLY_PROP_CHG_CTRL,
-	POWER_SUPPLY_PROP_RESUME_EN,
-	POWER_SUPPLY_PROP_BOOST_EN,
-	POWER_SUPPLY_PROP_USB_SUSPEND_EN,
-#endif
 	POWER_SUPPLY_PROP_STATUS,
 	POWER_SUPPLY_PROP_CHARGE_TYPE,
 	POWER_SUPPLY_PROP_HEALTH,
@@ -3011,7 +2924,7 @@ get_prop_capacity(struct qpnp_chg_chip *chip)
 		/* when usb charger in ,do not allow capacity decrease */
 #ifdef CONFIG_HUAWEI_KERNEL
 		//remove code block.
-		if(last_soc < 0 || running_test_soc_enable || soc < DEFAULT_CAPACITY)
+		if(last_soc < 0 || soc < DEFAULT_CAPACITY)
 		{
 			last_soc = soc;
 		}
@@ -3222,10 +3135,6 @@ qpnp_batt_power_get_property(struct power_supply *psy,
 {
 	struct qpnp_chg_chip *chip = container_of(psy, struct qpnp_chg_chip,
 								batt_psy);
-#ifdef CONFIG_HUAWEI_KERNEL
-	int rc = 0;
-	u8 reg_sts = 0;
-#endif
 #if defined(CONFIG_CHARGER_BQ2419x) || defined(CONFIG_BATTERY_BQ27510)
 	/*useing TI bq27510 and bq2419x chip*/
 	if(bq_device != NULL && g_battery_measure_by_bq27510_device != NULL)
@@ -3290,25 +3199,6 @@ qpnp_batt_power_get_property(struct power_supply *psy,
 			break;
 		case POWER_SUPPLY_PROP_CHARGING_ENABLED:
 			val->intval = !(bq_device->rt_discharge_flag);
-			break;
-		case POWER_SUPPLY_PROP_FACTORY_DIG:
-			val->intval = bq_device->chrg_config;
-			break;
-		case POWER_SUPPLY_PROP_HOT_IUSB_LIMIT:
-			val->intval = bq_device->hot_design_current;
-			break;
-		case POWER_SUPPLY_PROP_RUNNING_TEST_SOC:
-			val->intval = running_test_soc_enable;
-			break;
-		case POWER_SUPPLY_PROP_RESUME_EN:
-		case POWER_SUPPLY_PROP_BOOST_EN:
-		case POWER_SUPPLY_PROP_BAT_STS:
-		case POWER_SUPPLY_PROP_BUCK_STS:
-		case POWER_SUPPLY_PROP_CHG_STS:
-		case POWER_SUPPLY_PROP_USB_STS:
-		case POWER_SUPPLY_PROP_CHG_CTRL:
-		case POWER_SUPPLY_PROP_USB_SUSPEND_EN:
-			val->intval = 0;
 			break;
 		case POWER_SUPPLY_PROP_SYSTEM_TEMP_LEVEL:
 			val->intval = chip->therm_lvl_sel;
@@ -3397,59 +3287,6 @@ qpnp_batt_power_get_property(struct power_supply *psy,
 		case POWER_SUPPLY_PROP_CHARGING_ENABLED:
 			val->intval = !(chip->charging_disabled);
 			break;
-#ifdef CONFIG_HUAWEI_KERNEL
-		case POWER_SUPPLY_PROP_FACTORY_DIG:
-			val->intval = !(force_ps_but_not_chg);
-			break;
-		case POWER_SUPPLY_PROP_HOT_IUSB_LIMIT:
-			val->intval = hot_design_current;
-			break;
-		case POWER_SUPPLY_PROP_RUNNING_TEST_SOC:
-			val->intval = running_test_soc_enable;
-			break;
-		case POWER_SUPPLY_PROP_RESUME_EN:
-			val->intval = chip->resuming_charging;
-			break;
-		case POWER_SUPPLY_PROP_BOOST_EN:
-			val->intval = qpnp_chg_is_boost_en_set(chip);
-			break;
-		case POWER_SUPPLY_PROP_BAT_STS:
-			rc = qpnp_chg_read(chip, &reg_sts, INT_RT_STS(chip->bat_if_base), 1);
-			if (rc)
-				pr_err("failed to read batt_sts rc=%d\n", rc);
-			val->intval = reg_sts;
-			break;
-		case POWER_SUPPLY_PROP_BUCK_STS:
-			rc = qpnp_chg_read(chip, &reg_sts, INT_RT_STS(chip->buck_base), 1);
-			if (rc)
-				pr_err("failed to read buck_sts rc=%d\n", rc);
-			val->intval = reg_sts;
-			break;
-		case POWER_SUPPLY_PROP_CHG_STS:
-			rc = qpnp_chg_read(chip, &reg_sts, INT_RT_STS(chip->chgr_base), 1);
-			if (rc)
-				pr_err("failed to read chgr_sts rc=%d\n", rc);
-			val->intval = reg_sts;
-			break;
-		case POWER_SUPPLY_PROP_USB_STS:
-			rc = qpnp_chg_read(chip, &reg_sts, INT_RT_STS(chip->usb_chgpth_base), 1);
-			if (rc)
-				pr_err("failed to read usb_sts rc=%d\n", rc);
-			val->intval = reg_sts;
-			break;
-		case POWER_SUPPLY_PROP_CHG_CTRL:
-			rc = qpnp_chg_read(chip, &reg_sts,chip->chgr_base + CHGR_CHG_CTRL, 1);
-			if (rc)
-				pr_err("failed to read chg_ctrl sts %d\n", rc);
-			val->intval = reg_sts;
-			break;
-		case POWER_SUPPLY_PROP_USB_SUSPEND_EN:
-			rc = qpnp_chg_read(chip, &reg_sts, chip->usb_chgpth_base + CHGR_USB_USB_SUSP, 1);
-			if (rc)
-				pr_err("failed to read usb_sts rc=%d\n", rc);
-			val->intval = (reg_sts&0x1);
-			break;
-#endif
 		case POWER_SUPPLY_PROP_SYSTEM_TEMP_LEVEL:
 			val->intval = chip->therm_lvl_sel;
 			break;
@@ -5125,35 +4962,6 @@ qpnp_batt_power_set_property(struct power_supply *psy,
 			qpnp_chg_charge_en(chip, !chip->charging_disabled);
 		}
 		break;
-#ifdef CONFIG_HUAWEI_KERNEL
-	case POWER_SUPPLY_PROP_FACTORY_DIG:
-#if defined(CONFIG_CHARGER_BQ2419x) || defined(CONFIG_BATTERY_BQ27510)
-		if(bq_device != NULL)
-		{
-			bq2419x_set_enable_charger_for_factory_test(bq_device,val->intval);
-			break;
-		}
-#endif
-		force_ps_but_not_chg = !(val->intval);
-		qpnp_chg_charge_en(chip,!force_ps_but_not_chg);
-		break;
-	case POWER_SUPPLY_PROP_HOT_IUSB_LIMIT:
-#if defined(CONFIG_CHARGER_BQ2419x) || defined(CONFIG_BATTERY_BQ27510)
-		if(bq_device != NULL)
-		{
-			bq_device->hot_design_current = val->intval;
-			bq2419x_config_input_source_reg(bq_device);
-		}
-		else
-#endif
-		{
-			huawei_hot_design_iusb_set(val->intval);
-		}
-		break;
-	case POWER_SUPPLY_PROP_RUNNING_TEST_SOC:
-		running_test_soc_enable = (val->intval);
-		break;
-#endif
 	case POWER_SUPPLY_PROP_SYSTEM_TEMP_LEVEL:
 		qpnp_batt_system_temp_level_set(chip, val->intval);
 		break;

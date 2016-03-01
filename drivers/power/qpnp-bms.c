@@ -304,9 +304,7 @@ struct qpnp_bms_chip {
 	struct qpnp_iadc_chip		*iadc_dev;
 	struct qpnp_adc_tm_chip		*adc_tm_dev;
 #ifdef CONFIG_HUAWEI_KERNEL
-	int				fake_soc_count;
 	int				batt_temp;
-	int 			current_remain_capacity;
 	int 			warm_reset_shutdown_soc_valid_limit;
 	int				estimate_new_ocv_flag;
 #endif
@@ -337,9 +335,7 @@ static enum power_supply_property msm_bms_power_props[] = {
 	POWER_SUPPLY_PROP_CYCLE_COUNT,
 #ifdef CONFIG_HUAWEI_KERNEL
 	POWER_SUPPLY_PROP_VOLTAGE_NOW,
-	POWER_SUPPLY_PROP_CURRENT_REMAIN_CAPACITY,
 #endif
-
 };
 
 static int discard_backup_fcc_data(struct qpnp_bms_chip *chip);
@@ -2659,9 +2655,6 @@ static int calculate_raw_soc(struct qpnp_bms_chip *chip,
 					- params->cc_uah
 					- params->uuc_uah;
 	pr_debug("RUC = %duAh\n", remaining_usable_charge_uah);
-#ifdef CONFIG_HUAWEI_KERNEL
-	chip->current_remain_capacity = remaining_usable_charge_uah;
-#endif
 
 	soc = DIV_ROUND_CLOSEST((remaining_usable_charge_uah * 100),
 				(params->fcc_uah - params->uuc_uah));
@@ -3761,14 +3754,6 @@ static int get_prop_bms_capacity(struct qpnp_bms_chip *chip)
 	return report_state_of_charge(chip);
 }
 
-#ifdef CONFIG_HUAWEI_KERNEL
-static int get_prop_current_remain_capacity(struct qpnp_bms_chip *chip)
-{
-	recalculate_soc(chip);
-	return chip->current_remain_capacity;
-}
-#endif
-
 static void qpnp_bms_external_power_changed(struct power_supply *psy)
 {
 	struct qpnp_bms_chip *chip = container_of(psy, struct qpnp_bms_chip,
@@ -3839,9 +3824,6 @@ static int qpnp_bms_power_get_property(struct power_supply *psy,
 #ifdef CONFIG_HUAWEI_KERNEL
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
 		val->intval = hw_voltage_now(chip);
-		break;
-	case POWER_SUPPLY_PROP_CURRENT_REMAIN_CAPACITY:
-		val->intval = get_prop_current_remain_capacity(chip);
 		break;
 #endif
 	default:
