@@ -282,13 +282,8 @@ static int __devinit qpnp_vibrator_probe(struct spmi_device *spmi)
 	vib->spmi = spmi;
 
 	vib->timeout = QPNP_VIB_DEFAULT_TIMEOUT;
-#ifndef CONFIG_HUAWEI_KERNEL
 	rc = of_property_read_u32(spmi->dev.of_node,
 			"qcom,vib-timeout-ms", &temp_val);
-#else
-	rc = of_property_read_u32(spmi->dev.of_node,
-			"huawei,vib-timeout-ms", &temp_val);
-#endif
 	if (!rc) {
 		vib->timeout = temp_val;
 	} else if (rc != EINVAL) {
@@ -297,13 +292,8 @@ static int __devinit qpnp_vibrator_probe(struct spmi_device *spmi)
 	}
 
 	vib->vtg_level = QPNP_VIB_DEFAULT_VTG_LVL;
-#ifndef CONFIG_HUAWEI_KERNEL
 	rc = of_property_read_u32(spmi->dev.of_node,
 			"qcom,vib-vtg-level-mV", &temp_val);
-#else
-	rc = of_property_read_u32(spmi->dev.of_node,
-			"huawei,vib-vtg-level-mV", &temp_val);
-#endif
 	if (!rc) {
 		vib->vtg_level = temp_val;
 	} else if (rc != -EINVAL) {
@@ -367,23 +357,14 @@ static int  __devexit qpnp_vibrator_remove(struct spmi_device *spmi)
 }
 
 static struct of_device_id spmi_match_table[] = {
-#ifndef CONFIG_HUAWEI_KERNEL
 	{	.compatible = "qcom,qpnp-vibrator",
 	},
-#else
-	{	.compatible = "huawei,qpnp-vibrator",
-	},
-#endif
 	{}
 };
 
 static struct spmi_driver qpnp_vibrator_driver = {
 	.driver		= {
-#ifndef CONFIG_HUAWEI_KERNEL
 		.name	= "qcom,qpnp-vibrator",
-#else
-		.name	= "huawei,qpnp-vibrator",
-#endif
 		.of_match_table = spmi_match_table,
 		.pm	= &qpnp_vibrator_pm_ops,
 	},
