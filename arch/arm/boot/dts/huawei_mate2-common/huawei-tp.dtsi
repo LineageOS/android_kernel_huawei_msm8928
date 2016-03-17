@@ -39,7 +39,7 @@
 						114 /* KEY_VOLUMEDOWN */
 						115 /* KEY_VOLUMEUP */
 						212 /* KEY_CAMERA */
-						116>; /* KEY_POWER */
+						143>; /* KEY_WAKEUP */
 
 				/* tp capacitance infomation */
 				cy,min_mut_cap = "-4000"; /*minimum mutual capcitance*/
