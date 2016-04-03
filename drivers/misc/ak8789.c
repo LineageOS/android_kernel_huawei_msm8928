@@ -270,7 +270,7 @@ void hall_work_func(struct work_struct *work)
 
 	/*report events of hall*/
 	value = query_hall_event();
-	input_event(hw_hall_dev.hw_input_hall, EV_MSC, MSC_SCAN, value);
+	input_report_switch(hw_hall_dev.hw_input_hall, SW_LID, value);
 	input_sync(hw_hall_dev.hw_input_hall);
 	atomic_dec(&irq_no_at);
 	
@@ -625,7 +625,9 @@ int hall_pf_probe(struct platform_device *pdev)
 	}
 	hw_hall_dev.hw_input_hall->name = "hall-sensor-ak8789";
 	set_bit(EV_MSC, hw_hall_dev.hw_input_hall->evbit);
+	set_bit(EV_SW, hw_hall_dev.hw_input_hall->evbit);
 	set_bit(MSC_SCAN, hw_hall_dev.hw_input_hall->mscbit);
+	input_set_capability(hw_hall_dev.hw_input_hall, EV_SW, SW_LID);
 	err = input_register_device(hw_hall_dev.hw_input_hall);
 	if (err){
 		AK8789_ERRMSG("hw_input_hall regiset error %d\n", err);
@@ -654,6 +656,7 @@ int hall_pf_probe(struct platform_device *pdev)
 	ret = app_info_set("Hall", "akm8789");
 	if (ret < 0)
 		AK8789_ERRMSG("%s(line %d): app_info_set error,ret=%d\n",__func__,__LINE__,ret);
+	queue_work(hw_hall_dev.hall_wq, &hw_hall_dev.hall_work);
 	return err;
 
 wq_fail:
