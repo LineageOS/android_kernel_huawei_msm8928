@@ -183,8 +183,8 @@ static CountryInfoTable_t countryInfoTable =
       {REGDOMAIN_ETSI, {'G', 'R'}}, //GREECE
       {REGDOMAIN_APAC, {'G', 'T'}},  //GUATEMALA
       {REGDOMAIN_FCC, {'G', 'U'}},  //GUAM
-      {REGDOMAIN_ETSI, {'H', 'U'}}, //HUNGARY
       {REGDOMAIN_ETSI, {'H', 'R'}}, //CROATIA
+      {REGDOMAIN_ETSI, {'H', 'U'}}, //HUNGARY
       {REGDOMAIN_FCC, {'I', 'D'}},  //INDONESIA
       {REGDOMAIN_ETSI, {'I', 'E'}}, //IRELAND
       {REGDOMAIN_ETSI, {'I', 'L'}}, //ISRAEL
