@@ -3381,12 +3381,6 @@ static void wcd9xxx_swch_irq_handler(struct wcd9xxx_mbhc *mbhc)
 		wcd9xxx_cancel_hs_detect_plug(mbhc,
 				      &mbhc->correct_plug_swch);
 
-#ifdef CONFIG_HUAWEI_KERNEL
-		/* cancel detect plug */
-		wcd9xxx_cancel_hs_detect_plug(mbhc,
-				      &mbhc->correct_plug_swch);
-#endif
-
 		if ((mbhc->current_plug != PLUG_TYPE_NONE) &&
 		    (mbhc->current_plug != PLUG_TYPE_HIGH_HPH) &&
 		    !(snd_soc_read(codec, WCD9XXX_A_MBHC_INSERT_DETECT) &
@@ -3407,12 +3401,6 @@ static void wcd9xxx_swch_irq_handler(struct wcd9xxx_mbhc *mbhc)
 		/* cancel detect plug */
 		wcd9xxx_cancel_hs_detect_plug(mbhc,
 				      &mbhc->correct_plug_swch);
-
-#ifdef CONFIG_HUAWEI_KERNEL
-		/* cancel detect plug */
-		wcd9xxx_cancel_hs_detect_plug(mbhc,
-				      &mbhc->correct_plug_swch);
-#endif
 
 		if (mbhc->current_plug == PLUG_TYPE_HEADPHONE) {
 			wcd9xxx_report_plug(mbhc, 0, SND_JACK_HEADPHONE);
