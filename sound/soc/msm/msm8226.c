@@ -83,12 +83,8 @@ void *def_tapan_mbhc_cal(void);
 static int msm_snd_enable_codec_ext_clk(struct snd_soc_codec *codec, int enable,
 					bool dapm);
 
-/* 1. enable mbhc's cs mode to detect headset and set some value to adapt auto MMI
- * 2. for auto MMI device detect, here set
-       do_recalibration = false
-       use_vddio_meas = false
-   3. avoid happen noise when playing, clear var
-      micbias_enable_flags = 1 << MBHC_MICBIAS_ENABLE_THRESHOLD_HEADSET
+/* avoid happen noise when playing, clear var
+ * micbias_enable_flags = 1 << MBHC_MICBIAS_ENABLE_THRESHOLD_HEADSET
  */
 static struct wcd9xxx_mbhc_config mbhc_cfg = {
 	.read_fw_bin = false,
@@ -100,11 +96,8 @@ static struct wcd9xxx_mbhc_config mbhc_cfg = {
 	.gpio = 0,
 	.gpio_irq = 0,
 	.gpio_level_insert = 0,
-	/*set extn_cable to false, otherwise it will affect a call when switch speaker to headphone or headphone to speaker*/
-#ifdef CONFIG_HUAWEI_KERNEL
-	.detect_extn_cable = false,
-#else
 	.detect_extn_cable = true,
+#ifndef CONFIG_HUAWEI_KERNEL
 	.micbias_enable_flags = 1 << MBHC_MICBIAS_ENABLE_THRESHOLD_HEADSET,
 #endif
 	.insert_detect = true,
